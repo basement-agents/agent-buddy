@@ -20,7 +20,7 @@ import {
   GitHubClient,
   AnalysisPipeline,
   ReviewEngine,
-  AnthropicClaudeProvider,
+  createLLMProvider,
   compareBuddies,
   Logger,
   getErrorMessage,
@@ -612,7 +612,7 @@ buddyCmd
   .option("--max-prs <number>", "Max PRs to analyze", "20")
   .action(async (username: string, opts: { repo: string; maxPrs: string }) => {
     const token = requireEnv(getGitHubToken(), "GITHUB_TOKEN");
-    const apiKey = requireEnv(getAnthropicApiKey(), "ANTHROPIC_API_KEY");
+    const config = await loadConfig();
 
     const parsed = parseRepoArg(opts.repo);
     const [owner, repo] = parsed;
@@ -620,7 +620,7 @@ buddyCmd
     const spinner = ora(`Analyzing ${pc.cyan(username)} on ${opts.repo}...`).start();
     try {
       const client = new GitHubClient(token);
-      const llm = new AnthropicClaudeProvider(apiKey);
+      const llm = createLLMProvider(config.llm);
       const pipeline = new AnalysisPipeline(llm);
 
       spinner.text = "Fetching review history...";
@@ -775,7 +775,7 @@ buddyCmd
   .option("-r, --repo <owner/repo>", "Repository to fetch new reviews from")
   .action(async (id: string, opts: { repo?: string }) => {
     const token = requireEnv(getGitHubToken(), "GITHUB_TOKEN");
-    const apiKey = requireEnv(getAnthropicApiKey(), "ANTHROPIC_API_KEY");
+    const config = await loadConfig();
 
     const spinner = ora(`Updating buddy ${pc.cyan(id)}...`).start();
     try {
@@ -793,7 +793,7 @@ buddyCmd
       }
 
       const client = new GitHubClient(token);
-      const llm = new AnthropicClaudeProvider(apiKey);
+      const llm = createLLMProvider(config.llm);
       const pipeline = new AnalysisPipeline(llm);
 
       for (const repoStr of repos) {
@@ -1169,7 +1169,7 @@ reviewCmd
   .option("--high-context", "Enable high-context analysis", false)
   .action(async (repoArg: string, prNumberStr: string, opts: { buddy?: string; highContext: boolean }) => {
     const token = requireEnv(getGitHubToken(), "GITHUB_TOKEN");
-    const apiKey = requireEnv(getAnthropicApiKey(), "ANTHROPIC_API_KEY");
+    const config = await loadConfig();
 
     const parsed = parseRepoArg(repoArg);
     const [owner, repo] = parsed;
@@ -1182,7 +1182,7 @@ reviewCmd
     const spinner = ora(`Reviewing ${owner}/${repo} PR #${prNumber}...`).start();
     try {
       const client = new GitHubClient(token);
-      const llm = new AnthropicClaudeProvider(apiKey);
+      const llm = createLLMProvider(config.llm);
       const engine = new ReviewEngine(llm);
       const storage = new BuddyFileSystemStorage();
 

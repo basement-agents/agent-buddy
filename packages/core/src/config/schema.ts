@@ -45,6 +45,27 @@ export const reviewConfigSchema = z.object({
   }).optional(),
 });
 
+export const llmProviderConfigSchema = z.object({
+  provider: z.enum(["anthropic", "openrouter", "openai"]).default("anthropic"),
+  apiKey: z.string().min(20, "API key too short").max(500, "API key too long").optional(),
+  baseUrl: z.string().url("Invalid URL format").optional()
+    .refine((val) => !val || val.startsWith("https://"), { message: "baseUrl must use HTTPS" })
+    .refine((val) => {
+      if (!val) return true;
+      try {
+        const hostname = new URL(val).hostname;
+        if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]") return false;
+        if (hostname.startsWith("169.254.") || hostname.startsWith("10.") || hostname.startsWith("192.168.")) return false;
+        if (hostname.match(/^172\.(1[6-9]|2\d|3[01])\./)) return false;
+        if (hostname.startsWith("fc") || hostname.startsWith("fd") || hostname.startsWith("fe")) return false;
+        return true;
+      } catch {
+        return false;
+      }
+    }, { message: "baseUrl must not point to internal/private network" }),
+  defaultModel: z.string().regex(/^[a-zA-Z0-9._/-]+$/, "Invalid model name").optional(),
+});
+
 export const configSchema = z.object({
   version: z.string().default("1.0.0"),
   githubToken: z.string().optional(),
@@ -65,6 +86,7 @@ export const configSchema = z.object({
     autoApproveBelow: false,
     reviewDelaySeconds: 0,
   })),
+  llm: llmProviderConfigSchema.optional(),
 });
 
 export type ValidatedConfig = z.infer<typeof configSchema>;

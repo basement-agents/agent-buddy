@@ -3,7 +3,7 @@ import {
   GitHubClient,
   BuddyFileSystemStorage,
   ReviewEngine,
-  AnthropicClaudeProvider,
+  createLLMProvider,
   Logger,
   getErrorMessage,
   calculateBackoffDelay,
@@ -48,14 +48,13 @@ async function executeReview(
 
   const [owner, repo] = repoId.split("/");
   const token = process.env.GITHUB_TOKEN;
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!token || !apiKey) throw new Error("Missing API keys");
+  if (!token) throw new Error("Missing GITHUB_TOKEN");
 
   const config = await loadConfig();
   const repoConfig = config.repos.find((r) => r.id === repoId);
 
   const client = new GitHubClient(token);
-  const llm = new AnthropicClaudeProvider(apiKey);
+  const llm = createLLMProvider(config.llm);
   const engine = new ReviewEngine(llm, repoConfig?.customRules);
   const storage = new BuddyFileSystemStorage();
 

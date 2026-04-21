@@ -25,9 +25,11 @@ export type {
   ReviewConfig,
   CustomRule,
   TriggerConfig,
+  LLMProviderConfig,
+  LLMProviderType,
 } from "./config/types.js";
 
-export { configSchema } from "./config/schema.js";
+export { configSchema, llmProviderConfigSchema } from "./config/schema.js";
 
 export type {
   PullRequest,
@@ -76,6 +78,10 @@ export { AnalysisPipeline } from "./analysis/pipeline.js";
 export { ReviewEngine } from "./review/engine.js";
 export { evaluateCustomRules } from "./review/rules.js";
 export { AnthropicClaudeProvider } from "./llm/provider.js";
+export { OpenRouterProvider } from "./llm/openrouter-provider.js";
+export { OpenAIProvider } from "./llm/openai-provider.js";
+export { OpenAICompatibleProvider } from "./llm/openai-compatible-provider.js";
+export { createLLMProvider } from "./llm/factory.js";
 export type { LLMProvider, LLMMessage, LLMOptions, LLMResponse } from "./llm/types.js";
 export { Logger, ConfigError, getErrorMessage, retryWithBackoff, calculateBackoffDelay, sleep, DEFAULT_BASE_DELAY_MS } from "./utils/index.js";
 export type { LogLevel, RetryOptions } from "./utils/index.js";

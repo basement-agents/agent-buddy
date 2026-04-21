@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NativeSelect } from "@/components/ui/native-select";
 import { api } from "@/lib/api";
-import type { CustomRule, SettingsData } from "@/lib/api";
+import type { CustomRule, SettingsData, LLMTestResult } from "@/lib/api";
 import { useRepos } from "@/lib/hooks";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -29,6 +29,14 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [webhookExpanded, setWebhookExpanded] = useState(false);
+
+  // LLM Provider state
+  const [llmProvider, setLlmProvider] = useState<"anthropic" | "openrouter" | "openai">("anthropic");
+  const [llmApiKey, setLlmApiKey] = useState("");
+  const [llmDefaultModel, setLlmDefaultModel] = useState("");
+  const [llmBaseUrl, setLlmBaseUrl] = useState("");
+  const [llmTestResult, setLlmTestResult] = useState<LLMTestResult | null>(null);
+  const [llmTesting, setLlmTesting] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -110,6 +118,12 @@ export function SettingsPage() {
             setQuietHoursEnd(settings.review.quietHours.end);
             setQuietHoursTimezone(settings.review.quietHours.timezone);
           }
+        }
+
+        if (settings.llm) {
+          setLlmProvider(settings.llm.provider);
+          if (settings.llm.defaultModel) setLlmDefaultModel(settings.llm.defaultModel);
+          if (settings.llm.baseUrl) setLlmBaseUrl(settings.llm.baseUrl);
         }
       } catch (err) {
         console.error("Failed to load settings:", err);
@@ -217,6 +231,12 @@ export function SettingsPage() {
           reviewDelaySeconds: parseInt(reviewDelaySeconds, 10),
           quietHours: quietHoursEnabled ? { start: quietHoursStart, end: quietHoursEnd, timezone: quietHoursTimezone } : undefined,
         },
+        llm: {
+          provider: llmProvider,
+          apiKey: llmApiKey || undefined,
+          defaultModel: llmDefaultModel || undefined,
+          baseUrl: llmBaseUrl || undefined,
+        },
       });
 
       showToast({ title: "Settings saved", variant: "success" });
@@ -271,6 +291,115 @@ export function SettingsPage() {
             <p className="mt-1 text-xs text-zinc-500">
               Requires repo and pull_request read permissions
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card aria-labelledby="settings-llm">
+        <CardHeader>
+          <CardTitle className="text-base" id="settings-llm">LLM Provider</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="settings-llm-provider">Provider</Label>
+            <div className="flex items-center gap-2">
+              <div className={`h-2 w-2 rounded-full ${llmApiKey ? "bg-green-500" : "bg-yellow-500"} shrink-0`} />
+              <span className="text-xs text-zinc-500">
+                {llmApiKey ? "API key configured" : "No API key set"}
+              </span>
+            </div>
+          </div>
+          <NativeSelect
+            id="settings-llm-provider"
+            value={llmProvider}
+            onChange={(e) => {
+              setLlmProvider(e.target.value as typeof llmProvider);
+              setLlmTestResult(null);
+            }}
+          >
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="openai">OpenAI</option>
+          </NativeSelect>
+
+          <div>
+            <Label htmlFor="settings-llm-api-key">API Key</Label>
+            <Input
+              id="settings-llm-api-key"
+              type="password"
+              placeholder={llmProvider === "anthropic" ? "sk-ant-..." : llmProvider === "openrouter" ? "sk-or-..." : "sk-..."}
+              value={llmApiKey}
+              onChange={(e) => {
+                setLlmApiKey(e.target.value);
+                setLlmTestResult(null);
+              }}
+            />
+            <p className="mt-1 text-xs text-zinc-500">
+              {llmProvider === "anthropic" && "Leave empty to use ANTHROPIC_API_KEY environment variable"}
+              {llmProvider === "openrouter" && "Leave empty to use OPENROUTER_API_KEY environment variable"}
+              {llmProvider === "openai" && "Leave empty to use OPENAI_API_KEY environment variable"}
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="settings-llm-model">Default Model</Label>
+            <Input
+              id="settings-llm-model"
+              placeholder={
+                llmProvider === "anthropic" ? "claude-sonnet-4-20250514" :
+                llmProvider === "openrouter" ? "anthropic/claude-sonnet-4-20250514" :
+                "gpt-4o"
+              }
+              value={llmDefaultModel}
+              onChange={(e) => setLlmDefaultModel(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-zinc-500">Leave empty to use provider default</p>
+          </div>
+
+          {llmProvider === "openai" && (
+            <div>
+              <Label htmlFor="settings-llm-base-url">Base URL</Label>
+              <Input
+                id="settings-llm-base-url"
+                placeholder="https://api.openai.com/v1/chat/completions"
+                value={llmBaseUrl}
+                onChange={(e) => setLlmBaseUrl(e.target.value)}
+              />
+              <p className="mt-1 text-xs text-zinc-500">Custom endpoint for OpenAI-compatible APIs (e.g., Azure, local models)</p>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={llmTesting}
+              onClick={async () => {
+                setLlmTesting(true);
+                setLlmTestResult(null);
+                try {
+                  await handleSave();
+                  const result = await api.testLLM();
+                  setLlmTestResult(result);
+                  showToast({
+                    title: result.success ? `Connection OK (${result.latencyMs}ms)` : `Connection failed: ${result.error}`,
+                    variant: result.success ? "success" : "error",
+                  });
+                } catch (err) {
+                  setLlmTestResult({ success: false, error: "Request failed" });
+                  showToast({ title: "Failed to test connection", variant: "error" });
+                } finally {
+                  setLlmTesting(false);
+                }
+              }}
+            >
+              {llmTesting ? "Testing..." : "Test Connection"}
+            </Button>
+            {llmTestResult && (
+              <Badge variant={llmTestResult.success ? "default" : "error"}>
+                {llmTestResult.success ? `${llmTestResult.latencyMs}ms` : llmTestResult.error}
+              </Badge>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -23,6 +23,7 @@ vi.mock("@agent-buddy/core", () => ({
     return { performReview: mockPerformReview, formatForGitHub: mockFormatForGitHub };
   }),
   AnthropicClaudeProvider: class {},
+  createLLMProvider: vi.fn().mockReturnValue({}),
   Logger: class { error = vi.fn(); info = vi.fn(); warn = vi.fn(); },
   getErrorMessage: (err: unknown) => (err instanceof Error ? err.message : String(err)),
   calculateBackoffDelay: (attempt: number) => 1000 * Math.pow(2, attempt),
@@ -103,7 +104,7 @@ describe("Review Job Processor", () => {
       await processReviewJob("job-3", "owner/repo", 1);
 
       expect(reviewJobs.get("job-3")!.status).toBe("failed");
-      expect(reviewJobs.get("job-3")!.error).toBe("Missing API keys");
+      expect(reviewJobs.get("job-3")!.error).toBe("Missing GITHUB_TOKEN");
     });
 
     it("handles LLM failure during review", async () => {

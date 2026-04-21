@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { loadConfig, saveConfig, Logger, getErrorMessage } from "@agent-buddy/core";
-import type { AgentBuddyConfig, ReviewConfig, ServerConfig } from "@agent-buddy/core";
+import { loadConfig, saveConfig, Logger, getErrorMessage, createLLMProvider } from "@agent-buddy/core";
+import type { AgentBuddyConfig, ReviewConfig, ServerConfig, LLMProviderConfig } from "@agent-buddy/core";
 import { apiError } from "../lib/api-response.js";
 
 const logger = new Logger("routes:settings");
@@ -16,11 +16,20 @@ function maskSensitiveServerConfig(server: Record<string, unknown> | undefined):
   };
 }
 
+function maskLLMConfig(llm: LLMProviderConfig | undefined): Record<string, unknown> | undefined {
+  if (!llm) return undefined;
+  return {
+    ...llm,
+    apiKey: llm.apiKey ? "configured" : "not set",
+  };
+}
+
 function formatSettingsResponse(config: AgentBuddyConfig) {
   return {
     githubToken: config.githubToken ? "configured" : "not set",
     server: maskSensitiveServerConfig(config.server as Record<string, unknown> | undefined),
     review: config.review,
+    llm: maskLLMConfig(config.llm),
   };
 }
 
@@ -53,6 +62,12 @@ const settingsPatchSchema = z.object({
       end: z.string(),
       timezone: z.string(),
     }).optional(),
+  }).optional(),
+  llm: z.object({
+    provider: z.enum(["anthropic", "openrouter", "openai"]).optional(),
+    apiKey: z.string().optional(),
+    baseUrl: z.string().optional(),
+    defaultModel: z.string().optional(),
   }).optional(),
 }).partial();
 
@@ -97,6 +112,11 @@ export function createSettingsRoutes(): Hono {
         );
       }
 
+      if (body.llm) {
+        const existingLlm = config.llm ?? { provider: "anthropic" as const } as LLMProviderConfig;
+        config.llm = mergeWithoutUndefined(existingLlm, body.llm);
+      }
+
       await saveConfig(config);
 
       logger.info("Settings updated successfully");
@@ -128,6 +148,41 @@ export function createSettingsRoutes(): Hono {
     } catch (err) {
       const errorMessage = getErrorMessage(err);
       logger.error("Failed to configure GitHub App", { error: errorMessage });
+      return c.json(apiError(errorMessage), 500);
+    }
+  });
+
+  // POST /api/settings/llm/test - Test LLM provider connection
+  app.post("/api/settings/llm/test", async (c) => {
+    try {
+      const config = await loadConfig();
+      const provider = createLLMProvider(config.llm);
+      const start = Date.now();
+      const providerName = config.llm?.provider || "anthropic";
+
+      try {
+        await provider.generate([
+          { role: "user", content: "Hi" },
+        ], { maxTokens: 1 });
+
+        return c.json({
+          success: true,
+          provider: providerName,
+          model: config.llm?.defaultModel || "default",
+          latencyMs: Date.now() - start,
+        });
+      } catch (err) {
+        const errorMsg = getErrorMessage(err).replace(/sk-[a-zA-Z0-9-]+/g, "sk-...");
+        return c.json({
+          success: false,
+          provider: providerName,
+          error: errorMsg,
+          latencyMs: Date.now() - start,
+        }, 400);
+      }
+    } catch (err) {
+      const errorMessage = getErrorMessage(err);
+      logger.error("Failed to test LLM connection", { error: errorMessage });
       return c.json(apiError(errorMessage), 500);
     }
   });

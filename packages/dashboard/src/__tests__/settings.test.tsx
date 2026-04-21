@@ -298,6 +298,12 @@ describe("SettingsPage", () => {
             reviewDelaySeconds: 0,
             quietHours: undefined,
           },
+          llm: {
+            provider: "anthropic",
+            apiKey: undefined,
+            defaultModel: undefined,
+            baseUrl: undefined,
+          },
         });
       });
     });

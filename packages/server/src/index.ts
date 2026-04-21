@@ -52,7 +52,7 @@ app.get("/api/health", async (c) => {
 
   // Perform dependency health checks in parallel, don't wait for success
   const healthChecks = await performHealthChecks().catch(() => ({
-    anthropic: { status: "error" as const, message: "Health check failed" },
+    provider: { status: "error" as const, message: "Health check failed" },
   }));
 
   return c.json({
@@ -60,7 +60,7 @@ app.get("/api/health", async (c) => {
     timestamp: new Date().toISOString(),
     rateLimit: rateLimitStatus,
     dependencies: {
-      anthropic: healthChecks.anthropic,
+      provider: healthChecks.provider,
     },
   });
 });

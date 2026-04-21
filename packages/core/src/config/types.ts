@@ -1,5 +1,14 @@
 import type { BuddyId, ReviewSeverity } from "../buddy/types.js";
 
+export type LLMProviderType = "anthropic" | "openrouter" | "openai";
+
+export interface LLMProviderConfig {
+  provider: LLMProviderType;
+  apiKey?: string;
+  baseUrl?: string;
+  defaultModel?: string;
+}
+
 export interface AgentBuddyConfig {
   version: string;
   githubToken?: string;
@@ -10,6 +19,7 @@ export interface AgentBuddyConfig {
   defaultBuddyId?: BuddyId;
   server?: ServerConfig;
   review?: ReviewConfig;
+  llm?: LLMProviderConfig;
 }
 
 export interface RepoConfig {

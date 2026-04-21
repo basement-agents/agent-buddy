@@ -21,6 +21,8 @@ vi.mock("@agent-buddy/core", async (importOriginal) => {
       return { createBuddy: mockCreateBuddy, updateBuddy: mockUpdateBuddy };
     }),
     AnthropicClaudeProvider: class {},
+    createLLMProvider: vi.fn().mockImplementation(() => ({})),
+    loadConfig: vi.fn().mockResolvedValue({ llm: { provider: "anthropic", apiKey: "test" } }),
     Logger: class {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       constructor(_prefix?: string) {}
@@ -53,7 +55,6 @@ describe("analysis-job processor", () => {
     const mockOwner = "org";
     const mockRepo = "repo";
     const mockToken = "ghp_token";
-    const mockApiKey = "sk-api-key";
     const mockMaxPrs = 10;
 
     const mockReviewData = [
@@ -115,7 +116,7 @@ describe("analysis-job processor", () => {
         updatedAt: new Date(),
       });
 
-      await processAnalysisJob(mockJobId, mockUsername, mockOwner, mockRepo, mockToken, mockApiKey, mockMaxPrs);
+      await processAnalysisJob(mockJobId, mockUsername, mockOwner, mockRepo, mockToken, mockMaxPrs);
 
       const job = analysisJobs.get(mockJobId);
       expect(job?.status).toBe("completed");
@@ -137,7 +138,7 @@ describe("analysis-job processor", () => {
     it("should fail when no reviews are found", async () => {
       mockGetPRsReviewedBy.mockResolvedValue([]);
 
-      await processAnalysisJob(mockJobId, mockUsername, mockOwner, mockRepo, mockToken, mockApiKey, mockMaxPrs);
+      await processAnalysisJob(mockJobId, mockUsername, mockOwner, mockRepo, mockToken, mockMaxPrs);
 
       const job = analysisJobs.get(mockJobId);
       expect(job?.status).toBe("failed");
@@ -151,7 +152,7 @@ describe("analysis-job processor", () => {
       mockGetPRsReviewedBy.mockResolvedValue(mockReviewData);
       mockCreateBuddy.mockRejectedValue(new Error("LLM API failure"));
 
-      await processAnalysisJob(mockJobId, mockUsername, mockOwner, mockRepo, mockToken, mockApiKey, mockMaxPrs);
+      await processAnalysisJob(mockJobId, mockUsername, mockOwner, mockRepo, mockToken, mockMaxPrs);
 
       const job = analysisJobs.get(mockJobId);
       expect(job?.status).toBe("failed");
@@ -183,7 +184,7 @@ describe("analysis-job processor", () => {
         updatedAt: new Date(),
       });
 
-      await processAnalysisJob(mockJobId, mockUsername, mockOwner, mockRepo, mockToken, mockApiKey, mockMaxPrs);
+      await processAnalysisJob(mockJobId, mockUsername, mockOwner, mockRepo, mockToken, mockMaxPrs);
 
       expect(mockCreateBuddy).toHaveBeenCalledWith(
         mockUsername,
@@ -199,7 +200,6 @@ describe("analysis-job processor", () => {
     const mockBuddyId = "reviewer";
     const mockRepoStr = "org/repo";
     const mockToken = "ghp_token";
-    const mockApiKey = "sk-api-key";
 
     const mockProfile = {
       id: mockBuddyId,
@@ -266,7 +266,7 @@ describe("analysis-job processor", () => {
         updatedAt: new Date(),
       });
 
-      await processUpdateJob(mockJobId, mockBuddyId, mockRepoStr, mockToken, mockApiKey);
+      await processUpdateJob(mockJobId, mockBuddyId, mockRepoStr, mockToken);
 
       const job = analysisJobs.get(mockJobId);
       expect(job?.status).toBe("completed");
@@ -287,7 +287,7 @@ describe("analysis-job processor", () => {
     it("should fail when buddy not found", async () => {
       mockReadProfile.mockResolvedValue(null);
 
-      await processUpdateJob(mockJobId, mockBuddyId, mockRepoStr, mockToken, mockApiKey);
+      await processUpdateJob(mockJobId, mockBuddyId, mockRepoStr, mockToken);
 
       const job = analysisJobs.get(mockJobId);
       expect(job?.status).toBe("failed");
@@ -301,7 +301,7 @@ describe("analysis-job processor", () => {
         sourceRepos: [],
       });
 
-      await processUpdateJob(mockJobId, mockBuddyId, undefined, mockToken, mockApiKey);
+      await processUpdateJob(mockJobId, mockBuddyId, undefined, mockToken);
 
       const job = analysisJobs.get(mockJobId);
       expect(job?.status).toBe("failed");
@@ -316,7 +316,7 @@ describe("analysis-job processor", () => {
       mockGetPRsReviewedBy.mockResolvedValue([]);
       mockUpdateBuddy.mockResolvedValue(mockProfile);
 
-      await processUpdateJob(mockJobId, mockBuddyId, undefined, mockToken, mockApiKey);
+      await processUpdateJob(mockJobId, mockBuddyId, undefined, mockToken);
 
       const job = analysisJobs.get(mockJobId);
       expect(job?.status).toBe("completed");
@@ -328,7 +328,7 @@ describe("analysis-job processor", () => {
       mockReadProfile.mockResolvedValue(mockProfile);
       mockGetPRsReviewedBy.mockResolvedValue([]);
 
-      await processUpdateJob(mockJobId, mockBuddyId, mockRepoStr, mockToken, mockApiKey);
+      await processUpdateJob(mockJobId, mockBuddyId, mockRepoStr, mockToken);
 
       const job = analysisJobs.get(mockJobId);
       expect(job?.status).toBe("completed");
@@ -340,7 +340,7 @@ describe("analysis-job processor", () => {
       mockGetPRsReviewedBy.mockResolvedValue(mockReviewData);
       mockUpdateBuddy.mockRejectedValue(new Error("Update failed"));
 
-      await processUpdateJob(mockJobId, mockBuddyId, mockRepoStr, mockToken, mockApiKey);
+      await processUpdateJob(mockJobId, mockBuddyId, mockRepoStr, mockToken);
 
       const job = analysisJobs.get(mockJobId);
       expect(job?.status).toBe("failed");
