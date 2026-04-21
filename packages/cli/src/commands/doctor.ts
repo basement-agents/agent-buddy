@@ -2,7 +2,7 @@ import pc from "picocolors";
 import path from "node:path";
 import os from "node:os";
 import { promises as fs } from "node:fs";
-import { loadConfig, getErrorMessage } from "@agent-buddy/core";
+import { loadConfig, getErrorMessage, createLLMProvider } from "@agent-buddy/core";
 import type { Command } from "commander";
 
 interface CheckResult {
@@ -18,27 +18,50 @@ export function registerDoctorCommand(program: Command): void {
     .action(async () => {
       const results: CheckResult[] = [];
 
-      const envChecks = [
-        { name: "GITHUB_TOKEN", envVars: ["GITHUB_TOKEN", "GH_TOKEN"] as const },
-        { name: "ANTHROPIC_API_KEY", envVars: ["ANTHROPIC_API_KEY"] as const },
-      ];
-
-      for (const check of envChecks) {
-        const value = check.envVars.map((v) => process.env[v]).find(Boolean);
-        if (value) {
-          results.push({ name: check.name, status: "pass", message: `Set (${value.slice(0, 8)}...)` });
-        } else {
-          results.push({ name: check.name, status: "fail", message: `Not set. Set ${check.envVars.join(" or ")} environment variable.` });
-        }
+      // Check GitHub token
+      const ghToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+      if (ghToken) {
+        results.push({ name: "GITHUB_TOKEN", status: "pass", message: `Set (${ghToken.slice(0, 8)}...)` });
+      } else {
+        results.push({ name: "GITHUB_TOKEN", status: "fail", message: "Not set. Set GITHUB_TOKEN or GH_TOKEN environment variable." });
       }
 
-      // Check config file
+      // Check config file and LLM provider
       let config: Awaited<ReturnType<typeof loadConfig>> | null = null;
       try {
         config = await loadConfig();
         results.push({ name: "Config file", status: "pass", message: `Found (${config.repos.length} repos configured)` });
       } catch (err) {
         results.push({ name: "Config file", status: "fail", message: `Invalid: ${getErrorMessage(err)}` });
+      }
+
+      // Check configured LLM provider
+      const providerName = config?.llm?.provider || "anthropic";
+      const envKeyMap: Record<string, string[]> = {
+        anthropic: ["ANTHROPIC_API_KEY"],
+        openrouter: ["OPENROUTER_API_KEY"],
+        openai: ["OPENAI_API_KEY"],
+      };
+      const providerEnvVars = envKeyMap[providerName] || [];
+      const providerApiKey = config?.llm?.apiKey || providerEnvVars.map((v) => process.env[v]).find(Boolean);
+
+      if (providerApiKey) {
+        results.push({ name: `LLM Provider (${providerName})`, status: "pass", message: `API key configured (${providerApiKey.slice(0, 8)}...)` });
+      } else {
+        results.push({ name: `LLM Provider (${providerName})`, status: "fail", message: `No API key. Set ${providerEnvVars.join(" or ")} or configure in settings.` });
+      }
+
+      // Test provider connection
+      if (providerApiKey) {
+        try {
+          const llm = createLLMProvider(config?.llm);
+          const start = Date.now();
+          await llm.generate([{ role: "user", content: "ping" }], { maxTokens: 5 });
+          const latency = Date.now() - start;
+          results.push({ name: "LLM connectivity", status: "pass", message: `${providerName} responding (${latency}ms)` });
+        } catch (err) {
+          results.push({ name: "LLM connectivity", status: "fail", message: `${providerName}: ${getErrorMessage(err)}` });
+        }
       }
 
       // Check buddy directory structure

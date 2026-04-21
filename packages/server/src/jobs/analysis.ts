@@ -2,7 +2,8 @@ import {
   GitHubClient,
   BuddyFileSystemStorage,
   AnalysisPipeline,
-  AnthropicClaudeProvider,
+  createLLMProvider,
+  loadConfig,
   Logger,
   getErrorMessage,
   calculateBackoffDelay,
@@ -79,7 +80,6 @@ export async function processAnalysisJob(
   owner: string,
   repo: string,
   token: string,
-  apiKey: string,
   maxPrs: number
 ): Promise<void> {
   const job = analysisJobs.get(jobId);
@@ -88,8 +88,9 @@ export async function processAnalysisJob(
   initJob(job, "Fetching review history...", "Fetching reviews from GitHub...");
 
   try {
+    const config = await loadConfig();
     const client = new GitHubClient(token);
-    const llm = new AnthropicClaudeProvider(apiKey);
+    const llm = createLLMProvider(config.llm);
     const pipeline = new AnalysisPipeline(llm);
 
     job.progressPercentage = 10;
@@ -119,7 +120,7 @@ export async function processAnalysisJob(
         const currentJob = analysisJobs.get(jobId);
         if (!currentJob || currentJob.status !== "queued") return;
         try {
-          await processAnalysisJob(jobId, username, owner, repo, token, apiKey, maxPrs);
+          await processAnalysisJob(jobId, username, owner, repo, token, maxPrs);
         } catch {
           const retryJob = analysisJobs.get(jobId);
           if (retryJob) {
@@ -136,8 +137,7 @@ export async function processUpdateJob(
   jobId: string,
   buddyId: string,
   repoStr: string | undefined,
-  token: string,
-  apiKey: string
+  token: string
 ): Promise<void> {
   const job = analysisJobs.get(jobId);
   if (!job) throw new Error(`Analysis job ${jobId} not found`);
@@ -145,6 +145,7 @@ export async function processUpdateJob(
   initJob(job, "Loading buddy profile...", "Loading buddy profile...");
 
   try {
+    const config = await loadConfig();
     const storage = new BuddyFileSystemStorage();
     const profile = await storage.readProfile(buddyId);
     if (!profile) throw new Error("Buddy not found");
@@ -153,7 +154,7 @@ export async function processUpdateJob(
     if (repos.length === 0) throw new Error("No source repos");
 
     const client = new GitHubClient(token);
-    const llm = new AnthropicClaudeProvider(apiKey);
+    const llm = createLLMProvider(config.llm);
     const pipeline = new AnalysisPipeline(llm);
 
     let totalReviews = 0;
@@ -184,7 +185,7 @@ export async function processUpdateJob(
         const currentJob = analysisJobs.get(jobId);
         if (!currentJob || currentJob.status !== "queued") return;
         try {
-          await processUpdateJob(jobId, buddyId, repoStr, token, apiKey);
+          await processUpdateJob(jobId, buddyId, repoStr, token);
         } catch {
           const retryJob = analysisJobs.get(jobId);
           if (retryJob) {

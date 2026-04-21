@@ -86,6 +86,10 @@ export const api = {
   // Health
   health: (signal?: AbortSignal) => request<{ status: string }>("/health", { signal }),
 
+  // LLM Provider Test
+  testLLM: (signal?: AbortSignal) =>
+    request<LLMTestResult>("/settings/llm/test", { method: "POST", signal }),
+
   // Settings
   getSettings: (signal?: AbortSignal) => request<SettingsData>("/settings", { signal }),
   updateSettings: (settings: Partial<SettingsData>, signal?: AbortSignal) =>
@@ -469,6 +473,22 @@ export interface SettingsData {
   githubToken: string;
   server?: ServerConfig;
   review?: ReviewSettingsConfig;
+  llm?: LLMProviderSettings;
+}
+
+export interface LLMProviderSettings {
+  provider: "anthropic" | "openrouter" | "openai";
+  apiKey?: string;
+  baseUrl?: string;
+  defaultModel?: string;
+}
+
+export interface LLMTestResult {
+  success: boolean;
+  provider?: string;
+  model?: string;
+  latencyMs?: number;
+  error?: string;
 }
 
 export interface MetricsData {

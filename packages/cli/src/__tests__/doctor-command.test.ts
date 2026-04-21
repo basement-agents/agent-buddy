@@ -11,6 +11,10 @@ vi.mock("@agent-buddy/core", () => ({
     init = vi.fn().mockResolvedValue(undefined);
     listBuddies = vi.fn().mockResolvedValue([]);
   },
+  createLLMProvider: vi.fn().mockReturnValue({
+    generate: vi.fn().mockResolvedValue({ content: "pong", usage: { inputTokens: 1, outputTokens: 1 } }),
+  }),
+  getErrorMessage: (err: unknown) => (err instanceof Error ? err.message : String(err)),
 }));
 
 const originalFetch = global.fetch;
@@ -87,7 +91,7 @@ describe("Doctor Command", () => {
     await program.parseAsync(["node", "test", "doctor"]);
 
     expect(output).toContain("GITHUB_TOKEN");
-    expect(output).toContain("ANTHROPIC_API_KEY");
+    expect(output).toContain("LLM Provider");
     consoleLogSpy.mockRestore();
     consoleErrorSpy.mockRestore();
   });

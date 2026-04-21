@@ -192,10 +192,7 @@ describe("Buddies Routes", () => {
   it("POST /api/buddies returns 500 when API keys missing", async () => {
     // Delete the environment variables
     delete process.env.GITHUB_TOKEN;
-    delete process.env.ANTHROPIC_API_KEY;
 
-    // Create a fresh module import by using a dynamic import with a cache bust
-    // Since the module reads env vars at load time, we need to test the route handler behavior
     const { createBuddiesRoutes } = await import("../routes/buddies.js");
     const buddiesApp = createBuddiesRoutes();
 
@@ -206,7 +203,7 @@ describe("Buddies Routes", () => {
     });
     expect(res.status).toBe(500);
     const data = await res.json();
-    expect(data).toMatchObject({ error: "GITHUB_TOKEN and ANTHROPIC_API_KEY must be set" });
+    expect(data).toMatchObject({ error: "GITHUB_TOKEN must be set" });
   });
 
   it("DELETE /api/buddies/:id removes buddy (200)", async () => {
@@ -334,7 +331,6 @@ describe("Buddies Routes", () => {
 
   it("POST /api/buddies/:id/update returns 500 when API keys missing", async () => {
     delete process.env.GITHUB_TOKEN;
-    delete process.env.ANTHROPIC_API_KEY;
 
     const { createBuddiesRoutes } = await import("../routes/buddies.js");
     const buddiesApp = createBuddiesRoutes();
@@ -346,7 +342,7 @@ describe("Buddies Routes", () => {
     });
     expect(res.status).toBe(500);
     const data = await res.json();
-    expect(data).toMatchObject({ error: "Missing API keys" });
+    expect(data).toMatchObject({ error: "GITHUB_TOKEN must be set" });
   });
 
   it("POST /api/buddies/import returns 400 for invalid profile JSON", async () => {

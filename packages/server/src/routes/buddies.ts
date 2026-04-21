@@ -71,9 +71,8 @@ export function createBuddiesRoutes(): Hono {
     if (!owner || !repoName) return c.json(apiError("Invalid repo format. Use owner/repo"), 400);
 
     const token = process.env.GITHUB_TOKEN;
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!token || !apiKey) {
-      return c.json(apiError("GITHUB_TOKEN and ANTHROPIC_API_KEY must be set"), 500);
+    if (!token) {
+      return c.json(apiError("GITHUB_TOKEN must be set"), 500);
     }
 
     const job: AnalysisJob = {
@@ -83,7 +82,7 @@ export function createBuddiesRoutes(): Hono {
     };
     analysisJobs.set(job.id, job);
 
-    processAnalysisJob(job.id, username, owner, repoName, token, apiKey, maxPrs).catch((err) => {
+    processAnalysisJob(job.id, username, owner, repoName, token, maxPrs).catch((err) => {
       logger.error("Analysis job failed", { jobId: job.id, username, owner, repo: repoName, error: getErrorMessage(err) });
     });
 
@@ -112,9 +111,8 @@ export function createBuddiesRoutes(): Hono {
     const id = c.req.param("id");
     const body = c.req.valid("json");
     const token = process.env.GITHUB_TOKEN;
-    const apiKey = process.env.ANTHROPIC_API_KEY;
 
-    if (!token || !apiKey) return c.json(apiError("Missing API keys"), 500);
+    if (!token) return c.json(apiError("GITHUB_TOKEN must be set"), 500);
 
     const job: AnalysisJob = {
       ...createJobBase(),
@@ -123,7 +121,7 @@ export function createBuddiesRoutes(): Hono {
     };
     analysisJobs.set(job.id, job);
 
-    processUpdateJob(job.id, id, body.repo, token, apiKey).catch((err) => {
+    processUpdateJob(job.id, id, body.repo, token).catch((err) => {
       logger.error("Update job failed", { jobId: job.id, buddyId: id, repo: body.repo, error: getErrorMessage(err) });
     });
 

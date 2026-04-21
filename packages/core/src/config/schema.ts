@@ -45,6 +45,13 @@ export const reviewConfigSchema = z.object({
   }).optional(),
 });
 
+export const llmProviderConfigSchema = z.object({
+  provider: z.enum(["anthropic", "openrouter", "openai"]).default("anthropic"),
+  apiKey: z.string().optional(),
+  baseUrl: z.string().optional(),
+  defaultModel: z.string().optional(),
+});
+
 export const configSchema = z.object({
   version: z.string().default("1.0.0"),
   githubToken: z.string().optional(),
@@ -65,6 +72,7 @@ export const configSchema = z.object({
     autoApproveBelow: false,
     reviewDelaySeconds: 0,
   })),
+  llm: llmProviderConfigSchema.optional(),
 });
 
 export type ValidatedConfig = z.infer<typeof configSchema>;

@@ -1,103 +1,98 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { checkAnthropicHealth, performHealthChecks } from "../lib/health-check.js";
+
+const mockGenerate = vi.fn();
+
+vi.mock("@agent-buddy/core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@agent-buddy/core")>();
+  return {
+    ...actual,
+    loadConfig: vi.fn(),
+    createLLMProvider: vi.fn().mockReturnValue({ generate: mockGenerate }),
+    getErrorMessage: (err: unknown) => (err instanceof Error ? err.message : String(err)),
+  };
+});
 
 describe("Health Check Utility", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.restoreAllMocks();
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
+    delete process.env.OPENAI_API_KEY;
+    mockGenerate.mockReset();
   });
 
-  it("should return error when API key is not configured", async () => {
-    // Delete the API key from environment
-    delete process.env.ANTHROPIC_API_KEY;
+  it("should return error when no API key is configured", async () => {
+    const { loadConfig } = await import("@agent-buddy/core");
+    vi.mocked(loadConfig).mockResolvedValue({ llm: undefined } as never);
 
-    const result = await checkAnthropicHealth();
+    const { checkProviderHealth } = await import("../lib/health-check.js");
+    const result = await checkProviderHealth();
+
     expect(result.status).toBe("error");
     expect(result.message).toBe("API key not configured");
   });
 
-  it("should return ok when API call succeeds", async () => {
-    process.env.ANTHROPIC_API_KEY = "test-key";
+  it("should return ok when provider connection succeeds", async () => {
+    const { loadConfig } = await import("@agent-buddy/core");
+    vi.mocked(loadConfig).mockResolvedValue({
+      llm: { provider: "anthropic", apiKey: "test-key" },
+    } as never);
 
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-    });
-    global.fetch = mockFetch;
+    mockGenerate.mockResolvedValue({ content: "ok", usage: { inputTokens: 1, outputTokens: 1 }, model: "test" });
 
-    const result = await checkAnthropicHealth();
+    const { checkProviderHealth } = await import("../lib/health-check.js");
+    const result = await checkProviderHealth();
+
     expect(result.status).toBe("ok");
-    expect(result.message).toBeUndefined();
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      "https://api.anthropic.com/v1/messages",
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({
-          "x-api-key": "test-key",
-          "anthropic-version": "2023-06-01",
-        }),
-      })
-    );
+    expect(result.provider).toBe("anthropic");
   });
 
-  it("should return error when API call fails with 401", async () => {
-    process.env.ANTHROPIC_API_KEY = "invalid-key";
+  it("should return error when provider connection fails", async () => {
+    const { loadConfig } = await import("@agent-buddy/core");
+    vi.mocked(loadConfig).mockResolvedValue({
+      llm: { provider: "openrouter", apiKey: "bad-key" },
+    } as never);
 
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 401,
-    });
-    global.fetch = mockFetch;
+    mockGenerate.mockRejectedValue(new Error("Invalid API key"));
 
-    const result = await checkAnthropicHealth();
+    const { checkProviderHealth } = await import("../lib/health-check.js");
+    const result = await checkProviderHealth();
+
     expect(result.status).toBe("error");
+    expect(result.provider).toBe("openrouter");
     expect(result.message).toBe("Invalid API key");
   });
 
-  it("should return error when API call fails with 429", async () => {
-    process.env.ANTHROPIC_API_KEY = "rate-limited-key";
+  it("should return error on timeout", async () => {
+    const { loadConfig } = await import("@agent-buddy/core");
+    vi.mocked(loadConfig).mockResolvedValue({
+      llm: { provider: "anthropic", apiKey: "test-key" },
+    } as never);
 
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 429,
-    });
-    global.fetch = mockFetch;
-
-    const result = await checkAnthropicHealth();
-    expect(result.status).toBe("error");
-    expect(result.message).toBe("Rate limit exceeded");
-  });
-
-  it("should return error when API call times out", async () => {
-    process.env.ANTHROPIC_API_KEY = "test-key";
-
-    const mockFetch = vi.fn().mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          // Never resolve, simulating timeout
-          setTimeout(() => resolve({ ok: true, status: 200 }), 10000);
-        })
+    mockGenerate.mockImplementation(
+      () => new Promise((_, reject) => setTimeout(() => reject(new Error("Health check timeout")), 6000))
     );
-    global.fetch = mockFetch;
 
-    const result = await checkAnthropicHealth();
+    const { checkProviderHealth } = await import("../lib/health-check.js");
+    const result = await checkProviderHealth();
+
     expect(result.status).toBe("error");
     expect(result.message).toBe("Connection timeout");
   }, 10000);
 
-  it("should perform all health checks in parallel", async () => {
-    process.env.ANTHROPIC_API_KEY = "test-key";
+  it("performHealthChecks should return provider result", async () => {
+    const { loadConfig } = await import("@agent-buddy/core");
+    vi.mocked(loadConfig).mockResolvedValue({
+      llm: { provider: "openai", apiKey: "test-key" },
+    } as never);
 
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-    });
-    global.fetch = mockFetch;
+    mockGenerate.mockResolvedValue({ content: "ok", usage: { inputTokens: 1, outputTokens: 1 }, model: "test" });
 
+    const { performHealthChecks } = await import("../lib/health-check.js");
     const result = await performHealthChecks();
 
-    expect(result).toHaveProperty("anthropic");
-    expect(result.anthropic.status).toBe("ok");
+    expect(result).toHaveProperty("provider");
+    expect(result.provider.status).toBe("ok");
+    expect(result.provider.provider).toBe("openai");
   });
 });

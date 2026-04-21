@@ -7,7 +7,7 @@ vi.mock("../middleware/auth.js", () => ({
 
 vi.mock("../lib/health-check.js", () => ({
   performHealthChecks: async () => ({
-    anthropic: { status: "ok" },
+    provider: { status: "ok" },
   }),
 }));
 
@@ -83,11 +83,11 @@ describe("Server Routes", () => {
     const { default: app } = await import("../index.js");
     const res = await app.request("/api/health");
     expect(res.status).toBe(200);
-    const data = await res.json() as { status: string; dependencies: { anthropic: { status: string } } };
+    const data = await res.json() as { status: string; dependencies: { provider: { status: string } } };
     expect(data.status).toBe("ok");
     expect(data.dependencies).toBeDefined();
-    expect(data.dependencies.anthropic).toBeDefined();
-    expect(data.dependencies.anthropic.status).toBe("ok");
+    expect(data.dependencies.provider).toBeDefined();
+    expect(data.dependencies.provider.status).toBe("ok");
   });
 
   it("should return 404 for unknown routes", async () => {
