@@ -27,3 +27,15 @@ out/
 .env
 .env.local
 .env.*.local
+
+# Research (internal)
+research/
+
+# Turbo
+.turbo/
+
+# Test results
+test-results.json
+
+# OMC
+.omc/
