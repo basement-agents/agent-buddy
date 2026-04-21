@@ -60,7 +60,7 @@ export function registerDoctorCommand(program: Command): void {
           const latency = Date.now() - start;
           results.push({ name: "LLM connectivity", status: "pass", message: `${providerName} responding (${latency}ms)` });
         } catch (err) {
-          results.push({ name: "LLM connectivity", status: "fail", message: `${providerName}: ${getErrorMessage(err)}` });
+          results.push({ name: "LLM connectivity", status: "fail", message: `${providerName}: ${getErrorMessage(err).replace(/sk-[a-zA-Z0-9-]+/g, "sk-...")}` });
         }
       }
 

@@ -54,7 +54,11 @@ export const llmProviderConfigSchema = z.object({
       if (!val) return true;
       try {
         const hostname = new URL(val).hostname;
-        return hostname !== "localhost" && hostname !== "127.0.0.1" && !hostname.startsWith("169.254.") && !hostname.startsWith("10.") && !hostname.match(/^172\.(1[6-9]|2\d|3[01])\./) && !hostname.startsWith("192.168.");
+        if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]") return false;
+        if (hostname.startsWith("169.254.") || hostname.startsWith("10.") || hostname.startsWith("192.168.")) return false;
+        if (hostname.match(/^172\.(1[6-9]|2\d|3[01])\./)) return false;
+        if (hostname.startsWith("fc") || hostname.startsWith("fd") || hostname.startsWith("fe")) return false;
+        return true;
       } catch {
         return false;
       }
