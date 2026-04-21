@@ -1,0 +1,14 @@
+import { Button } from "@/components/ui/button";
+
+export function ErrorState({ message, onRetry, retryLabel, className, role }: { message: string; onRetry?: () => void; retryLabel?: string; className?: string; role?: string }) {
+  return (
+    <div role={role} className={`rounded-lg border border-red-200 bg-red-50 p-6 text-center dark:border-red-900/30 dark:bg-red-900/10 ${className ?? ""}`}>
+      <p className="text-red-600 dark:text-red-400">{message}</p>
+      {onRetry && (
+        <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
+          {retryLabel ?? "Try Again"}
+        </Button>
+      )}
+    </div>
+  );
+}
