@@ -21,7 +21,7 @@ export function registerDoctorCommand(program: Command): void {
       // Check GitHub token
       const ghToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
       if (ghToken) {
-        results.push({ name: "GITHUB_TOKEN", status: "pass", message: `Set (${ghToken.slice(0, 8)}...)` });
+        results.push({ name: "GITHUB_TOKEN", status: "pass", message: "Set" });
       } else {
         results.push({ name: "GITHUB_TOKEN", status: "fail", message: "Not set. Set GITHUB_TOKEN or GH_TOKEN environment variable." });
       }
@@ -46,7 +46,7 @@ export function registerDoctorCommand(program: Command): void {
       const providerApiKey = config?.llm?.apiKey || providerEnvVars.map((v) => process.env[v]).find(Boolean);
 
       if (providerApiKey) {
-        results.push({ name: `LLM Provider (${providerName})`, status: "pass", message: `API key configured (${providerApiKey.slice(0, 8)}...)` });
+        results.push({ name: `LLM Provider (${providerName})`, status: "pass", message: "API key configured" });
       } else {
         results.push({ name: `LLM Provider (${providerName})`, status: "fail", message: `No API key. Set ${providerEnvVars.join(" or ")} or configure in settings.` });
       }

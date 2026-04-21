@@ -303,7 +303,7 @@ export function SettingsPage() {
           <div className="flex items-center justify-between">
             <Label htmlFor="settings-llm-provider">Provider</Label>
             <div className="flex items-center gap-2">
-              <div className={`h-2 w-2 rounded-full ${llmApiKey || (llmProvider === "anthropic" && process.env.NEXT_PUBLIC_API_KEY) ? "bg-green-500" : "bg-yellow-500"} shrink-0`} />
+              <div className={`h-2 w-2 rounded-full ${llmApiKey ? "bg-green-500" : "bg-yellow-500"} shrink-0`} />
               <span className="text-xs text-zinc-500">
                 {llmApiKey ? "API key configured" : "No API key set"}
               </span>
@@ -373,11 +373,12 @@ export function SettingsPage() {
             <Button
               variant="outline"
               size="sm"
-              disabled={llmTesting || !llmApiKey}
+              disabled={llmTesting}
               onClick={async () => {
                 setLlmTesting(true);
                 setLlmTestResult(null);
                 try {
+                  await handleSave();
                   const result = await api.testLLM();
                   setLlmTestResult(result);
                   showToast({

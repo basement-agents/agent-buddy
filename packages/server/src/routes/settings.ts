@@ -156,14 +156,9 @@ export function createSettingsRoutes(): Hono {
   app.post("/api/settings/llm/test", async (c) => {
     try {
       const config = await loadConfig();
-      const llmConfig = config.llm;
-
-      if (!llmConfig?.apiKey) {
-        return c.json({ success: false, error: "No API key configured" }, 400);
-      }
-
-      const provider = createLLMProvider(llmConfig);
+      const provider = createLLMProvider(config.llm);
       const start = Date.now();
+      const providerName = config.llm?.provider || "anthropic";
 
       try {
         await provider.generate([
@@ -172,15 +167,16 @@ export function createSettingsRoutes(): Hono {
 
         return c.json({
           success: true,
-          provider: llmConfig.provider,
-          model: llmConfig.defaultModel || "default",
+          provider: providerName,
+          model: config.llm?.defaultModel || "default",
           latencyMs: Date.now() - start,
         });
       } catch (err) {
+        const errorMsg = getErrorMessage(err).replace(/sk-[a-zA-Z0-9-]+/g, "sk-...");
         return c.json({
           success: false,
-          provider: llmConfig.provider,
-          error: getErrorMessage(err),
+          provider: providerName,
+          error: errorMsg,
           latencyMs: Date.now() - start,
         }, 400);
       }

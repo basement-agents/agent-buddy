@@ -13,23 +13,29 @@ vi.mock("@agent-buddy/core", async (importOriginal) => {
 });
 
 describe("Health Check Utility", () => {
-  beforeEach(() => {
+  let createLLMProviderMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.OPENROUTER_API_KEY;
     delete process.env.OPENAI_API_KEY;
     mockGenerate.mockReset();
+    const { createLLMProvider } = await import("@agent-buddy/core");
+    createLLMProviderMock = vi.mocked(createLLMProvider);
+    createLLMProviderMock.mockReturnValue({ generate: mockGenerate });
   });
 
   it("should return error when no API key is configured", async () => {
     const { loadConfig } = await import("@agent-buddy/core");
     vi.mocked(loadConfig).mockResolvedValue({ llm: undefined } as never);
+    createLLMProviderMock.mockImplementation(() => { throw new Error("No API key configured for anthropic"); });
 
     const { checkProviderHealth } = await import("../lib/health-check.js");
     const result = await checkProviderHealth();
 
     expect(result.status).toBe("error");
-    expect(result.message).toBe("API key not configured");
+    expect(result.message).toBe("No API key configured for anthropic");
   });
 
   it("should return ok when provider connection succeeds", async () => {

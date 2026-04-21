@@ -26,6 +26,17 @@ export function createLLMProvider(config?: LLMProviderConfig): LLMProvider {
     );
   }
 
+  const keyPrefixes: Record<LLMProviderType, string> = {
+    anthropic: "sk-ant-",
+    openrouter: "sk-or-",
+    openai: "sk-",
+  };
+  if (!apiKey.startsWith(keyPrefixes[provider])) {
+    throw new Error(
+      `Invalid ${provider} API key format. Expected '${keyPrefixes[provider]}' prefix.`
+    );
+  }
+
   const defaultModel = config?.defaultModel || DEFAULT_MODELS[provider];
 
   switch (provider) {

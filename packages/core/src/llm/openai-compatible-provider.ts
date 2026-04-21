@@ -93,10 +93,10 @@ export abstract class OpenAICompatibleProvider implements LLMProvider {
       return {
         content: data.choices[0]?.message?.content || "",
         usage: {
-          inputTokens: data.usage.prompt_tokens,
-          outputTokens: data.usage.completion_tokens,
+          inputTokens: data.usage?.prompt_tokens || 0,
+          outputTokens: data.usage?.completion_tokens || 0,
         },
-        model: data.model,
+        model: data.model || "unknown",
       };
     }, {
       maxRetries: options.maxRetries ?? this.maxRetries,
@@ -134,9 +134,10 @@ export abstract class OpenAICompatibleProvider implements LLMProvider {
       }
       parsed = JSON.parse(jsonStr) as T;
     } catch (err) {
-      this.logger.error("Failed to parse structured response as JSON", { error: getErrorMessage(err), snippet: response.content.slice(0, 200) });
+      const snippet = response.content.slice(0, 500);
+      this.logger.error("Failed to parse structured response as JSON", { error: getErrorMessage(err), snippet });
       throw new Error(
-        `Failed to parse structured response as JSON: ${response.content.slice(0, 200)}`,
+        `Failed to parse structured response as JSON: ${getErrorMessage(err)}. Response: ${snippet}`,
       );
     }
 
