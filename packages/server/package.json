@@ -1,0 +1,32 @@
+{
+  "name": "@agent-buddy/server",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "dev": "tsx watch src/index.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@agent-buddy/core": "*",
+    "@hono/zod-validator": "^0.7.6",
+    "hono": "^4.7.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.17",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.4"
+  }
+}
