@@ -1,0 +1,29 @@
+{
+  "name": "agent-buddy",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "vitest",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.22.0",
+    "@testing-library/user-event": "^14.6.1",
+    "eslint": "^9.22.0",
+    "prettier": "^3.5.0",
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.30.0"
+  },
+  "packageManager": "npm@11.3.0",
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
