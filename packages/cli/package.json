@@ -1,0 +1,27 @@
+{
+  "name": "@agent-buddy/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "agent-buddy": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "dependencies": {
+    "@agent-buddy/core": "*",
+    "@inquirer/prompts": "^8.4.1",
+    "commander": "^13.1.0",
+    "ora": "^8.2.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.17",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.4"
+  }
+}
