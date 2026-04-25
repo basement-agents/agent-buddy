@@ -11,6 +11,10 @@ import { BuddyFileSystemStorage } from "../buddy/storage.js";
 import type { BuddyProfile, MemoryEntry } from "../buddy/types.js";
 import { getFeedbackSummary, getRecentFeedback } from "../learning/feedback.js";
 
+// SOUL/USER profiles can span many sections; 8192 prevents mid-section truncation.
+// If your model's completion limit is lower, pass a custom maxTokens via LLMOptions.
+const PROFILE_MAX_TOKENS = 8192;
+
 export class AnalysisPipeline {
   private llm: LLMProvider;
   private storage: BuddyFileSystemStorage;
@@ -37,7 +41,7 @@ export class AnalysisPipeline {
     username: string
   ): Promise<string> {
     const prompt = promptFn(JSON.stringify(analysisResult, null, 2), username);
-    const { content } = await this.llm.generate([{ role: "user", content: prompt }], { maxTokens: 8192 });
+    const { content } = await this.llm.generate([{ role: "user", content: prompt }], { maxTokens: PROFILE_MAX_TOKENS });
     return content;
   }
 
