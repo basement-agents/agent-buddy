@@ -25,6 +25,14 @@ ${reviewData}
 
 Respond with a JSON object with these fields:
 {
+  "username": "",
+  "stats": {
+    "totalPRsAnalyzed": 0,
+    "totalComments": 0,
+    "averageCommentsPerPR": 0,
+    "uniqueRepos": 0,
+    "dateRange": { "start": "ISO date string", "end": "ISO date string" }
+  },
   "reviewStyle": {
     "thoroughness": "minimal|standard|thorough|exhaustive",
     "focus": ["security", "performance", "readability", "correctness", "testing", "architecture", "documentation", "error-handling", "naming", "type-safety"],
@@ -61,13 +69,18 @@ Respond with a JSON object with these fields:
 
 export function buildSoulPrompt(
   analysisJson: string,
-  username: string
+  username: string,
+  feedbackNotes?: string
 ): string {
+  const feedbackSection = feedbackNotes
+    ? `\n\nFeedback on Previous AI Reviews (incorporate these into the profile):\n${feedbackNotes}\n`
+    : "";
+
   return `Based on the following analysis of ${username}'s code review behavior, generate a SOUL.md profile.
 This profile should capture their review philosophy, priorities, and communication style in markdown.
 
 Analysis:
-${analysisJson}
+${analysisJson}${feedbackSection}
 
 Generate a markdown document with these sections:
 # ${username} — Review Soul
