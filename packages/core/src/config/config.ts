@@ -34,7 +34,11 @@ export async function loadConfig(): Promise<AgentBuddyConfig> {
       const errors = result.error.issues.map((i) => `  ${i.path.join(".")}: ${i.message}`).join("\n");
       throw new ConfigError(`Invalid configuration:\n${errors}`);
     }
-    return { ...DEFAULT_CONFIG, ...result.data };
+    const config = { ...DEFAULT_CONFIG, ...result.data };
+    if (!config.githubToken) {
+      config.githubToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+    }
+    return config;
   } catch (err) {
     if (err instanceof ConfigError) {
       throw err;
@@ -42,7 +46,9 @@ export async function loadConfig(): Promise<AgentBuddyConfig> {
     if (err instanceof SyntaxError) {
       logger.warn("Config file has invalid JSON, using defaults");
     }
-    return { ...DEFAULT_CONFIG };
+    const config = { ...DEFAULT_CONFIG };
+    config.githubToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+    return config;
   }
 }
 

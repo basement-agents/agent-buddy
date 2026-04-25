@@ -37,6 +37,7 @@ export type {
   GitHubRef,
   PRFile,
   ReviewComment,
+  IssueComment,
   PRReview,
   Repository,
   Contributor,

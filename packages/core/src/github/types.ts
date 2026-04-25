@@ -58,6 +58,13 @@ export interface ReviewComment {
   inReplyToId?: number;
 }
 
+export interface IssueComment {
+  id: number;
+  author: GitHubUser;
+  body: string;
+  createdAt: string;
+}
+
 export interface PRReview {
   id: number;
   author: GitHubUser;

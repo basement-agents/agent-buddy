@@ -1,21 +1,28 @@
-import type { BuddyProfile, PullRequest, ReviewComment, PRReview } from "../index.js";
+import type { BuddyProfile, PullRequest, ReviewComment, IssueComment, PRReview } from "../index.js";
 
 export function buildAnalysisPrompt(
-  reviews: { pr: PullRequest; reviews: PRReview[]; comments: ReviewComment[] }[]
+  reviews: { pr: PullRequest; reviews: PRReview[]; comments: ReviewComment[]; issueComments?: IssueComment[] }[]
 ): string {
+  const truncate = (s: string, max = 300) => s.length > max ? s.slice(0, max) + "…" : s;
+
   const reviewData = reviews
-    .map(({ pr, reviews: rs, comments: cs }) => {
-      const reviewTexts = rs.map(
-        (r) => `[${r.state}] ${r.body || "(no body)"}`
+    .map(({ pr, reviews: rs, comments: cs, issueComments: ics }) => {
+      const reviewTexts = rs.slice(0, 5).map(
+        (r) => `[${r.state}] ${truncate(r.body || "(no body)")}`
       );
-      const commentTexts = cs.map(
-        (c) => `  [${c.path}:${c.line || "N/A"}] ${c.body}`
+      const commentTexts = cs.slice(0, 10).map(
+        (c) => `  [${c.path}:${c.line || "N/A"}] ${truncate(c.body)}`
+      );
+      const issueCommentTexts = (ics ?? []).slice(0, 5).map(
+        (c) => `  [discussion] ${truncate(c.body)}`
       );
       return `## PR #${pr.number}: ${pr.title}
 Reviews:
 ${reviewTexts.join("\n")}
-Comments:
-${commentTexts.join("\n")}`;
+Inline Comments:
+${commentTexts.join("\n")}
+Discussion Comments:
+${issueCommentTexts.join("\n")}`;
     })
     .join("\n\n");
 
