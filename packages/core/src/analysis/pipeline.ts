@@ -2,6 +2,7 @@ import type { LLMProvider } from "../llm/types.js";
 import type {
   AnalysisResult,
   ReviewComment as GHReviewComment,
+  IssueComment,
   PRReview,
   PullRequest,
 } from "../index.js";
@@ -11,9 +12,9 @@ import { BuddyFileSystemStorage } from "../buddy/storage.js";
 import type { BuddyProfile, MemoryEntry } from "../buddy/types.js";
 import { getFeedbackSummary, getRecentFeedback } from "../learning/feedback.js";
 
-// SOUL/USER profiles can span many sections; 8192 prevents mid-section truncation.
+// SOUL/USER profiles can span many sections; 16384 prevents mid-section truncation.
 // If your model's completion limit is lower, pass a custom maxTokens via LLMOptions.
-const PROFILE_MAX_TOKENS = 8192;
+const PROFILE_MAX_TOKENS = 16384;
 
 export class AnalysisPipeline {
   private llm: LLMProvider;
@@ -26,9 +27,10 @@ export class AnalysisPipeline {
 
   private async analyzeWithPrompt(prompt: string, errorPrefix: string): Promise<AnalysisResult> {
     try {
-      const { content } = await this.llm.generateStructured<AnalysisResult>([
-        { role: "user", content: prompt },
-      ]);
+      const { content } = await this.llm.generateStructured<AnalysisResult>(
+        [{ role: "user", content: prompt }],
+        { maxTokens: 16384 },
+      );
       return { ...content, generatedAt: new Date() };
     } catch (error) {
       throw new Error(`${errorPrefix}: ${getErrorMessage(error)}`, { cause: error });
@@ -42,27 +44,52 @@ export class AnalysisPipeline {
   ): Promise<string> {
     const prompt = promptFn(JSON.stringify(analysisResult, null, 2), username);
     const { content } = await this.llm.generate([{ role: "user", content: prompt }], { maxTokens: PROFILE_MAX_TOKENS });
+    if (!content || content.trim().length === 0) {
+      throw new Error(`Profile generation returned empty content for ${username}`);
+    }
     return content;
   }
 
   async analyzePRReview(
     pr: PullRequest,
     reviews: PRReview[],
-    comments: GHReviewComment[]
+    comments: GHReviewComment[],
+    issueComments: IssueComment[] = []
   ): Promise<AnalysisResult> {
     return this.analyzeWithPrompt(
-      buildAnalysisPrompt([{ pr, reviews, comments }]),
+      buildAnalysisPrompt([{ pr, reviews, comments, issueComments }]),
       `analyzePRReview failed for PR #${pr.number}`
     );
   }
 
   async analyzeReviewerHistory(
-    reviewData: { pr: PullRequest; reviews: PRReview[]; comments: GHReviewComment[] }[]
+    reviewData: { pr: PullRequest; reviews: PRReview[]; comments: GHReviewComment[]; issueComments?: IssueComment[] }[]
   ): Promise<AnalysisResult> {
-    return this.analyzeWithPrompt(
-      buildAnalysisPrompt(reviewData),
-      `analyzeReviewerHistory failed for ${reviewData.length} review(s)`
-    );
+    const BATCH_SIZE = 3;
+
+    if (reviewData.length <= BATCH_SIZE) {
+      return this.analyzeWithPrompt(
+        buildAnalysisPrompt(reviewData),
+        `analyzeReviewerHistory failed for ${reviewData.length} review(s)`
+      );
+    }
+
+    // Split into batches and analyze sequentially to avoid rate limits
+    const batches: typeof reviewData[] = [];
+    for (let i = 0; i < reviewData.length; i += BATCH_SIZE) {
+      batches.push(reviewData.slice(i, i + BATCH_SIZE));
+    }
+
+    const batchResults: AnalysisResult[] = [];
+    for (let i = 0; i < batches.length; i++) {
+      const result = await this.analyzeWithPrompt(
+        buildAnalysisPrompt(batches[i]),
+        `analyzeReviewerHistory batch ${i + 1}/${batches.length}`
+      );
+      batchResults.push(result);
+    }
+
+    return mergeAnalysisResults(batchResults);
   }
 
   async buildSoulProfile(analysisResult: AnalysisResult, username: string, feedbackNotes?: string): Promise<string> {
@@ -82,11 +109,13 @@ export class AnalysisPipeline {
     repo: string,
     pr: PullRequest,
     reviews: PRReview[],
-    comments: GHReviewComment[]
+    comments: GHReviewComment[],
+    issueComments: IssueComment[] = []
   ): Promise<MemoryEntry> {
     const allComments = [
       ...reviews.map((r) => r.body).filter(Boolean),
       ...comments.map((c) => c.body),
+      ...issueComments.map((c) => c.body),
     ].join("\n---\n");
 
     const keyLearnings: string[] = [];
@@ -136,7 +165,7 @@ export class AnalysisPipeline {
 
   async createBuddy(
     username: string,
-    reviewData: { pr: PullRequest; reviews: PRReview[]; comments: GHReviewComment[] }[],
+    reviewData: { pr: PullRequest; reviews: PRReview[]; comments: GHReviewComment[]; issueComments?: IssueComment[] }[],
     org: string,
     repo: string
   ): Promise<BuddyProfile> {
@@ -164,8 +193,8 @@ export class AnalysisPipeline {
 
     await this.storage.writeProfile(username, profile);
 
-    for (const { pr, reviews, comments } of reviewData) {
-      await this.createMemoryEntry(username, org, repo, pr, reviews, comments);
+    for (const { pr, reviews, comments, issueComments } of reviewData) {
+      await this.createMemoryEntry(username, org, repo, pr, reviews, comments, issueComments);
     }
 
     return profile;
@@ -173,7 +202,7 @@ export class AnalysisPipeline {
 
   async updateBuddy(
     buddyId: string,
-    newReviewData: { pr: PullRequest; reviews: PRReview[]; comments: GHReviewComment[] }[],
+    newReviewData: { pr: PullRequest; reviews: PRReview[]; comments: GHReviewComment[]; issueComments?: IssueComment[] }[],
     org: string,
     repo: string,
     options?: { sincePr?: number; force?: boolean }
@@ -237,10 +266,80 @@ export class AnalysisPipeline {
 
     await this.storage.writeProfile(buddyId, updated);
 
-    for (const { pr, reviews, comments } of dataToProcess) {
-      await this.createMemoryEntry(buddyId, org, repo, pr, reviews, comments);
+    for (const { pr, reviews, comments, issueComments } of dataToProcess) {
+      await this.createMemoryEntry(buddyId, org, repo, pr, reviews, comments, issueComments);
     }
 
     return updated;
   }
+}
+
+function modal<T>(values: T[]): T {
+  const freq = new Map<T, number>();
+  for (const v of values) freq.set(v, (freq.get(v) ?? 0) + 1);
+  return [...freq.entries()].sort((a, b) => b[1] - a[1])[0][0];
+}
+
+function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
+  if (results.length === 1) return results[0];
+
+  const dist = { info: 0, suggestion: 0, warning: 0, error: 0 };
+  for (const r of results) {
+    dist.info += r.reviewStyle.severityDistribution.info;
+    dist.suggestion += r.reviewStyle.severityDistribution.suggestion;
+    dist.warning += r.reviewStyle.severityDistribution.warning;
+    dist.error += r.reviewStyle.severityDistribution.error;
+  }
+
+  const merged: AnalysisResult = {
+    username: results[0].username,
+    reviewStyle: {
+      thoroughness: modal(results.map((r) => r.reviewStyle.thoroughness)),
+      focus: [...new Set(results.flatMap((r) => r.reviewStyle.focus))],
+      typicalSeverity: modal(results.map((r) => r.reviewStyle.typicalSeverity)),
+      severityDistribution: dist,
+      approvalCriteria: [...new Set(results.flatMap((r) => r.reviewStyle.approvalCriteria ?? []))],
+      commentStyle: modal(results.map((r) => r.reviewStyle.commentStyle)),
+      codeExampleUsage: modal(results.map((r) => r.reviewStyle.codeExampleUsage)),
+    },
+    thinkingPatterns: dedupeBy(results.flatMap((r) => r.thinkingPatterns ?? []), (p) => p.description),
+    topIssues: mergeIssues(results.flatMap((r) => r.topIssues ?? [])),
+    communicationTone: {
+      formality: modal(results.map((r) => r.communicationTone.formality)),
+      encouragement: modal(results.map((r) => r.communicationTone.encouragement)),
+      directness: modal(results.map((r) => r.communicationTone.directness)),
+      typicalPhrases: [...new Set(results.flatMap((r) => r.communicationTone.typicalPhrases ?? []))],
+    },
+    preferredLanguages: [...new Set(results.flatMap((r) => r.preferredLanguages ?? []))],
+    preferredFrameworks: [...new Set(results.flatMap((r) => r.preferredFrameworks ?? []))],
+    reviewPatterns: dedupeBy(results.flatMap((r) => r.reviewPatterns ?? []), (p) => p.pattern),
+    stats: results[0].stats,
+    generatedAt: new Date(),
+  };
+
+  return merged;
+}
+
+function dedupeBy<T>(items: T[], key: (item: T) => string): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const k = key(item);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+function mergeIssues(issues: import("./types.js").IssuePattern[]): import("./types.js").IssuePattern[] {
+  const map = new Map<string, import("./types.js").IssuePattern>();
+  for (const issue of issues) {
+    const existing = map.get(issue.category);
+    if (existing) {
+      existing.frequency += issue.frequency;
+      existing.examples = [...new Set([...existing.examples, ...issue.examples])];
+    } else {
+      map.set(issue.category, { ...issue });
+    }
+  }
+  return [...map.values()].sort((a, b) => b.frequency - a.frequency);
 }

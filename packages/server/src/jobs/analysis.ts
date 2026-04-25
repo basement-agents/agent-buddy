@@ -96,15 +96,15 @@ export async function processAnalysisJob(
     job.progressPercentage = 10;
     job.progressDetail = "Fetching PRs reviewed by user...";
 
-    const reviewData = await client.getPRsReviewedBy(owner, repo, username);
+    const reviewData = await client.getPRsReviewedBy(owner, repo, username, undefined, maxPrs);
     if (reviewData.length === 0) throw new Error("No reviews found for this user");
 
     job.progressStage = "analyzing_patterns";
     job.progressPercentage = 30;
-    job.progress = `Analyzing ${Math.min(reviewData.length, maxPrs)} reviews...`;
+    job.progress = `Analyzing ${reviewData.length} reviews...`;
     job.progressDetail = "Extracting review patterns and style...";
 
-    const data = reviewData.slice(0, maxPrs);
+    const data = reviewData;
 
     job.progressPercentage = 60;
     job.progressDetail = "Generating buddy profile...";
@@ -166,7 +166,7 @@ export async function processUpdateJob(
       job.progressDetail = `Fetching reviews from ${r}...`;
       job.progressPercentage = Math.floor((i / repos.length) * 50);
 
-      const reviewData = await client.getPRsReviewedBy(owner, repo, buddyId);
+      const reviewData = await client.getPRsReviewedBy(owner, repo, buddyId, undefined, 50);
       if (reviewData.length > 0) {
         totalReviews += reviewData.length;
         job.progressDetail = `Updating from ${reviewData.length} reviews on ${r}...`;

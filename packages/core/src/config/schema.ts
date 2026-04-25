@@ -63,7 +63,7 @@ export const llmProviderConfigSchema = z.object({
         return false;
       }
     }, { message: "baseUrl must not point to internal/private network" }),
-  defaultModel: z.string().regex(/^[a-zA-Z0-9._/-]+$/, "Invalid model name").optional(),
+  defaultModel: z.string().regex(/^[a-zA-Z0-9._/:@-]+$/, "Invalid model name").optional(),
 });
 
 export const configSchema = z.object({

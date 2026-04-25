@@ -7,6 +7,7 @@ import {
   getFeedbackSummary,
   getRecentFeedback,
   compareBuddies,
+  loadConfig,
   Logger,
   getErrorMessage,
 } from "@agent-buddy/core";
@@ -70,9 +71,10 @@ export function createBuddiesRoutes(): Hono {
     const [owner, repoName] = repo.split("/");
     if (!owner || !repoName) return c.json(apiError("Invalid repo format. Use owner/repo"), 400);
 
-    const token = process.env.GITHUB_TOKEN;
+    const config = await loadConfig();
+    const token = config.githubToken || process.env.GITHUB_TOKEN;
     if (!token) {
-      return c.json(apiError("GITHUB_TOKEN must be set"), 500);
+      return c.json(apiError("GitHub token must be set"), 500);
     }
 
     const job: AnalysisJob = {
@@ -110,9 +112,10 @@ export function createBuddiesRoutes(): Hono {
   app.post("/api/buddies/:id/update", zValidator("json", updateBuddySchema), async (c) => {
     const id = c.req.param("id");
     const body = c.req.valid("json");
-    const token = process.env.GITHUB_TOKEN;
+    const config = await loadConfig();
+    const token = config.githubToken || process.env.GITHUB_TOKEN;
 
-    if (!token) return c.json(apiError("GITHUB_TOKEN must be set"), 500);
+    if (!token) return c.json(apiError("GitHub token must be set"), 500);
 
     const job: AnalysisJob = {
       ...createJobBase(),

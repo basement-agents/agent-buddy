@@ -16,6 +16,9 @@ export default defineConfig({
       "/api": {
         target: "http://localhost:3000",
         changeOrigin: true,
+        headers: {
+          "x-api-key": "e595028db2c2d974286402fac6865badda8d070d5bf9f6699fd1a8dfac02f0c2",
+        },
       },
     },
   },

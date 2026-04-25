@@ -156,9 +156,18 @@ export async function serve(port: number): Promise<void> {
       if (value !== undefined) headers[key] = Array.isArray(value) ? value.join(", ") : value;
     }
 
+    const chunks: Buffer[] = [];
+    await new Promise<void>((resolve, reject) => {
+      req.on("data", (chunk: Buffer) => chunks.push(chunk));
+      req.on("end", resolve);
+      req.on("error", reject);
+    });
+    const rawBody = chunks.length > 0 ? Buffer.concat(chunks) : null;
+
     const request = new Request(url.toString(), {
       method: req.method || "GET",
       headers,
+      body: rawBody && rawBody.length > 0 ? rawBody : undefined,
     });
 
     try {

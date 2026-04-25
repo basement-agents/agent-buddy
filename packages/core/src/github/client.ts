@@ -7,6 +7,7 @@ import type {
   PullRequest,
   PRFile,
   ReviewComment,
+  IssueComment,
   PRReview,
   Repository,
   Contributor,
@@ -263,6 +264,26 @@ export class GitHubClient {
     );
   }
 
+  async getIssueComments(
+    owner: string,
+    repo: string,
+    prNumber: number
+  ): Promise<IssueComment[]> {
+    type RawIssueComment = { id: number; user?: { login: string; id: number; avatar_url: string; html_url: string } | null; body: string; created_at: string };
+    const raw = await this.request<RawIssueComment[]>(`/repos/${owner}/${repo}/issues/${prNumber}/comments`);
+    return raw.map((c) => ({
+      id: c.id,
+      author: {
+        login: c.user?.login ?? "unknown",
+        id: c.user?.id ?? 0,
+        avatarUrl: c.user?.avatar_url ?? "",
+        url: c.user?.html_url ?? "",
+      },
+      body: c.body,
+      createdAt: c.created_at,
+    }));
+  }
+
   async getContributors(owner: string, repo: string): Promise<Contributor[]> {
     return this.paginateRequest<Contributor>(`/repos/${owner}/${repo}/contributors`, 100);
   }
@@ -275,28 +296,45 @@ export class GitHubClient {
     owner: string,
     repo: string,
     username: string,
-    since?: string
-  ): Promise<{ pr: PullRequest; reviews: PRReview[]; comments: ReviewComment[] }[]> {
-    const prs = await this.listPRs(owner, repo, { state: "all", perPage: 100 });
+    since?: string,
+    maxResults?: number
+  ): Promise<{ pr: PullRequest; reviews: PRReview[]; comments: ReviewComment[]; issueComments: IssueComment[] }[]> {
     const sinceDate = since ? new Date(since) : null;
-    const results: { pr: PullRequest; reviews: PRReview[]; comments: ReviewComment[] }[] = [];
+    const results: { pr: PullRequest; reviews: PRReview[]; comments: ReviewComment[]; issueComments: IssueComment[] }[] = [];
 
-    const filteredPrs = sinceDate
-      ? prs.filter((pr) => new Date(pr.createdAt) >= sinceDate)
-      : prs;
+    let page = 1;
+    const perPage = 100;
 
-    for (const pr of filteredPrs) {
-      const [reviews, comments] = await Promise.all([
-        this.getReviews(owner, repo, pr.number),
-        this.getReviewComments(owner, repo, pr.number),
-      ]);
+    while (page <= this.maxPages) {
+      if (maxResults !== undefined && results.length >= maxResults) break;
 
-      const userReviews = reviews.filter((r) => r.author.login === username);
-      const userComments = comments.filter((c) => c.author.login === username);
+      const prs = await this.listPRs(owner, repo, { state: "all", perPage, page });
+      if (prs.length === 0) break;
 
-      if (userReviews.length > 0 || userComments.length > 0) {
-        results.push({ pr, reviews: userReviews, comments: userComments });
+      const filteredPrs = sinceDate
+        ? prs.filter((pr) => new Date(pr.createdAt) >= sinceDate)
+        : prs;
+
+      for (const pr of filteredPrs) {
+        if (maxResults !== undefined && results.length >= maxResults) break;
+
+        const [reviews, comments, issueComments] = await Promise.all([
+          this.getReviews(owner, repo, pr.number),
+          this.getReviewComments(owner, repo, pr.number),
+          this.getIssueComments(owner, repo, pr.number),
+        ]);
+
+        const userReviews = reviews.filter((r) => r.author?.login === username);
+        const userComments = comments.filter((c) => c.author?.login === username);
+        const userIssueComments = issueComments.filter((c) => c.author?.login === username);
+
+        if (userReviews.length > 0 || userComments.length > 0 || userIssueComments.length > 0) {
+          results.push({ pr, reviews: userReviews, comments: userComments, issueComments: userIssueComments });
+        }
       }
+
+      if (prs.length < perPage) break;
+      page++;
     }
 
     return results;
