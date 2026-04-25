@@ -37,7 +37,7 @@ export class AnalysisPipeline {
     username: string
   ): Promise<string> {
     const prompt = promptFn(JSON.stringify(analysisResult, null, 2), username);
-    const { content } = await this.llm.generate([{ role: "user", content: prompt }]);
+    const { content } = await this.llm.generate([{ role: "user", content: prompt }], { maxTokens: 8192 });
     return content;
   }
 
@@ -61,8 +61,11 @@ export class AnalysisPipeline {
     );
   }
 
-  async buildSoulProfile(analysisResult: AnalysisResult, username: string): Promise<string> {
-    return this.generateProfile(buildSoulPrompt, analysisResult, username);
+  async buildSoulProfile(analysisResult: AnalysisResult, username: string, feedbackNotes?: string): Promise<string> {
+    const promptFn = feedbackNotes
+      ? (json: string, user: string) => buildSoulPrompt(json, user, feedbackNotes)
+      : buildSoulPrompt;
+    return this.generateProfile(promptFn, analysisResult, username);
   }
 
   async buildUserProfile(analysisResult: AnalysisResult, username: string): Promise<string> {
@@ -95,7 +98,10 @@ export class AnalysisPipeline {
     }
 
     // Analyze comment patterns for categorization
-    const commentTexts = comments.map((c) => c.body.toLowerCase());
+    const commentTexts = [
+      ...comments.map((c) => c.body.toLowerCase()),
+      ...reviews.map((r) => r.body?.toLowerCase() ?? ""),
+    ];
     const keywordCategories: Array<{ keywords: string[]; category: string }> = [
       { keywords: ["security", "vulnerability"], category: "security-focus" },
       { keywords: ["performance", "optimize"], category: "performance-focus" },
@@ -189,8 +195,7 @@ export class AnalysisPipeline {
     const feedbackSummary = await getFeedbackSummary(buddyId);
     const recentFeedback = await getRecentFeedback(buddyId, 20);
 
-    // Incorporate feedback patterns into soul profile
-    let soulWithFeedback = newAnalysis;
+    let feedbackNotes: string | undefined;
     if (recentFeedback.length > 0) {
       const negativePatterns = recentFeedback
         .filter((f) => !f.wasHelpful && f.userResponse)
@@ -202,33 +207,16 @@ export class AnalysisPipeline {
         .map((f) => `Continue: ${f.userResponse}`)
         .join("\n");
 
-      const feedbackContext = `
-## Feedback Patterns
-
-${negativePatterns ? `### Patterns to Avoid\n${negativePatterns}\n` : ""}
-${positivePatterns ? `### Patterns to Continue\n${positivePatterns}\n` : ""}
-### Feedback Summary
-- Helpful reviews: ${feedbackSummary.helpful}
-- Not helpful reviews: ${feedbackSummary.notHelpful}
-- Top patterns: ${feedbackSummary.patterns.join(", ") || "None"}
-`;
-
-      // Incorporate feedback into the analysis
-      soulWithFeedback = {
-        ...newAnalysis,
-        reviewStyle: {
-          ...newAnalysis.reviewStyle,
-          approvalCriteria: [
-            ...(newAnalysis.reviewStyle.approvalCriteria || []),
-            feedbackContext,
-          ],
-        },
-      };
+      feedbackNotes = [
+        negativePatterns ? `### Patterns to Avoid\n${negativePatterns}` : "",
+        positivePatterns ? `### Patterns to Continue\n${positivePatterns}` : "",
+        `### Feedback Summary\n- Helpful reviews: ${feedbackSummary.helpful}\n- Not helpful reviews: ${feedbackSummary.notHelpful}\n- Top patterns: ${feedbackSummary.patterns.join(", ") || "None"}`,
+      ].filter(Boolean).join("\n\n");
     }
 
     const [newSoul, newUser] = await Promise.all([
-      this.buildSoulProfile(soulWithFeedback, buddyId),
-      this.buildUserProfile(soulWithFeedback, buddyId),
+      this.buildSoulProfile(newAnalysis, buddyId, feedbackNotes),
+      this.buildUserProfile(newAnalysis, buddyId),
     ]);
 
     // Calculate the highest PR number from processed data
