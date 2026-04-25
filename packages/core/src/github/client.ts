@@ -270,7 +270,7 @@ export class GitHubClient {
     prNumber: number
   ): Promise<IssueComment[]> {
     type RawIssueComment = { id: number; user?: { login: string; id: number; avatar_url: string; html_url: string } | null; body: string; created_at: string };
-    const raw = await this.request<RawIssueComment[]>(`/repos/${owner}/${repo}/issues/${prNumber}/comments`);
+    const raw = await this.paginateRequest<RawIssueComment>(`/repos/${owner}/${repo}/issues/${prNumber}/comments`);
     return raw.map((c) => ({
       id: c.id,
       author: {

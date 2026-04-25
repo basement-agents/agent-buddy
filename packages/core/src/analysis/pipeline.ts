@@ -313,7 +313,23 @@ function mergeAnalysisResults(results: AnalysisResult[]): AnalysisResult {
     preferredLanguages: [...new Set(results.flatMap((r) => r.preferredLanguages ?? []))],
     preferredFrameworks: [...new Set(results.flatMap((r) => r.preferredFrameworks ?? []))],
     reviewPatterns: dedupeBy(results.flatMap((r) => r.reviewPatterns ?? []), (p) => p.pattern),
-    stats: results[0].stats,
+    stats: (() => {
+      const toDate = (d: unknown): Date => d instanceof Date ? d : new Date(d as string);
+      const totalPRs = results.reduce((sum, r) => sum + (r.stats?.totalPRsAnalyzed ?? 0), 0);
+      const totalComments = results.reduce((sum, r) => sum + (r.stats?.totalComments ?? 0), 0);
+      const starts = results.filter(r => r.stats?.dateRange?.start).map(r => toDate(r.stats.dateRange.start).getTime());
+      const ends = results.filter(r => r.stats?.dateRange?.end).map(r => toDate(r.stats.dateRange.end).getTime());
+      return {
+        totalPRsAnalyzed: totalPRs,
+        totalComments,
+        averageCommentsPerPR: totalPRs > 0 ? totalComments / totalPRs : 0,
+        uniqueRepos: results.reduce((sum, r) => sum + (r.stats?.uniqueRepos ?? 0), 0),
+        dateRange: {
+          start: starts.length > 0 ? new Date(Math.min(...starts)) : new Date(),
+          end: ends.length > 0 ? new Date(Math.max(...ends)) : new Date(),
+        },
+      };
+    })(),
     generatedAt: new Date(),
   };
 
