@@ -9,9 +9,9 @@ interface RateLimitEntry {
 }
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
-const DEFAULT_WINDOW_MS = 60 * 1000; // 1 minute
-const PUBLIC_LIMIT = 30; // 30 requests per minute for public endpoints
-const AUTHENTICATED_LIMIT = 100; // 100 requests per minute for authenticated requests
+const DEFAULT_WINDOW_MS = 60 * 1000;
+const PUBLIC_LIMIT = 30;
+const AUTHENTICATED_LIMIT = 100;
 
 function extractClientIp(c: Context): string {
   return c.req.header("x-forwarded-for")?.split(",")[0].trim() ||
@@ -95,9 +95,8 @@ export const rateLimitMiddleware = (): MiddlewareHandler =>
     return isAuthenticated ? AUTHENTICATED_LIMIT : PUBLIC_LIMIT;
   });
 
-// Review-specific rate limiting for expensive LLM operations
-const REVIEW_RATE_LIMIT_REQUESTS = 10; // 10 requests per hour
-const REVIEW_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const REVIEW_RATE_LIMIT_REQUESTS = 10;
+const REVIEW_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const reviewRateLimitStore = new Map<string, RateLimitEntry>();
 
 createStoreCleanup(reviewRateLimitStore);

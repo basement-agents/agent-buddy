@@ -131,13 +131,13 @@ export function CreateBuddyDialog({ open, onOpenChange, onSuccess }: CreateBuddy
                 <Input
                   placeholder="owner/repo"
                   value={repo}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRepo(e.target.value)}
+                  onChange={(e) => setRepo(e.target.value)}
                 />
                 {repos && repos.data.length > 0 && (
                   <div>
                     <p className="mb-1 text-xs text-zinc-500">Or select a configured repo:</p>
                     <div className="flex flex-wrap gap-1">
-                      {repos.data.map((r: { id: string }) => (
+                      {repos.data.map((r) => (
                         <button
                           key={r.id}
                           onClick={() => setRepo(r.id)}
@@ -167,7 +167,7 @@ export function CreateBuddyDialog({ open, onOpenChange, onSuccess }: CreateBuddy
                 <Input
                   placeholder="reviewer-username"
                   value={username}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
+                  onChange={(e) => setUsername(e.target.value)}
                 />
                 <p className="text-xs text-zinc-500">
                   The GitHub user whose review style will be learned
@@ -185,7 +185,7 @@ export function CreateBuddyDialog({ open, onOpenChange, onSuccess }: CreateBuddy
                   min="1"
                   max="100"
                   value={maxPrs}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMaxPrs(e.target.value)}
+                  onChange={(e) => setMaxPrs(e.target.value)}
                 />
                 <p className="text-xs text-zinc-500">
                   More PRs = better persona, but slower analysis

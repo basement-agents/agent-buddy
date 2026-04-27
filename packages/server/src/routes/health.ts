@@ -9,10 +9,8 @@ import { homedir } from "node:os";
 
 const logger = new Logger("health-check");
 
-// Track server start time
 export const SERVER_START_TIME = new Date();
 
-// Load version from package.json
 let PACKAGE_VERSION = "0.0.0";
 try {
   const packagePath = join(import.meta.dirname, "../../package.json");
@@ -28,7 +26,6 @@ async function getStorageStatus(): Promise<{ accessible: boolean; buddyDirectory
   const buddyDir = join(homedir(), ".agent-buddy", "buddy");
   try {
     const storage = new BuddyFileSystemStorage();
-    // Try to access the storage by listing available buddies
     await storage.listBuddies();
     return { accessible: true, buddyDirectory: buddyDir };
   } catch (err) {

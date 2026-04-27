@@ -121,7 +121,6 @@ export function validateBuddyExport(data: unknown): BuddyExportValidationResult 
 
   const obj = data as Record<string, unknown>;
 
-  // Validate required fields exist
   const requiredFields: Array<keyof BuddyExport> = ["id", "username", "soul", "user", "memory", "sourceRepos", "version", "exportedAt"];
   for (const field of requiredFields) {
     if (!(field in obj) || obj[field] === null || obj[field] === undefined) {
@@ -133,7 +132,6 @@ export function validateBuddyExport(data: unknown): BuddyExportValidationResult 
     return { valid: false, errors };
   }
 
-  // Validate field types
   const stringFields = [
     { field: "id", nonEmpty: true },
     { field: "username", nonEmpty: true },
@@ -170,7 +168,6 @@ export function validateBuddyExport(data: unknown): BuddyExportValidationResult 
     }
   }
 
-  // Check version compatibility
   if (typeof obj.version === "string" && obj.version !== "1.0") {
     versionWarning = `Export version ${obj.version} differs from current format version 1.0. Import may not work correctly.`;
   }

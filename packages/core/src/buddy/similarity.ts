@@ -13,30 +13,22 @@ export interface SimilarityResult {
 }
 
 export function compareBuddies(buddy1: BuddyProfile, buddy2: BuddyProfile): SimilarityResult {
-  // Extract keywords from soul profiles
   const keywords1 = extractKeywords(buddy1.soul);
   const keywords2 = extractKeywords(buddy2.soul);
 
-  // Calculate shared keywords
   const sharedKeywords = Array.from(keywords1).filter((k) => keywords2.has(k));
 
-  // Calculate keyword overlap ratio
   const totalUniqueKeywords = new Set([...keywords1, ...keywords2]).size;
   const soulOverlap = totalUniqueKeywords > 0 ? sharedKeywords.length / totalUniqueKeywords : 0;
 
-  // Find shared repos
   const sharedRepos = buddy1.sourceRepos.filter((r) => buddy2.sourceRepos.includes(r));
 
-  // Analyze philosophy similarity
   const philosophySimilarity = calculatePhilosophySimilarity(buddy1.soul, buddy2.soul);
 
-  // Analyze expertise overlap from user profiles
   const expertiseOverlap = calculateExpertiseOverlap(buddy1.user, buddy2.user);
 
-  // Find common patterns
   const commonPatterns = extractCommonPatterns(buddy1.soul, buddy2.soul);
 
-  // Calculate overall score (weighted average)
   const score = (
     soulOverlap * 0.4 +
     philosophySimilarity * 0.3 +
@@ -45,7 +37,7 @@ export function compareBuddies(buddy1: BuddyProfile, buddy2: BuddyProfile): Simi
   );
 
   return {
-    score: Math.min(1, Math.max(0, score)), // Clamp between 0 and 1
+    score: Math.min(1, Math.max(0, score)),
     sharedKeywords: Array.from(sharedKeywords),
     sharedRepos,
     soulOverlap,
@@ -60,7 +52,6 @@ export function compareBuddies(buddy1: BuddyProfile, buddy2: BuddyProfile): Simi
 function extractKeywords(soul: string): Set<string> {
   const keywords = new Set<string>();
 
-  // Common tech/programming terms to look for
   const techTerms = [
     "typescript", "javascript", "python", "rust", "go", "java", "c++",
     "react", "vue", "angular", "svelte", "node", "deno", "bun",
@@ -75,14 +66,12 @@ function extractKeywords(soul: string): Set<string> {
 
   const lowerSoul = soul.toLowerCase();
 
-  // Extract tech terms
   for (const term of techTerms) {
     if (lowerSoul.includes(term)) {
       keywords.add(term);
     }
   }
 
-  // Extract capitalized words (likely proper nouns/concepts)
   const capitalizedWords = soul.matchAll(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g);
   for (const match of capitalizedWords) {
     const phrase = match[1].toLowerCase();
@@ -91,7 +80,6 @@ function extractKeywords(soul: string): Set<string> {
     }
   }
 
-  // Extract words in quotes (likely emphasis)
   const quotedWords = soul.matchAll(/"([^"]+)"/g);
   for (const match of quotedWords) {
     keywords.add(match[1].toLowerCase());
@@ -122,7 +110,6 @@ function calculatePhilosophySimilarity(soul1: string, soul2: string): number {
 }
 
 function calculateExpertiseOverlap(user1: string, user2: string): number {
-  // Look for expertise section indicators
   const expertise1 = extractSection(user1, ["expertise", "skills", "technologies"]);
   const expertise2 = extractSection(user2, ["expertise", "skills", "technologies"]);
 
@@ -151,7 +138,6 @@ function extractSection(text: string, headings: string[]): string | null {
   for (const line of lines) {
     const trimmedLine = line.trim();
 
-    // Check if this is a section heading
     if (trimmedLine.startsWith("#")) {
       const headingText = trimmedLine.replace(/^#+\s*/, "").toLowerCase();
 
@@ -159,7 +145,6 @@ function extractSection(text: string, headings: string[]): string | null {
         inSection = true;
         continue;
       } else if (inSection) {
-        // We've reached the next section, stop
         break;
       }
     }

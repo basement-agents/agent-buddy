@@ -85,7 +85,6 @@ export class BuddyFileSystemStorage implements BuddyStorage {
 
       const stat = await fs.stat(dir);
 
-      // Try to read metadata.json for username and sourceRepos
       let username = id;
       let sourceRepos: string[] = [];
       let createdAt = stat.birthtime;
@@ -124,10 +123,8 @@ export class BuddyFileSystemStorage implements BuddyStorage {
     await fs.mkdir(dir, { recursive: true });
     await fs.mkdir(path.join(dir, "memory"), { recursive: true });
 
-    // Create version backup before overwriting
     await this.createVersionBackup(id, profile);
 
-    // Save metadata.json with username and sourceRepos
     const metadata = {
       id: profile.id,
       username: profile.username,
@@ -283,14 +280,12 @@ export class BuddyFileSystemStorage implements BuddyStorage {
       throw new Error(`Invalid JSON: unable to parse input (${getErrorMessage(err)})`);
     }
 
-    // Validate the export structure
     const validation = validateBuddyExport(data);
     if (!validation.valid) {
       const errorMessages = validation.errors.map((e) => `  - ${e.field}: ${e.message}`).join("\n");
       throw new Error(`Invalid buddy export:\n${errorMessages}`);
     }
 
-    // Log version warning if present
     if (validation.versionWarning) {
       logger.warn(validation.versionWarning);
     }
@@ -398,15 +393,12 @@ export class BuddyFileSystemStorage implements BuddyStorage {
       }
     }
 
-    // Extract PR title if present
     const prTitleMatch = content.match(/\*\*Title:\*\*([^\n]+)/);
     const prTitle = prTitleMatch ? prTitleMatch[1].trim() : undefined;
 
-    // Extract date if present
     const dateMatch = content.match(/\*\*Date:\*\*([^\n]+)/);
     const createdAt = dateMatch ? new Date(dateMatch[1].trim()) : new Date();
 
-    // Extract review summary content
     let reviewContent = "";
     const summaryMatch = content.match(/## Review Summary\n\n([\s\S]+)/);
     if (summaryMatch) {
@@ -430,7 +422,6 @@ export class BuddyFileSystemStorage implements BuddyStorage {
     const versionsDir = path.join(dir, "versions");
     await fs.mkdir(versionsDir, { recursive: true });
 
-    // Get existing version files
     const existingVersions = await this.listVersionFiles(versionsDir);
     const version = existingVersions.length;
 
@@ -450,7 +441,6 @@ export class BuddyFileSystemStorage implements BuddyStorage {
 
     await fs.writeFile(versionFile, JSON.stringify(backupData, null, 2));
 
-    // Keep only the last 5 versions
     const allVersions = await this.listVersionFiles(versionsDir);
     if (allVersions.length > 5) {
       allVersions.sort();
@@ -465,18 +455,15 @@ export class BuddyFileSystemStorage implements BuddyStorage {
     const dir = this.buddyDirPath(id);
     const versionsDir = path.join(dir, "versions");
 
-    // Read available versions
     const versionFiles = await this.listVersionFiles(versionsDir);
     if (versionFiles.length === 0) {
       throw new Error(`No version backups found for buddy ${id}`);
     }
 
-    // Determine which version to restore
     let targetVersion: number;
     if (version !== undefined) {
       targetVersion = version;
     } else {
-      // Use the latest version
       const versions = versionFiles.map((f) => parseInt(f.match(/profile\.v(\d+)\.json/)?.[1] || "0", 10));
       targetVersion = Math.max(...versions);
     }
@@ -502,7 +489,6 @@ export class BuddyFileSystemStorage implements BuddyStorage {
         updatedAt: new Date(backupData.updatedAt),
       };
 
-      // Write the restored profile
       await this.writeProfile(id, restoredProfile);
 
       return restoredProfile;
@@ -552,7 +538,6 @@ export class BuddyFileSystemStorage implements BuddyStorage {
       return;
     }
 
-    // Aggregate patterns across all entries
     const allKeyLearnings = new Set<string>();
     const repos = new Set<string>();
     const prCounts = new Map<string, number>();
@@ -566,7 +551,6 @@ export class BuddyFileSystemStorage implements BuddyStorage {
       prCounts.set(repoKey, (prCounts.get(repoKey) || 0) + 1);
     }
 
-    // Generate MEMORY.md content
     const lines = [
       "# Memory Index",
       "",

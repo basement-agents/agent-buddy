@@ -43,7 +43,6 @@ const importProfileSchema = z.object({
 export function createBuddiesRoutes(): Hono {
   const app = new Hono();
 
-  // GET /api/buddies - List all buddies
   app.get("/api/buddies", async (c) => {
     const parsed = parsePaginationParams(c.req.query("page"), c.req.query("limit"));
     if ("error" in parsed) return c.json(parsed.error, 400);
@@ -53,7 +52,6 @@ export function createBuddiesRoutes(): Hono {
     return c.json(paginate(buddies, parsed.page, parsed.limit));
   });
 
-  // GET /api/buddies/:id - Get a specific buddy
   app.get("/api/buddies/:id", async (c) => {
     const id = c.req.param("id");
     const storage = new BuddyFileSystemStorage();
@@ -63,7 +61,6 @@ export function createBuddiesRoutes(): Hono {
     return c.json(profile);
   });
 
-  // POST /api/buddies - Create a new buddy from analysis
   app.post("/api/buddies", zValidator("json", createBuddySchema), async (c) => {
     const body = c.req.valid("json");
     const { username, repo, maxPrs } = body;
@@ -91,7 +88,6 @@ export function createBuddiesRoutes(): Hono {
     return c.json({ jobId: job.id, status: "queued" }, 202);
   });
 
-  // DELETE /api/buddies/:id - Delete a buddy
   app.delete("/api/buddies/:id", async (c) => {
     const id = c.req.param("id");
     const storage = new BuddyFileSystemStorage();
@@ -108,7 +104,6 @@ export function createBuddiesRoutes(): Hono {
     }
   });
 
-  // POST /api/buddies/:id/update - Update a buddy with new data
   app.post("/api/buddies/:id/update", zValidator("json", updateBuddySchema), async (c) => {
     const id = c.req.param("id");
     const body = c.req.valid("json");
@@ -131,7 +126,6 @@ export function createBuddiesRoutes(): Hono {
     return c.json({ jobId: job.id, status: "queued" }, 202);
   });
 
-  // GET /api/buddies/:id/status - Get buddy status
   app.get("/api/buddies/:id/status", async (c) => {
     const id = c.req.param("id");
     const jobs = [...analysisJobs.values()].filter((j) => j.buddyId === id);
@@ -147,7 +141,6 @@ export function createBuddiesRoutes(): Hono {
     });
   });
 
-  // POST /api/buddies/:id/feedback - Record feedback for a review
   app.post("/api/buddies/:id/feedback", zValidator("json", feedbackSchema), async (c) => {
     const id = c.req.param("id");
     const body = c.req.valid("json");
@@ -165,7 +158,6 @@ export function createBuddiesRoutes(): Hono {
     return c.json({ recorded: true }, 201);
   });
 
-  // GET /api/buddies/:id/feedback - Get feedback for a buddy
   app.get("/api/buddies/:id/feedback", async (c) => {
     const id = c.req.param("id");
     const summary = await getFeedbackSummary(id);
@@ -173,7 +165,7 @@ export function createBuddiesRoutes(): Hono {
     return c.json({
       helpfulCount: summary.helpful,
       notHelpfulCount: summary.notHelpful,
-      recentFeedback: recent.map((f) => ({
+      recentFeedback: recent.map((f: { commentId: string; reviewId: string; wasHelpful: boolean; userResponse?: string; timestamp: string }) => ({
         id: f.commentId,
         reviewId: f.reviewId,
         helpful: f.wasHelpful,
@@ -183,7 +175,6 @@ export function createBuddiesRoutes(): Hono {
     });
   });
 
-  // GET /api/buddies/:id/export - Export a buddy profile
   app.get("/api/buddies/:id/export", async (c) => {
     const id = c.req.param("id");
     const storage = new BuddyFileSystemStorage();
@@ -208,7 +199,6 @@ export function createBuddiesRoutes(): Hono {
     }
   });
 
-  // POST /api/buddies/import - Import a buddy profile
   app.post("/api/buddies/import", zValidator("json", importProfileSchema), async (c) => {
     const body = c.req.valid("json");
 
@@ -224,7 +214,6 @@ export function createBuddiesRoutes(): Hono {
     }
   });
 
-  // GET /api/buddies/:id/compare/:otherId - Compare two buddies
   app.get("/api/buddies/:id/compare/:otherId", async (c) => {
     const id = c.req.param("id");
     const otherId = c.req.param("otherId");

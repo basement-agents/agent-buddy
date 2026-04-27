@@ -216,7 +216,6 @@ export function useJobProgress(jobId: string | null): UseJobProgressResult {
   const baseDelay = 1000;
   const maxDelay = 16000;
 
-  // Clean up connection and timeout
   const cleanup = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
@@ -230,26 +229,20 @@ export function useJobProgress(jobId: string | null): UseJobProgressResult {
     setReconnecting(false);
   }, []);
 
-  // Calculate exponential backoff delay
   const getBackoffDelay = useCallback((retryCount: number) => {
     return Math.min(baseDelay * Math.pow(2, retryCount), maxDelay);
   }, []);
 
   useEffect(() => {
-    // Clean up previous connection if jobId changes or component unmounts
     cleanup();
 
-    // Reset state when jobId is null or changes
     if (!jobId) {
       setProgress(null);
       retryCountRef.current = 0;
       return;
     }
 
-    // Create SSE connection
     const createConnection = () => {
-      // Don't reconnect if job has already completed/failed
-      // Check current progress state via ref to avoid stale closure
       if (progressRef.current?.status === "completed" || progressRef.current?.status === "failed") {
         return;
       }
@@ -257,15 +250,12 @@ export function useJobProgress(jobId: string | null): UseJobProgressResult {
       const eventSource = new EventSource(`/api/jobs/${jobId}/progress`);
       eventSourceRef.current = eventSource;
 
-      // Connection opened
       eventSource.onopen = () => {
         setIsConnected(true);
         setReconnecting(false);
-        // Reset retry count on successful connection
         retryCountRef.current = 0;
       };
 
-      // Handle incoming progress events
       eventSource.onmessage = (event) => {
         try {
           const parsed = JSON.parse(event.data);
@@ -276,12 +266,10 @@ export function useJobProgress(jobId: string | null): UseJobProgressResult {
           progressRef.current = parsed;
           setProgress(parsed);
 
-          // Close connection when job reaches terminal state
           if (parsed.status === "completed" || parsed.status === "failed") {
             eventSource.close();
             setIsConnected(false);
             eventSourceRef.current = null;
-            // Cancel any pending reconnection attempts
             if (timeoutRef.current) {
               clearTimeout(timeoutRef.current);
               timeoutRef.current = null;
@@ -289,26 +277,21 @@ export function useJobProgress(jobId: string | null): UseJobProgressResult {
             setReconnecting(false);
           }
         } catch (err) {
-          // Malformed JSON - log but don't break the hook
           console.error("Failed to parse SSE data:", err);
         }
       };
 
-      // Handle connection errors with reconnection logic
       eventSource.onerror = (err) => {
         console.error("SSE connection error:", err);
         setIsConnected(false);
         eventSource.close();
         eventSourceRef.current = null;
 
-        // Don't reconnect if job has already completed/failed
-        // Check current progress state via ref to avoid stale closure
         if (progressRef.current?.status === "completed" || progressRef.current?.status === "failed") {
           setReconnecting(false);
           return;
         }
 
-        // Check if we should attempt reconnection
         if (retryCountRef.current < maxRetries) {
           setReconnecting(true);
           const delay = getBackoffDelay(retryCountRef.current);
@@ -318,16 +301,13 @@ export function useJobProgress(jobId: string | null): UseJobProgressResult {
             createConnection();
           }, delay);
         } else {
-          // Max retries reached, stop reconnecting
           setReconnecting(false);
         }
       };
     };
 
-    // Create initial connection
     createConnection();
 
-    // Cleanup function
     return cleanup;
   }, [jobId]);
 

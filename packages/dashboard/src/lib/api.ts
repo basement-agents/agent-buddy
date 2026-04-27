@@ -83,19 +83,15 @@ async function request<T>(path: string, options: RequestOptions = {}, retryCount
 }
 
 export const api = {
-  // Health
   health: (signal?: AbortSignal) => request<{ status: string }>("/health", { signal }),
 
-  // LLM Provider Test
   testLLM: (signal?: AbortSignal) =>
     request<LLMTestResult>("/settings/llm/test", { method: "POST", signal }),
 
-  // Settings
   getSettings: (signal?: AbortSignal) => request<SettingsData>("/settings", { signal }),
   updateSettings: (settings: Partial<SettingsData>, signal?: AbortSignal) =>
     request<{ saved: boolean }>("/settings", { method: "PATCH", body: settings, signal }),
 
-  // Repos
   listRepos: (params?: { page?: number; limit?: number }, signal?: AbortSignal) =>
     request<PaginatedResponse<RepoConfig>>(`/repos${buildQuery(params)}`, { signal }),
   addRepo: (owner: string, repo: string, buddyId?: string, signal?: AbortSignal) =>
@@ -105,7 +101,6 @@ export const api = {
   updateRepo: (id: string, data: Partial<RepoConfig>, signal?: AbortSignal) =>
     request<RepoConfig>(repoPath(id), { method: "PATCH", body: data, signal }),
 
-  // Buddies
   listBuddies: (params?: { page?: number; limit?: number }, signal?: AbortSignal) =>
     request<PaginatedResponse<BuddySummary>>(`/buddies${buildQuery(params)}`, { signal }),
   getBuddy: (id: string, signal?: AbortSignal) => request<BuddyProfile>(`/buddies/${encodeURIComponent(id)}`, { signal }),
@@ -119,7 +114,6 @@ export const api = {
   importBuddy: (profile: string, newId?: string, signal?: AbortSignal) =>
     request<{ imported: boolean; id: string }>("/buddies/import", { method: "POST", body: { profile, newId }, signal }),
 
-  // Reviews
   getReview: (owner: string, repo: string, prNumber: number, signal?: AbortSignal) =>
     request<CodeReview>(`/reviews/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${prNumber}`, { signal }),
   listReviews: (params?: { repo?: string; buddy?: string; status?: string; since?: string; until?: string; page?: number; limit?: number }, signal?: AbortSignal) =>
@@ -133,14 +127,11 @@ export const api = {
     );
   },
 
-  // Jobs
   getJob: (jobId: string, signal?: AbortSignal) => request<ReviewJob | AnalysisJob>(`/jobs/${jobId}`, { signal }),
 
-  // Open PRs for a repo
   listOpenPRs: (owner: string, repo: string, signal?: AbortSignal) =>
     request<OpenPR[]>(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/prs`, { signal }),
 
-  // Repo Rules
   getRepoRules: (repoId: string, signal?: AbortSignal) =>
     request<CustomRule[]>(`${repoPath(repoId)}/rules`, { signal }),
   addRepoRule: (repoId: string, rule: Omit<CustomRule, "id">, signal?: AbortSignal) =>
@@ -150,13 +141,11 @@ export const api = {
   updateRepoRule: (repoId: string, ruleId: string, data: Partial<Omit<CustomRule, "id">>, signal?: AbortSignal) =>
     request<{ rule: CustomRule }>(`${repoPath(repoId)}/rules/${encodeURIComponent(ruleId)}`, { method: "PATCH", body: data, signal }),
 
-  // Repo Schedule
   getRepoSchedule: (repoId: string, signal?: AbortSignal) =>
     request<ScheduleConfig>(`${repoPath(repoId)}/schedule`, { signal }),
   updateRepoSchedule: (repoId: string, config: Partial<ScheduleConfig>, signal?: AbortSignal) =>
     request<ScheduleConfig>(`${repoPath(repoId)}/schedule`, { method: "PATCH", body: config, signal }),
 
-  // Buddy Feedback
   getBuddyFeedback: (buddyId: string, signal?: AbortSignal) => request<BuddyFeedback>(`/buddies/${encodeURIComponent(buddyId)}/feedback`, { signal }),
   submitFeedback: (buddyId: string, data: { reviewId: string; commentId: string; wasHelpful: boolean; userResponse?: string }, signal?: AbortSignal) =>
     request<{ recorded: boolean }>(`/buddies/${encodeURIComponent(buddyId)}/feedback`, { method: "POST", body: data, signal }),
@@ -173,29 +162,22 @@ export const api = {
       };
     }>(`/buddies/${encodeURIComponent(id1)}/compare/${encodeURIComponent(id2)}`, { signal }),
 
-  // Job Status
   getJobStatus: (jobId: string, signal?: AbortSignal) => request<JobStatus>(`/jobs/${encodeURIComponent(jobId)}/status`, { signal }),
 
-  // Analytics
   getAnalytics: (signal?: AbortSignal) => request<AnalyticsData>("/analytics", { signal }),
 
-  // Metrics
   getMetrics: (params?: { since?: string; until?: string }, signal?: AbortSignal) =>
     request<MetricsData>(`/metrics${buildQuery(params)}`, { signal }),
 
-  // Search
   search: (query: string, signal?: AbortSignal) =>
     request<{ repos: { id: string; owner: string; repo: string }[]; buddies: { id: string; username: string }[]; reviews: { owner: string; repo: string; prNumber: number; summary: string }[] }>(`/search?q=${encodeURIComponent(query)}`, { signal }),
 
-  // Jobs list
   listJobs: (params?: { page?: number; limit?: number; status?: string; repoId?: string }, signal?: AbortSignal) =>
     request<PaginatedResponse<JobListItem>>(`/jobs${buildQuery(params)}`, { signal }),
 
-  // Cancel job
   cancelJob: (jobId: string, signal?: AbortSignal) =>
     request<{ success: boolean; jobId: string; status: string }>(`/jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST", signal }),
 
-  // SSE connection for job progress with exponential backoff reconnection
   connectToJobProgress: (jobId: string, onMessage: (data: ReviewJob | AnalysisJob) => void, onError?: (error: Error) => void): (() => void) => {
     if (typeof EventSource === "undefined") {
       if (onError) {
@@ -298,7 +280,6 @@ export interface JobListItem {
   completedAt?: string;
 }
 
-// Types used by the dashboard
 export interface RepoConfig {
   id: string;
   owner: string;

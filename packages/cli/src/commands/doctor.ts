@@ -18,7 +18,6 @@ export function registerDoctorCommand(program: Command): void {
     .action(async () => {
       const results: CheckResult[] = [];
 
-      // Check GitHub token
       const ghToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
       if (ghToken) {
         results.push({ name: "GITHUB_TOKEN", status: "pass", message: "Set" });
@@ -26,7 +25,6 @@ export function registerDoctorCommand(program: Command): void {
         results.push({ name: "GITHUB_TOKEN", status: "fail", message: "Not set. Set GITHUB_TOKEN or GH_TOKEN environment variable." });
       }
 
-      // Check config file and LLM provider
       let config: Awaited<ReturnType<typeof loadConfig>> | null = null;
       try {
         config = await loadConfig();
@@ -35,7 +33,6 @@ export function registerDoctorCommand(program: Command): void {
         results.push({ name: "Config file", status: "fail", message: `Invalid: ${getErrorMessage(err)}` });
       }
 
-      // Check configured LLM provider
       const providerName = config?.llm?.provider || "anthropic";
       const envKeyMap: Record<string, string[]> = {
         anthropic: ["ANTHROPIC_API_KEY"],
@@ -51,7 +48,6 @@ export function registerDoctorCommand(program: Command): void {
         results.push({ name: `LLM Provider (${providerName})`, status: "fail", message: `No API key. Set ${providerEnvVars.join(" or ")} or configure in settings.` });
       }
 
-      // Test provider connection
       if (providerApiKey) {
         try {
           const llm = createLLMProvider(config?.llm);
@@ -64,7 +60,6 @@ export function registerDoctorCommand(program: Command): void {
         }
       }
 
-      // Check buddy directory structure
       const baseDir = path.join(os.homedir(), ".agent-buddy");
       const buddyDir = path.join(baseDir, "buddy");
       try {
@@ -75,7 +70,6 @@ export function registerDoctorCommand(program: Command): void {
         results.push({ name: "Buddy directory", status: "warn", message: `Not found at ${buddyDir}. Run 'agent-buddy buddy analyze' to create one.` });
       }
 
-      // Check server connectivity
       try {
         const port = config?.server?.port || 3000;
         const host = config?.server?.host || "localhost";
@@ -89,19 +83,18 @@ export function registerDoctorCommand(program: Command): void {
         results.push({ name: "Server connectivity", status: "warn", message: "Server not running. Start with 'agent-buddy serve'." });
       }
 
-      // Print results
       console.log();
       console.log(pc.bold(pc.cyan("agent-buddy doctor")));
-      console.log(pc.dim("\u2500".repeat(50)));
+      console.log(pc.dim("─".repeat(50)));
 
       let passed = 0;
       let warnings = 0;
       let failed = 0;
 
       for (const result of results) {
-        const icon = result.status === "pass" ? pc.green("\u2713")
-          : result.status === "warn" ? pc.yellow("\u25CB")
-          : pc.red("\u2717");
+        const icon = result.status === "pass" ? pc.green("✓")
+          : result.status === "warn" ? pc.yellow("○")
+          : pc.red("✗");
 
         const label = result.status === "pass" ? pc.green(result.name)
           : result.status === "warn" ? pc.yellow(result.name)

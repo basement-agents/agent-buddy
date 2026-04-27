@@ -102,10 +102,8 @@ export class GitHubClient {
     let hasMore = true;
 
     while (hasMore && page <= this.maxPages) {
-      // Check rate limit before each page request
       await this.waitForRateLimitReset();
 
-      // Add page and per_page parameters to the path
       const url = new URL(path.startsWith("http") ? path : `${GITHUB_API}${path}`);
       url.searchParams.set("page", String(page));
       url.searchParams.set("per_page", String(initialPerPage));

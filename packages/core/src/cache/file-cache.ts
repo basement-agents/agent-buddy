@@ -31,7 +31,6 @@ export class FileContextCache {
       return undefined;
     }
 
-    // Mark as most recently used by deleting and re-inserting
     this.cache.delete(key);
     this.cache.set(key, entry);
 
@@ -49,7 +48,6 @@ export class FileContextCache {
 
     this.cache.set(key, entry);
 
-    // Evict least recently used entry if over max size
     if (this.cache.size > this.maxSize) {
       const firstKey = this.cache.keys().next().value;
       if (firstKey) {
@@ -94,7 +92,6 @@ export class FileContextCache {
       removed++;
     }
 
-    // Enforce maxSize after clearing expired entries
     const maxIterations = this.cache.size - this.maxSize + 1;
     let iterations = 0;
     while (this.cache.size > this.maxSize && iterations < maxIterations) {

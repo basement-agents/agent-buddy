@@ -1,4 +1,4 @@
-import { loadConfig } from "@agent-buddy/core";
+import { loadConfig, RepoConfig } from "@agent-buddy/core";
 import {
   GitHubClient,
   BuddyFileSystemStorage,
@@ -51,7 +51,7 @@ async function executeReview(
   if (!token) throw new Error("Missing GITHUB_TOKEN");
 
   const config = await loadConfig();
-  const repoConfig = config.repos.find((r) => r.id === repoId);
+  const repoConfig = config.repos.find((r: RepoConfig) => r.id === repoId);
 
   const client = new GitHubClient(token);
   const llm = createLLMProvider(config.llm);
@@ -75,7 +75,6 @@ async function executeReview(
 
   updateProgress(job, 50, "analyzing_code", attempt > 0 ? `Analyzing code (retry ${attempt + 1})...` : "Analyzing code changes...");
 
-  // Determine if high-context review is needed
   let repoFiles: string[] | undefined;
   const effectiveReviewType = reviewType ?? "auto";
   if (effectiveReviewType === "high-context" || effectiveReviewType === "auto") {
@@ -84,7 +83,6 @@ async function executeReview(
       const prFileList = await client.getPRFiles(owner, repo, prNumber);
       repoFiles = prFileList.map((f) => f.filename);
     } catch (err) {
-      // If auto and repo fetch fails, fall back to low-context
       if (effectiveReviewType === "auto") {
         logger.warn("Failed to fetch repo files, falling back to low-context review", {
           jobId,
@@ -117,7 +115,6 @@ export async function processReviewJob(
   const job = reviewJobs.get(jobId);
   if (!job) throw new Error(`Review job ${jobId} not found`);
 
-  // Initialize retry fields
   if (job.retryCount === undefined) job.retryCount = 0;
   if (job.maxRetries === undefined) job.maxRetries = DEFAULT_MAX_RETRIES;
   if (!job.errorHistory) job.errorHistory = [];
@@ -133,7 +130,6 @@ export async function processReviewJob(
     const errorMessage = getErrorMessage(err);
     const attempt = job.retryCount;
 
-    // Store error details
     const errorEntry: ErrorEntry = {
       message: errorMessage,
       timestamp: new Date(),
@@ -152,7 +148,6 @@ export async function processReviewJob(
       error: errorMessage
     });
 
-    // Check if we should retry
     const maxRetries = job.maxRetries ?? DEFAULT_MAX_RETRIES;
     if (attempt < maxRetries && isRetryableError(err)) {
       job.status = "queued";
@@ -164,7 +159,6 @@ export async function processReviewJob(
 
       const delay = calculateBackoffDelay(attempt);
       setTimeout(async () => {
-        // Re-check job status in case it was cancelled or modified
         const currentJob = reviewJobs.get(jobId);
         if (!currentJob || currentJob.status !== "queued") return;
 

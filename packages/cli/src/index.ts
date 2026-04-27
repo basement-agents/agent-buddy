@@ -25,6 +25,8 @@ import {
   Logger,
   getErrorMessage,
   sleep,
+  RepoConfig,
+  BuddySummary,
 } from "@agent-buddy/core";
 
 import { fetchReviewHistory, readPersistedJobs } from "./commands/history.js";
@@ -86,11 +88,9 @@ program
   .description("AI code review bot that learns reviewer personas")
   .version("0.1.0");
 
-// ─── doctor ──────────────────────────────────────────────────────────
 const { registerDoctorCommand } = await import("./commands/doctor.js");
 registerDoctorCommand(program);
 
-// ─── completion ─────────────────────────────────────────────────────
 program
   .command("completion")
   .description("Generate shell completion script")
@@ -196,7 +196,6 @@ complete -F _agent_buddy_completion agent-buddy
   }
 }
 
-// ─── init ───────────────────────────────────────────────────────────
 program
   .command("init")
   .description("Initialize agent-buddy configuration")
@@ -254,7 +253,6 @@ program
     }
   });
 
-// ─── status ─────────────────────────────────────────────────────────
 program
   .command("status")
   .description("Show agent-buddy status")
@@ -265,7 +263,7 @@ program
       const config = await loadConfig();
       const storage = new BuddyFileSystemStorage();
       const buddies = await storage.listBuddies();
-      const autoReviewCount = config.repos.filter((r) => r.autoReview).length;
+      const autoReviewCount = config.repos.filter((r: RepoConfig) => r.autoReview).length;
 
       if (opts.json) {
         console.log(JSON.stringify({
@@ -296,7 +294,6 @@ program
       console.log(pc.dim("  Auto-Review:    ") + pc.bold(`${autoReviewCount} repos`));
       console.log();
 
-      // Read persisted jobs for counts
       try {
         const jobs = await readPersistedJobs();
 
@@ -320,7 +317,6 @@ program
           console.log();
         }
       } catch {
-        // Jobs dir may not exist yet
       }
 
       if (opts.watch) {
@@ -333,10 +329,9 @@ program
       return;
     }
 
-    // Watch mode
-    process.stdout.write("\x1B?25l"); // Hide cursor
+    process.stdout.write("\x1B?25l");
     const cleanup = () => {
-      process.stdout.write("\x1B?25h"); // Show cursor
+      process.stdout.write("\x1B?25h");
       console.log();
       process.exit(0);
     };
@@ -347,7 +342,6 @@ program
     setInterval(renderStatus, 2000);
   });
 
-// ─── config ────────────────────────────────────────────────────────
 const configCmd = new Command("config").description("Manage configuration");
 
 configCmd
@@ -357,11 +351,9 @@ configCmd
     try {
       const config = await loadConfig();
 
-      // Parse the key path (e.g., "server.port" -> ["server", "port"])
       const keys = key.split(".");
       let target: Record<string, unknown> = config as unknown as Record<string, unknown>;
 
-      // Navigate to the parent object
       for (let i = 0; i < keys.length - 1; i++) {
         if (!(keys[i] in target)) {
           target[keys[i]] = {};
@@ -369,7 +361,6 @@ configCmd
         target = target[keys[i]] as Record<string, unknown>;
       }
 
-      // Set the value (try to parse as JSON for numbers/booleans)
       const finalKey = keys[keys.length - 1];
       try {
         target[finalKey] = JSON.parse(value);
@@ -455,7 +446,6 @@ configCmd
 
 program.addCommand(configCmd);
 
-// ─── repo ───────────────────────────────────────────────────────────
 const repoCmd = new Command("repo").description("Manage repositories");
 
 repoCmd
@@ -500,7 +490,7 @@ repoCmd
     const repos = await listRepos();
 
     if (opts.json) {
-      console.log(JSON.stringify(repos.map((r) => ({
+      console.log(JSON.stringify(repos.map((r: RepoConfig) => ({
         id: r.id,
         owner: r.owner,
         repo: r.repo,
@@ -521,7 +511,6 @@ repoCmd
     console.log(pc.bold("Configured Repositories"));
     console.log(pc.dim("─".repeat(120)));
 
-    // Table header
     const repoWidth = 35;
     const buddyWidth = 25;
     const autoReviewWidth = 15;
@@ -548,7 +537,7 @@ repoCmd
     }
     console.log();
 
-    const enabledCount = repos.filter((r) => r.autoReview).length;
+    const enabledCount = repos.filter((r: RepoConfig) => r.autoReview).length;
     console.log(pc.dim(`  Summary: ${repos.length} repos, ${enabledCount} with auto-review enabled`));
     console.log();
   });
@@ -584,7 +573,7 @@ repoCmd
 
     try {
       const config = await loadConfig();
-      const repoConfig = config.repos.find((r) => r.id === `${owner}/${repo}`);
+      const repoConfig = config.repos.find((r: RepoConfig) => r.id === `${owner}/${repo}`);
       if (!repoConfig) {
         console.error(pc.red(`Repository ${owner}/${repo} not found in config`));
         console.log(pc.dim(`Add it first with: agent-buddy repo add ${owner}/${repo}`));
@@ -602,7 +591,6 @@ repoCmd
 
 program.addCommand(repoCmd);
 
-// ─── buddy ──────────────────────────────────────────────────────────
 const buddyCmd = new Command("buddy").description("Manage buddy profiles");
 
 buddyCmd
@@ -661,7 +649,7 @@ buddyCmd
     const buddies = await storage.listBuddies();
 
     if (opts.json) {
-      console.log(JSON.stringify(buddies.map((b) => ({
+      console.log(JSON.stringify(buddies.map((b: BuddySummary) => ({
         id: b.id,
         username: b.username,
         sourceRepos: b.sourceRepos,
@@ -681,7 +669,6 @@ buddyCmd
     console.log(pc.bold("Buddies"));
     console.log(pc.dim("─".repeat(100)));
 
-    // Table header
     const idWidth = 20;
     const usernameWidth = 20;
     const reposWidth = 30;
@@ -868,7 +855,6 @@ buddyCmd
     try {
       const json = await fs.readFile(file, "utf-8");
 
-      // Validate JSON before attempting import
       let jsonData: unknown;
       try {
         jsonData = JSON.parse(json);
@@ -879,7 +865,6 @@ buddyCmd
         process.exit(1);
       }
 
-      // Basic structure validation
       if (!jsonData || typeof jsonData !== "object") {
         spinner.fail(pc.red("Invalid buddy export format"));
         console.error(pc.dim("  Expected a JSON object with buddy profile data."));
@@ -896,7 +881,6 @@ buddyCmd
       const errorMessage = getErrorMessage(err);
       spinner.fail(pc.red(`Import failed`));
 
-      // Enhanced error display for validation errors
       if (errorMessage.includes("Invalid buddy export")) {
         console.error();
         console.error(pc.red("  Validation errors:"));
@@ -922,7 +906,6 @@ buddyCmd
     try {
       const storage = new BuddyFileSystemStorage();
 
-      // First, list available versions
       const versions = await storage.listProfileVersions(id);
       if (versions.length === 0) {
         spinner.fail(pc.red(`No version backups found for buddy ${id}`));
@@ -932,7 +915,7 @@ buddyCmd
       const targetVersion = opts.version ? parseInt(opts.version, 10) : undefined;
 
       if (targetVersion !== undefined) {
-        const versionExists = versions.some((v) => v.version === targetVersion);
+        const versionExists = versions.some((v: { version: number; backedUpAt: string }) => v.version === targetVersion);
         if (!versionExists) {
           spinner.fail(pc.red(`Version ${targetVersion} not found`));
           console.log(pc.dim("Available versions:"));
@@ -943,7 +926,6 @@ buddyCmd
         }
       }
 
-      // Perform rollback
       const restored = await storage.rollbackProfile(id, targetVersion);
 
       spinner.succeed(pc.green(`Rolled back to version ${targetVersion || "latest"}`));
@@ -1034,7 +1016,6 @@ buddyCmd
       const existing = await fs.readFile(configPath, "utf-8");
       config = JSON.parse(existing);
     } catch {
-      // No existing config
     }
 
     config.githubToken = githubToken;
@@ -1075,20 +1056,16 @@ buddyCmd
     console.log(pc.dim("─".repeat(80)));
     console.log();
 
-    // Overall score
     const scorePercent = Math.round(result.score * 100);
     const scoreColor = scorePercent > 70 ? pc.green : scorePercent > 40 ? pc.yellow : pc.red;
     console.log(pc.bold("  Overall Similarity: ") + scoreColor(`${scorePercent}%`));
     console.log();
 
-    // Soul overlap
     console.log(pc.bold("  Soul Profile Overlap: ") + pc.yellow(`${Math.round(result.soulOverlap * 100)}%`));
 
-    // Analysis breakdown
     console.log(pc.bold("  Philosophy Similarity: ") + `${Math.round(result.analysis.philosophySimilarity * 100)}%`);
     console.log(pc.bold("  Expertise Overlap: ") + `${Math.round(result.analysis.expertiseOverlap * 100)}%`);
 
-    // Shared keywords
     if (result.sharedKeywords.length > 0) {
       console.log();
       console.log(pc.bold("  Shared Keywords:"));
@@ -1097,7 +1074,6 @@ buddyCmd
       }
     }
 
-    // Shared repos
     if (result.sharedRepos.length > 0) {
       console.log();
       console.log(pc.bold("  Shared Repos:"));
@@ -1106,7 +1082,6 @@ buddyCmd
       }
     }
 
-    // Common patterns
     if (result.analysis.commonPatterns.length > 0) {
       console.log();
       console.log(pc.bold("  Common Patterns:"));
@@ -1120,7 +1095,6 @@ buddyCmd
 
 program.addCommand(buddyCmd);
 
-// ─── serve ──────────────────────────────────────────────────────────
 program
   .command("serve")
   .description("Start the webhook server")
@@ -1159,7 +1133,6 @@ program
     }
   });
 
-// ─── review ─────────────────────────────────────────────────────────
 const reviewCmd = new Command("review").description("Perform code reviews");
 
 reviewCmd
@@ -1302,7 +1275,6 @@ reviewCmd
     const spinner = ora(`Triggering review for ${pc.cyan(`${opts.repo}#${opts.pr}`)}...`).start();
 
     try {
-      // Trigger the review
       const res = await fetch(url.toString(), {
         method: "POST",
         headers: {
@@ -1336,13 +1308,11 @@ reviewCmd
         return;
       }
 
-      // Poll for job completion
       const pollSpinner = ora("Waiting for review to complete...").start();
-      const pollTimeoutMs = parseInt(process.env.AGENT_BUDDY_POLL_TIMEOUT_MS || "600000", 10); // Default 10 minutes
-      const pollIntervalMs = 2000; // Poll every 2 seconds
+      const pollTimeoutMs = parseInt(process.env.AGENT_BUDDY_POLL_TIMEOUT_MS || "600000", 10);
+      const pollIntervalMs = 2000;
       const startTime = Date.now();
 
-      // Poll each buddy's job status
       const jobResults: Array<{ buddyId: string; status: string; error?: string }> = [];
 
       for (const buddyId of data.buddyIds) {
@@ -1356,7 +1326,6 @@ reviewCmd
             const jobRes = await fetch(jobUrl);
             if (!jobRes.ok) {
               if (jobRes.status === 404) {
-                // Job not found yet - might still be starting up
                 pollSpinner.text = `Waiting for job to start...`;
               } else {
                 pollSpinner.text = `HTTP ${jobRes.status} error for ${buddyId}`;
@@ -1383,18 +1352,15 @@ reviewCmd
             console.error("Network error during job polling, retrying...", err);
           }
 
-          // Wait before next poll
           await sleep(pollIntervalMs);
         }
 
-        // Check for timeout
         if (jobStatus !== "completed" && jobStatus !== "failed") {
           pollSpinner.warn(pc.yellow(`Polling timed out for ${buddyId} after ${pollTimeoutMs / 1000} seconds`));
           jobResults.push({ buddyId, status: "timeout" });
         }
       }
 
-      // Summarize results
       pollSpinner.stop();
       console.log();
       console.log(pc.bold("Review Results:"));
@@ -1438,7 +1404,6 @@ reviewCmd
 
 program.addCommand(reviewCmd);
 
-// ─── job ─────────────────────────────────────────────────────────────
 const jobCmd = new Command("job").description("Manage jobs");
 
 jobCmd
@@ -1546,7 +1511,6 @@ jobCmd
 
 program.addCommand(jobCmd);
 
-// ─── review history ──────────────────────────────────────────────
 program
   .command("history")
   .description("View recent review history")
@@ -1590,7 +1554,6 @@ program
     }
   });
 
-// ─── search ──────────────────────────────────────────────────────
 program
   .command("search <query>")
   .description("Search repos, buddies, and reviews")

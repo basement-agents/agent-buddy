@@ -1,5 +1,5 @@
 import { Hono, type Context } from "hono";
-import { loadConfig, GitHubClient, Logger, getErrorMessage } from "@agent-buddy/core";
+import { loadConfig, GitHubClient, Logger, getErrorMessage, RepoConfig } from "@agent-buddy/core";
 import { z } from "zod";
 import type { ReviewJob } from "../jobs/state.js";
 import { reviewJobs, createJobBase } from "../jobs/state.js";
@@ -10,17 +10,14 @@ import { apiError } from "../lib/api-response.js";
 
 const logger = new Logger("routes:webhooks");
 
-// Webhook validation failure metrics
 export const webhookValidationFailures = {
   event_type: 0,
   signature: 0,
   payload: 0,
 };
 
-// In-memory duplicate event tracking: Map<eventKey, timestamp>
-// eventKey format: "repoId:prNumber:action"
 const recentEvents = new Map<string, number>();
-const DUPLICATE_WINDOW_MS = 30000; // 30 seconds
+const DUPLICATE_WINDOW_MS = 30000;
 
 function handlePayloadValidationError(c: Context, eventType: string, error: z.ZodError) {
   webhookValidationFailures.payload++;
@@ -31,7 +28,6 @@ function handlePayloadValidationError(c: Context, eventType: string, error: z.Zo
   return c.json(apiError(`Invalid ${eventType} payload`, error.errors[0].message), 400);
 }
 
-// Webhook event validation schemas
 const SUPPORTED_EVENT_TYPES = ["pull_request", "issue_comment"] as const;
 const SUPPORTED_PR_ACTIONS = ["opened", "synchronize", "reopened", "review_requested"] as const;
 
@@ -157,7 +153,6 @@ export {
 export function createWebhooksRoutes(): Hono {
   const app = new Hono();
 
-  // POST /api/webhooks/github - GitHub webhook handler
   app.post("/api/webhooks/github", async (c) => {
     if (getIsShuttingDown()) {
       return c.json(apiError("Server is shutting down"), 503);
@@ -168,7 +163,6 @@ export function createWebhooksRoutes(): Hono {
     const eventType = c.req.header("x-github-event");
     const body = await c.req.text();
 
-    // Validate event type first (before signature check to provide better error messages)
     const eventTypeValidation = validateWebhookEventType(eventType);
     if (!eventTypeValidation.valid) {
       webhookValidationFailures.event_type++;
@@ -176,7 +170,6 @@ export function createWebhooksRoutes(): Hono {
       return c.json(apiError(eventTypeValidation.error!), 400);
     }
 
-    // Verify signature if secret is configured
     if (config.server?.webhookSecret) {
       const valid = GitHubClient.verifyWebhookSignature(body, signature, config.server.webhookSecret);
       if (!valid) {
@@ -193,14 +186,12 @@ export function createWebhooksRoutes(): Hono {
     try {
       parsed = JSON.parse(body) as Record<string, unknown>;
 
-      // Validate payload structure based on event type
       if (eventType === "pull_request") {
         const prValidation = pullRequestWebhookSchema.safeParse(parsed);
         if (!prValidation.success) {
           return handlePayloadValidationError(c, "pull_request", prValidation.error);
         }
 
-        // Validate pull_request action
         const actionValidation = validatePullRequestAction(parsed.action as string);
         if (!actionValidation.valid) {
           logger.warn("Invalid pull_request action", { action: parsed.action, error: actionValidation.error });
@@ -212,7 +203,6 @@ export function createWebhooksRoutes(): Hono {
           return handlePayloadValidationError(c, "issue_comment", commentValidation.error);
         }
 
-        // Validate @agent-buddy mention
         const validatedComment = commentValidation.data;
         const mentionValidation = validateIssueCommentMention(validatedComment.comment.body);
         if (!mentionValidation.valid) {
@@ -228,17 +218,15 @@ export function createWebhooksRoutes(): Hono {
 
       const repoId = `${event.repository.owner.login}/${event.repository.name}`;
 
-      // Log event type and repo for debugging
       logger.info("Webhook event received", {
         type: event.type,
         action: event.action,
         repo: repoId
       });
 
-      const repoConfig = config.repos.find((r) => r.id === repoId);
+      const repoConfig = config.repos.find((r: RepoConfig) => r.id === repoId);
       if (!repoConfig) return c.json({ status: "ignored", reason: "repo not configured" });
 
-      // Duplicate event detection for pull_request events
       if (event.type === "pull_request" && event.pullRequest) {
         const prNumber = event.pullRequest.number;
         const eventKey = `${repoId}:${prNumber}:${event.action}`;
@@ -252,7 +240,6 @@ export function createWebhooksRoutes(): Hono {
 
         recentEvents.set(eventKey, now);
 
-        // Clean old entries from the map (keep last 1000 entries)
         if (recentEvents.size > 1000) {
           const cutoff = now - DUPLICATE_WINDOW_MS;
           for (const [key, timestamp] of recentEvents) {
