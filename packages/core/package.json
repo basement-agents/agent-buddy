@@ -13,12 +13,14 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
     "@types/node": "^22.19.17",
+    "oxfmt": "^0.47.0",
+    "oxlint": "^1.62.0",
     "typescript": "^5.8.0",
+    "ultracite": "^7.6.2",
     "vitest": "^4.1.4"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { ReposPage } from "../pages/Repos";
+import { ReposPage } from "../pages/repos";
 import * as hooksModule from "../lib/hooks";
 
 vi.mock("../lib/hooks", () => ({
@@ -25,11 +25,11 @@ vi.mock("../lib/api", () => ({
   },
 }));
 
-vi.mock("../components/ui/toast", () => ({
+vi.mock("~/components/system/toast", () => ({
   useToast: vi.fn(() => ({ showToast: vi.fn() })),
 }));
 
-vi.mock("../components/ui/confirm-dialog", () => ({
+vi.mock("~/components/system/confirm-dialog", () => ({
   ConfirmDialog: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 

@@ -354,10 +354,10 @@ describe("CLI init and status commands", () => {
 
       // Simulate status flow
       const config = await loadConfig();
-      const autoReviewCount = config.repos.filter((r) => r.autoReview).length;
+      const autoReviewCount = config.repos.filter((r: { autoReview: boolean }) => r.autoReview).length;
 
       expect(autoReviewCount).toBe(2);
-      expect(config.repos.filter((r) => !r.autoReview).length).toBe(2);
+      expect(config.repos.filter((r: { autoReview: boolean }) => !r.autoReview).length).toBe(2);
     });
 
     it("should display server port and host from config", async () => {
@@ -418,7 +418,7 @@ describe("CLI init and status commands", () => {
       // Simulate status flow with JSON output
       const config = await loadConfig();
       const buddies = await storage.listBuddies();
-      const autoReviewCount = config.repos.filter((r) => r.autoReview).length;
+      const autoReviewCount = config.repos.filter((r: { autoReview: boolean }) => r.autoReview).length;
 
       const jsonOutput = {
         repositories: {
@@ -477,7 +477,7 @@ describe("CLI init and status commands", () => {
       // Simulate status flow
       const config = await loadConfig();
       const repoCount = config.repos.length;
-      const autoReviewCount = config.repos.filter((r) => r.autoReview).length;
+      const autoReviewCount = config.repos.filter((r: { autoReview: boolean }) => r.autoReview).length;
 
       expect(repoCount).toBe(0);
       expect(autoReviewCount).toBe(0);

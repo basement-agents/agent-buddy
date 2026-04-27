@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { listRepos, BuddyFileSystemStorage, Logger, getErrorMessage } from "@agent-buddy/core";
+import { listRepos, BuddyFileSystemStorage, Logger, getErrorMessage, RepoConfig, BuddySummary } from "@agent-buddy/core";
 import { reviewHistory } from "../jobs/state.js";
 import { apiError } from "../lib/api-response.js";
 
@@ -27,14 +27,14 @@ export function createSearchRoutes(): Hono {
       ]);
 
       const matchingRepos = repos
-        .filter((r) => r.owner && r.repo && (r.owner.toLowerCase().includes(lower) || r.repo.toLowerCase().includes(lower)))
+        .filter((r: RepoConfig) => r.owner && r.repo && (r.owner.toLowerCase().includes(lower) || r.repo.toLowerCase().includes(lower)))
         .slice(0, 5)
-        .map((r) => ({ id: r.id, owner: r.owner, repo: r.repo }));
+        .map((r: RepoConfig) => ({ id: r.id, owner: r.owner, repo: r.repo }));
 
       const matchingBuddies = buddies
-        .filter((b) => b.username && b.id && (b.username.toLowerCase().includes(lower) || b.id.toLowerCase().includes(lower)))
+        .filter((b: BuddySummary) => b.username && b.id && (b.username.toLowerCase().includes(lower) || b.id.toLowerCase().includes(lower)))
         .slice(0, 5)
-        .map((b) => ({ id: b.id, username: b.username }));
+        .map((b: BuddySummary) => ({ id: b.id, username: b.username }));
 
       const matchingReviews = reviewHistory
         .filter(

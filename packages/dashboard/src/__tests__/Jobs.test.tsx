@@ -5,7 +5,7 @@ import "@testing-library/jest-dom/vitest";
 const mockListJobs = vi.fn();
 const mockCancelJob = vi.fn();
 
-vi.mock("@/lib/api", () => ({
+vi.mock("~/lib/api", () => ({
   api: {
     listJobs: (...args: unknown[]) => mockListJobs(...args),
     cancelJob: (...args: unknown[]) => mockCancelJob(...args),
@@ -20,7 +20,7 @@ vi.mock("@/lib/api", () => ({
   },
 }));
 
-vi.mock("@/lib/hooks", () => ({
+vi.mock("~/lib/hooks", () => ({
   useJobProgress: () => ({
     progress: null,
     isConnected: false,
@@ -84,7 +84,7 @@ describe("JobsPage", () => {
   });
 
   it("renders the Jobs page with heading", async () => {
-    const { JobsPage } = await import("@/pages/Jobs");
+    const { JobsPage } = await import("~/pages/jobs");
     render(<JobsPage />);
 
     await waitFor(() => {
@@ -93,7 +93,7 @@ describe("JobsPage", () => {
   });
 
   it("displays job count badges", async () => {
-    const { JobsPage } = await import("@/pages/Jobs");
+    const { JobsPage } = await import("~/pages/jobs");
     render(<JobsPage />);
 
     await waitFor(() => {
@@ -104,7 +104,7 @@ describe("JobsPage", () => {
   });
 
   it("renders job rows with correct data", async () => {
-    const { JobsPage } = await import("@/pages/Jobs");
+    const { JobsPage } = await import("~/pages/jobs");
     render(<JobsPage />);
 
     await waitFor(() => {
@@ -115,7 +115,7 @@ describe("JobsPage", () => {
   });
 
   it("shows progress bar for running jobs", async () => {
-    const { JobsPage } = await import("@/pages/Jobs");
+    const { JobsPage } = await import("~/pages/jobs");
     render(<JobsPage />);
 
     await waitFor(() => {
@@ -125,7 +125,7 @@ describe("JobsPage", () => {
   });
 
   it("calls listJobs on mount", async () => {
-    const { JobsPage } = await import("@/pages/Jobs");
+    const { JobsPage } = await import("~/pages/jobs");
     render(<JobsPage />);
 
     await waitFor(() => {
@@ -135,7 +135,7 @@ describe("JobsPage", () => {
 
   it("shows error state when API fails", async () => {
     mockListJobs.mockRejectedValue(new Error("Network error"));
-    const { JobsPage } = await import("@/pages/Jobs");
+    const { JobsPage } = await import("~/pages/jobs");
     render(<JobsPage />);
 
     await waitFor(() => {
@@ -144,7 +144,7 @@ describe("JobsPage", () => {
   });
 
   it("renders status filter dropdown", async () => {
-    const { JobsPage } = await import("@/pages/Jobs");
+    const { JobsPage } = await import("~/pages/jobs");
     render(<JobsPage />);
 
     await waitFor(() => {
@@ -153,7 +153,7 @@ describe("JobsPage", () => {
   });
 
   it("renders repo filter dropdown", async () => {
-    const { JobsPage } = await import("@/pages/Jobs");
+    const { JobsPage } = await import("~/pages/jobs");
     render(<JobsPage />);
 
     await waitFor(() => {
@@ -162,7 +162,7 @@ describe("JobsPage", () => {
   });
 
   it("renders Cancel button for running jobs", async () => {
-    const { JobsPage } = await import("@/pages/Jobs");
+    const { JobsPage } = await import("~/pages/jobs");
     render(<JobsPage />);
 
     await waitFor(() => {
@@ -189,7 +189,7 @@ describe("JobsPage", () => {
       total: 1,
       totalPages: 1,
     });
-    const { JobsPage } = await import("@/pages/Jobs");
+    const { JobsPage } = await import("~/pages/jobs");
     render(<JobsPage />);
 
     await waitFor(() => {
@@ -199,7 +199,7 @@ describe("JobsPage", () => {
 
   it("calls cancelJob when Cancel button is clicked", async () => {
     mockCancelJob.mockResolvedValue({ success: true, jobId: "review-2", status: "cancelled" });
-    const { JobsPage } = await import("@/pages/Jobs");
+    const { JobsPage } = await import("~/pages/jobs");
     render(<JobsPage />);
 
     await waitFor(() => {

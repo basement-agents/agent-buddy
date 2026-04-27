@@ -1,18 +1,18 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { ReviewsPage } from "../pages/Reviews";
+import { ReviewsPage } from "../pages/reviews";
 import type { CodeReview } from "../lib/api";
 
 // Mock the hooks module
-vi.mock("@/lib/hooks", () => ({
+vi.mock("~/lib/hooks", () => ({
   useReviews: vi.fn(),
   useNavigate: () => vi.fn(),
   useDebouncedValue: (value: string) => value,
 }));
 
 // Mock the API module
-vi.mock("@/lib/api", () => ({
+vi.mock("~/lib/api", () => ({
   api: {
     connectToJobProgress: vi.fn(() => vi.fn()),
   },
@@ -93,7 +93,7 @@ describe("ReviewsPage", () => {
   ];
 
   it("renders review list from API data", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     vi.mocked(useReviews).mockReturnValue({
       data: {
         data: mockReviews,
@@ -121,7 +121,7 @@ describe("ReviewsPage", () => {
   });
 
   it("shows loading state while fetching", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     vi.mocked(useReviews).mockReturnValue({
       data: undefined,
       loading: true,
@@ -137,7 +137,7 @@ describe("ReviewsPage", () => {
   });
 
   it("empty state when no reviews exist", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     vi.mocked(useReviews).mockReturnValue({
       data: {
         data: [],
@@ -163,7 +163,7 @@ describe("ReviewsPage", () => {
   });
 
   it("empty state with filters when no reviews match", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     vi.mocked(useReviews).mockReturnValue({
       data: {
         data: [],
@@ -189,7 +189,7 @@ describe("ReviewsPage", () => {
   });
 
   it("review items display PR info", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     vi.mocked(useReviews).mockReturnValue({
       data: {
         data: [mockReviews[0]],
@@ -224,7 +224,7 @@ describe("ReviewsPage", () => {
   });
 
   it("status badges show correct variant colors", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     const reviews = [
       {
         ...mockReviews[0],
@@ -271,7 +271,7 @@ describe("ReviewsPage", () => {
     // Set URL search params to page 2
     mockLocation.search = "?page=2";
 
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     vi.mocked(useReviews).mockReturnValue({
       data: {
         data: mockReviews,
@@ -299,7 +299,7 @@ describe("ReviewsPage", () => {
   });
 
   it("pagination Previous button is disabled on first page", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     vi.mocked(useReviews).mockReturnValue({
       data: {
         data: mockReviews,
@@ -327,7 +327,7 @@ describe("ReviewsPage", () => {
     // Set URL search params to page 3 (last page with total 41)
     mockLocation.search = "?page=3";
 
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     vi.mocked(useReviews).mockReturnValue({
       data: {
         data: mockReviews,
@@ -352,7 +352,7 @@ describe("ReviewsPage", () => {
   });
 
   it("renders filters section", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     vi.mocked(useReviews).mockReturnValue({
       data: {
         data: mockReviews,
@@ -378,7 +378,7 @@ describe("ReviewsPage", () => {
   });
 
   it("renders buddy dropdown populated from reviews data", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     vi.mocked(useReviews).mockReturnValue({
       data: {
         data: mockReviews,
@@ -402,7 +402,7 @@ describe("ReviewsPage", () => {
   });
 
   it("renders date range inputs for filtering", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     vi.mocked(useReviews).mockReturnValue({
       data: {
         data: mockReviews,
@@ -426,7 +426,7 @@ describe("ReviewsPage", () => {
   });
 
   it("displays error state", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     vi.mocked(useReviews).mockReturnValue({
       data: undefined,
       loading: false,
@@ -443,7 +443,7 @@ describe("ReviewsPage", () => {
   });
 
   it("sorts by date with newest first (default)", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     mockLocation.search = "";
     vi.mocked(useReviews).mockReturnValue({
       data: {
@@ -470,7 +470,7 @@ describe("ReviewsPage", () => {
   });
 
   it("sorts by repo alphabetically", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     mockLocation.search = "?sort=repo";
     vi.mocked(useReviews).mockReturnValue({
       data: {
@@ -497,7 +497,7 @@ describe("ReviewsPage", () => {
   });
 
   it("sorts by status groups (approved > changes_requested > commented)", async () => {
-    const { useReviews } = await import("@/lib/hooks");
+    const { useReviews } = await import("~/lib/hooks");
     mockLocation.search = "?sort=status";
     const statusReviews = [
       { ...mockReviews[1], state: "commented", metadata: { ...mockReviews[1].metadata, prNumber: 100 } },

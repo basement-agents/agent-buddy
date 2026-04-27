@@ -4,7 +4,7 @@ import path from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./packages/dashboard/src"),
+      "~": path.resolve(__dirname, "./packages/dashboard/src"),
     },
   },
   test: {

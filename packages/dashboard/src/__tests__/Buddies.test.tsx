@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { BuddiesPage } from "@/pages/Buddies";
-import * as hooksModule from "@/lib/hooks";
+import { BuddiesPage } from "~/pages/buddies/index";
+import * as hooksModule from "~/lib/hooks";
 
-vi.mock("@/lib/hooks", () => ({
+vi.mock("~/lib/hooks", () => ({
   useBuddies: vi.fn(),
   useBuddy: vi.fn(),
   useBuddyFeedback: vi.fn(),
@@ -19,26 +18,26 @@ vi.mock("@/lib/hooks", () => ({
 }));
 
 // Mock UI components
-vi.mock("@/components/ui/toast", () => ({
+vi.mock("~/components/system/toast", () => ({
   useToast: vi.fn(() => ({ showToast: vi.fn() })),
 }));
 
-vi.mock("@/components/ui/confirm-dialog", () => ({
+vi.mock("~/components/system/confirm-dialog", () => ({
   ConfirmDialog: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useConfirmDialog: vi.fn(() => ({
     confirm: vi.fn(async () => true),
   })),
 }));
 
-vi.mock("@/components/CreateBuddyDialog", () => ({
+vi.mock("~/pages/buddies/_components/create-buddy-dialog", () => ({
   CreateBuddyDialog: () => null,
 }));
 
-vi.mock("@/components/BuddyComparison", () => ({
+vi.mock("~/pages/buddies/_components/buddy-comparison", () => ({
   BuddyComparison: () => null,
 }));
 
-vi.mock("@/components/ProgressBar", () => ({
+vi.mock("~/components/shared/progress-bar", () => ({
   ProgressBar: () => null,
 }));
 

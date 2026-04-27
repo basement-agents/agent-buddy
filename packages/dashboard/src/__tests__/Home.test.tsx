@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { HomePage } from "../pages/Home";
+import { HomePage } from "../pages/home";
 import * as hooksModule from "../lib/hooks";
 
 vi.mock("../lib/hooks", () => ({
