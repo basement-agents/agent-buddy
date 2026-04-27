@@ -316,7 +316,8 @@ program
           }
           console.log();
         }
-      } catch {
+      } catch (err) {
+        console.error("Failed to fetch job status", err);
       }
 
       if (opts.watch) {
