@@ -6,11 +6,13 @@ import { processReviewJob } from "./review.js";
 const logger = new Logger("scheduler");
 
 const MAX_RETRIES = 5;
-const BASE_DELAY_MS = 1000; // 1 second
+const BASE_DELAY_MS = 1000;
+
+import { RepoConfig } from "@agent-buddy/core";
 
 export async function checkForOpenPRs(repoId: string): Promise<void> {
   const config = await loadConfig();
-  const repoConfig = config.repos.find((r) => r.id === repoId);
+  const repoConfig = config.repos.find((r: RepoConfig) => r.id === repoId);
   if (!repoConfig || !repoConfig.schedule?.enabled) return;
 
   const [owner, repo] = repoId.split("/");
@@ -25,12 +27,11 @@ export async function checkForOpenPRs(repoId: string): Promise<void> {
     const prs = await client.listPRs(owner, repo, { state: "open" });
 
     for (const pr of prs) {
-      // Check if we already have a recent review for this PR
       const hasRecentReview = reviewHistory.some(
         (r) => r.metadata.prNumber === pr.number &&
         r.metadata.repo === repo &&
         r.metadata.owner === owner &&
-        (Date.now() - new Date(r.reviewedAt).getTime()) < 24 * 60 * 60 * 1000 // 24 hours
+        (Date.now() - new Date(r.reviewedAt).getTime()) < 24 * 60 * 60 * 1000
       );
 
       if (!hasRecentReview) {
@@ -52,10 +53,8 @@ export async function checkForOpenPRs(repoId: string): Promise<void> {
       }
     }
 
-    // Update last run time
     if (schedule) {
       schedule.lastRun = new Date().toISOString();
-      // Reset retry count on success
       schedule.retryCount = 0;
       schedule.lastError = undefined;
     }
@@ -68,25 +67,22 @@ export async function checkForOpenPRs(repoId: string): Promise<void> {
     const errorMsg = getErrorMessage(err);
     logger.error("Scheduled check failed", { repoId, attempt: currentRetryCount + 1, error: errorMsg });
 
-    // Retry logic with exponential backoff
     if (currentRetryCount < MAX_RETRIES) {
-      const delayMs = BASE_DELAY_MS * Math.pow(2, currentRetryCount); // 1s, 2s, 4s, 8s, 16s
+      const delayMs = BASE_DELAY_MS * Math.pow(2, currentRetryCount);
       const nextAttempt = currentRetryCount + 1;
 
       logger.info(`Retrying scheduled check in ${delayMs}ms`, { repoId, attempt: nextAttempt, maxRetries: MAX_RETRIES });
 
-      // Update retry state
       if (schedule) {
         schedule.retryCount = nextAttempt;
         schedule.lastError = errorMsg;
       }
 
       await sleep(delayMs);
-      return checkForOpenPRs(repoId); // Recursive retry
+      return checkForOpenPRs(repoId);
     } else {
       logger.error("Scheduled check failed after max retries", { repoId, retryCount: currentRetryCount, error: errorMsg });
 
-      // Reset retry count after max retries to allow future attempts
       if (schedule) {
         schedule.retryCount = 0;
         schedule.lastError = errorMsg;

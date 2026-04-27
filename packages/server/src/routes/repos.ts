@@ -9,6 +9,8 @@ import {
   Logger,
   GitHubClient,
   getErrorMessage,
+  RepoConfig,
+  CustomRule,
 } from "@agent-buddy/core";
 import type { ReviewJob } from "../jobs/state.js";
 import { reviewJobs, createJobBase } from "../jobs/state.js";
@@ -63,7 +65,6 @@ const updateRuleSchema = z.object({
 export function createReposRoutes(): Hono {
   const app = new Hono();
 
-  // GET /api/repos - List all repos
   app.get("/api/repos", async (c) => {
     const parsed = parsePaginationParams(c.req.query("page"), c.req.query("limit"));
     if ("error" in parsed) return c.json(parsed.error, 400);
@@ -72,7 +73,6 @@ export function createReposRoutes(): Hono {
     return c.json(paginate(repos, parsed.page, parsed.limit));
   });
 
-  // GET /api/repos/:owner/:repo/prs - List open PRs
   app.get("/api/repos/:owner/:repo/prs", async (c) => {
     const params = validateRepoParams(c);
     if (params instanceof Response) return params;
@@ -104,7 +104,6 @@ export function createReposRoutes(): Hono {
     }
   });
 
-  // POST /api/repos - Add a new repo
   app.post("/api/repos", zValidator("json", createRepoSchema), async (c) => {
     const body = c.req.valid("json");
 
@@ -118,7 +117,6 @@ export function createReposRoutes(): Hono {
     }
   });
 
-  // DELETE /api/repos/:owner/:repo - Remove a repo
   app.delete("/api/repos/:owner/:repo", async (c) => {
     const params = validateRepoParams(c);
     if (params instanceof Response) return params;
@@ -134,7 +132,6 @@ export function createReposRoutes(): Hono {
     }
   });
 
-  // PATCH /api/repos/:owner/:repo - Update repo configuration
   app.patch("/api/repos/:owner/:repo", zValidator("json", updateRepoSchema), async (c) => {
     const params = validateRepoParams(c);
     if (params instanceof Response) return params;
@@ -156,7 +153,6 @@ export function createReposRoutes(): Hono {
     return c.json(repoConfig);
   });
 
-  // POST /api/repos/:owner/:repo/schedule - Set up scheduled reviews
   app.post("/api/repos/:owner/:repo/schedule", zValidator("json", scheduleSchema), async (c) => {
     const params = validateRepoParams(c);
     if (params instanceof Response) return params;
@@ -168,7 +164,6 @@ export function createReposRoutes(): Hono {
     if (resolved instanceof Response) return resolved;
     const { config, repoConfig } = resolved;
 
-    // Clear existing schedule
     const existing = schedules.get(id);
     if (existing?.timer) {
       clearInterval(existing.timer);
@@ -201,7 +196,6 @@ export function createReposRoutes(): Hono {
     return c.json({ repoId: id, schedule: repoConfig.schedule }, 201);
   });
 
-  // GET /api/repos/:owner/:repo/schedule - Get schedule for a repo
   app.get("/api/repos/:owner/:repo/schedule", async (c) => {
     const params = validateRepoParams(c);
     if (params instanceof Response) return params;
@@ -213,7 +207,6 @@ export function createReposRoutes(): Hono {
     return c.json({ schedule: resolved.repoConfig.schedule });
   });
 
-  // DELETE /api/repos/:owner/:repo/schedule - Remove schedule
   app.delete("/api/repos/:owner/:repo/schedule", async (c) => {
     const params = validateRepoParams(c);
     if (params instanceof Response) return params;
@@ -235,7 +228,6 @@ export function createReposRoutes(): Hono {
     return c.json({ deleted: true });
   });
 
-  // GET /api/repos/:owner/:repo/rules - Get custom rules for a repo
   app.get("/api/repos/:owner/:repo/rules", async (c) => {
     const params = validateRepoParams(c);
     if (params instanceof Response) return params;
@@ -247,7 +239,6 @@ export function createReposRoutes(): Hono {
     return c.json({ rules: resolved.repoConfig.customRules || [] });
   });
 
-  // POST /api/repos/:owner/:repo/rules - Add a custom rule
   app.post("/api/repos/:owner/:repo/rules", zValidator("json", createRuleSchema), async (c) => {
     const params = validateRepoParams(c);
     if (params instanceof Response) return params;
@@ -275,7 +266,6 @@ export function createReposRoutes(): Hono {
     return c.json({ rule: newRule }, 201);
   });
 
-  // DELETE /api/repos/:owner/:repo/rules/:ruleId - Remove a custom rule
   app.delete("/api/repos/:owner/:repo/rules/:ruleId", async (c) => {
     const params = validateRepoParams(c);
     if (params instanceof Response) return params;
@@ -288,13 +278,12 @@ export function createReposRoutes(): Hono {
 
     if (!repoConfig.customRules) return c.json(apiError("Rule not found"), 404);
 
-    repoConfig.customRules = repoConfig.customRules.filter((r) => r.id !== ruleId);
+    repoConfig.customRules = repoConfig.customRules.filter((r: CustomRule) => r.id !== ruleId);
     await saveConfig(config);
 
     return c.json({ deleted: true });
   });
 
-  // PATCH /api/repos/:owner/:repo/rules/:ruleId - Update a custom rule
   app.patch("/api/repos/:owner/:repo/rules/:ruleId", zValidator("json", updateRuleSchema), async (c) => {
     const params = validateRepoParams(c);
     if (params instanceof Response) return params;
@@ -308,7 +297,7 @@ export function createReposRoutes(): Hono {
 
     if (!repoConfig.customRules) return c.json(apiError("Rule not found"), 404);
 
-    const ruleIndex = repoConfig.customRules.findIndex((r) => r.id === ruleId);
+    const ruleIndex = repoConfig.customRules.findIndex((r: CustomRule) => r.id === ruleId);
     if (ruleIndex === -1) return c.json(apiError("Rule not found"), 404);
 
     const existingRule = repoConfig.customRules[ruleIndex];
@@ -327,7 +316,6 @@ export function createReposRoutes(): Hono {
     return c.json({ rule: updatedRule });
   });
 
-  // POST /api/repos/:owner/:repo/reviews - Trigger a review for a PR
   app.post("/api/repos/:owner/:repo/reviews", zValidator("json", reviewRequestSchema), async (c) => {
     const params = validateRepoParams(c);
     if (params instanceof Response) return params;

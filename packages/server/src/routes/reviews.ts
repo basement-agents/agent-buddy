@@ -35,8 +35,6 @@ interface AnalyticsData {
 export function createReviewsRoutes(): Hono {
   const app = new Hono();
 
-  // POST /api/reviews/trigger - Trigger a new review creation
-  // Uses stricter rate limiting (10 requests/hour) for expensive LLM operations
   app.post("/api/reviews/trigger", reviewRateLimitMiddleware(), zValidator("json", reviewTriggerSchema), async (c) => {
     const { repoId, prNumber, buddyId, reviewType } = c.req.valid("json");
 
@@ -57,7 +55,6 @@ export function createReviewsRoutes(): Hono {
     });
   });
 
-  // GET /api/reviews/:owner/:repo/:prNumber - Get a single review
   app.get("/api/reviews/:owner/:repo/:prNumber", async (c) => {
     const params = validateRepoParams(c);
     if (params instanceof Response) return params;
@@ -79,7 +76,6 @@ export function createReviewsRoutes(): Hono {
     return c.json(review);
   });
 
-  // GET /api/reviews - List all reviews with filtering and pagination
   app.get("/api/reviews", async (c) => {
     const parsed = parsePaginationParams(c.req.query("page"), c.req.query("limit"));
     if ("error" in parsed) return c.json(parsed.error, 400);
@@ -97,7 +93,6 @@ export function createReviewsRoutes(): Hono {
     return c.json({ ...result, reviews: result.data });
   });
 
-  // GET /api/jobs - List all jobs
   app.get("/api/jobs", async (c) => {
     const parsed = parsePaginationParams(c.req.query("page"), c.req.query("limit"));
     if ("error" in parsed) return c.json(parsed.error, 400);
@@ -120,7 +115,6 @@ export function createReviewsRoutes(): Hono {
     return c.json(paginate(allJobs, parsed.page, parsed.limit));
   });
 
-  // GET /api/jobs/:jobId - Get job status
   app.get("/api/jobs/:jobId", async (c) => {
     const jobId = c.req.param("jobId");
     const reviewJob = reviewJobs.get(jobId);
@@ -132,7 +126,6 @@ export function createReviewsRoutes(): Hono {
     return c.json(apiError("Job not found"), 404);
   });
 
-  // POST /api/jobs/:jobId/cancel - Cancel a queued or running job
   app.post("/api/jobs/:jobId/cancel", async (c) => {
     const jobId = c.req.param("jobId");
     const job = getAnyJob(jobId);
@@ -147,7 +140,6 @@ export function createReviewsRoutes(): Hono {
     return c.json({ success: true, jobId, status: "cancelled" });
   });
 
-  // GET /api/jobs/:jobId/progress - Server-Sent Events for job progress
   app.get("/api/jobs/:jobId/progress", async (c) => {
     const jobId = c.req.param("jobId");
     const job = getAnyJob(jobId);
@@ -170,10 +162,8 @@ export function createReviewsRoutes(): Hono {
           }
         };
 
-        // Send initial state
         sendEvent(job);
 
-        // Poll for updates
         const interval = setInterval(() => {
           const updatedJob = getAnyJob(jobId);
           if (updatedJob) {
@@ -186,13 +176,11 @@ export function createReviewsRoutes(): Hono {
           }
         }, 1000);
 
-        // Cleanup after 5 minutes
         const timeout = setTimeout(() => {
           clearInterval(interval);
           controller.close();
         }, 300000);
 
-        // Cleanup when client disconnects
         const signal = c.req.raw.signal;
         if (signal) {
           signal.addEventListener("abort", () => {
@@ -207,21 +195,17 @@ export function createReviewsRoutes(): Hono {
     return new Response(stream, { headers });
   });
 
-  // GET /api/analytics - Review analytics
   app.get("/api/analytics", async (c) => {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    // Filter reviews by date
     const reviewsLast7Days = reviewHistory.filter((r) => new Date(r.reviewedAt) >= sevenDaysAgo).length;
     const reviewsLast30Days = reviewHistory.filter((r) => new Date(r.reviewedAt) >= thirtyDaysAgo).length;
 
-    // Calculate average turnaround time
     const totalDurationMs = reviewHistory.reduce((sum, r) => sum + (r.metadata.durationMs || 0), 0);
     const averageTurnaroundTimeMs = reviewHistory.length > 0 ? totalDurationMs / reviewHistory.length : 0;
 
-    // Per-buddy review counts
     const perBuddyCounts: Record<string, number> = {};
     for (const review of reviewHistory) {
       if (review.buddyId) {
@@ -229,14 +213,12 @@ export function createReviewsRoutes(): Hono {
       }
     }
 
-    // Per-repo review counts
     const perRepoCounts: Record<string, number> = {};
     for (const review of reviewHistory) {
       const repoKey = `${review.metadata.owner}/${review.metadata.repo}`;
       perRepoCounts[repoKey] = (perRepoCounts[repoKey] || 0) + 1;
     }
 
-    // Review states distribution
     const reviewStates: Record<string, number> = {};
     for (const review of reviewHistory) {
       reviewStates[review.state] = (reviewStates[review.state] || 0) + 1;

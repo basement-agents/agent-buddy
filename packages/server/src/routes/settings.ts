@@ -74,7 +74,6 @@ const settingsPatchSchema = z.object({
 export function createSettingsRoutes(): Hono {
   const app = new Hono();
 
-  // GET /api/settings - Get current settings
   app.get("/api/settings", async (c) => {
     try {
       const config = await loadConfig();
@@ -86,14 +85,12 @@ export function createSettingsRoutes(): Hono {
     }
   });
 
-  // PATCH /api/settings - Update settings
   app.patch("/api/settings", zValidator("json", settingsPatchSchema), async (c) => {
     const body = c.req.valid("json");
 
     try {
       const config = await loadConfig();
 
-      // Merge allowed fields
       if (body.githubToken) {
         config.githubToken = body.githubToken;
       }
@@ -128,7 +125,6 @@ export function createSettingsRoutes(): Hono {
     }
   });
 
-  // POST /api/settings/github-app - Configure GitHub App
   app.post("/api/settings/github-app", zValidator("json", githubAppSchema), async (c) => {
     const body = c.req.valid("json");
 
@@ -152,7 +148,6 @@ export function createSettingsRoutes(): Hono {
     }
   });
 
-  // POST /api/settings/llm/test - Test LLM provider connection
   app.post("/api/settings/llm/test", async (c) => {
     try {
       const config = await loadConfig();

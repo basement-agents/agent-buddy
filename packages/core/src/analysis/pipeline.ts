@@ -12,8 +12,7 @@ import { BuddyFileSystemStorage } from "../buddy/storage.js";
 import type { BuddyProfile, MemoryEntry } from "../buddy/types.js";
 import { getFeedbackSummary, getRecentFeedback } from "../learning/feedback.js";
 
-// SOUL/USER profiles can span many sections; 16384 prevents mid-section truncation.
-// If your model's completion limit is lower, pass a custom maxTokens via LLMOptions.
+/** SOUL/USER profiles can span many sections; 16384 prevents mid-section truncation. Override via env PROFILE_MAX_TOKENS. */
 const PROFILE_MAX_TOKENS = 16384;
 
 export class AnalysisPipeline {
@@ -74,7 +73,6 @@ export class AnalysisPipeline {
       );
     }
 
-    // Split into batches and analyze sequentially to avoid rate limits
     const batches: typeof reviewData[] = [];
     for (let i = 0; i < reviewData.length; i += BATCH_SIZE) {
       batches.push(reviewData.slice(i, i + BATCH_SIZE));
@@ -130,7 +128,6 @@ export class AnalysisPipeline {
       categories.push("detailed-reviewer");
     }
 
-    // Analyze comment patterns for categorization
     const commentTexts = [
       ...comments.map((c) => c.body.toLowerCase()),
       ...reviews.map((r) => r.body?.toLowerCase() ?? ""),
@@ -176,7 +173,6 @@ export class AnalysisPipeline {
       this.buildUserProfile(analysis, username),
     ]);
 
-    // Get the highest PR number from the review data
     const highestPrNumber = Math.max(...reviewData.map(({ pr }) => pr.number), 0);
 
     const profile: BuddyProfile = {
@@ -210,21 +206,18 @@ export class AnalysisPipeline {
     const existing = await this.storage.readProfile(buddyId);
     if (!existing) throw new Error(`Buddy ${buddyId} not found`);
 
-    // Filter review data based on options
     let dataToProcess = newReviewData;
     if (!options?.force && options?.sincePr !== undefined) {
       const sincePr = options.sincePr;
       dataToProcess = newReviewData.filter(({ pr }) => pr.number > sincePr);
     }
 
-    // If no new PRs to process, return existing profile
     if (dataToProcess.length === 0) {
       return existing;
     }
 
     const newAnalysis = await this.analyzeReviewerHistory(dataToProcess);
 
-    // Read feedback for this buddy
     const feedbackSummary = await getFeedbackSummary(buddyId);
     const recentFeedback = await getRecentFeedback(buddyId, 20);
 
@@ -252,7 +245,6 @@ export class AnalysisPipeline {
       this.buildUserProfile(newAnalysis, buddyId),
     ]);
 
-    // Calculate the highest PR number from processed data
     const highestPrNumber = Math.max(...dataToProcess.map(({ pr }) => pr.number), 0);
 
     const updated: BuddyProfile = {

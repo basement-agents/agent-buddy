@@ -106,7 +106,6 @@ export class ReviewEngine {
     const durationMs = Date.now() - start;
     let comments = this.normalizeComments(content.comments);
 
-    // Apply custom rules
     if (this.customRules) {
       const customComments = evaluateCustomRules(this.customRules, diff);
       comments = [...comments, ...customComments];
@@ -140,7 +139,6 @@ export class ReviewEngine {
       return [diff];
     }
 
-    // Split by file diff boundaries
     const fileDiffPattern = /^diff --git .+$/m;
     const splits = diff.split(fileDiffPattern).filter((s) => s.trim().length > 0);
 
@@ -172,7 +170,6 @@ export class ReviewEngine {
     const chunks = this.splitDiffIntoChunks(diff);
 
     if (chunks.length <= 1) {
-      // No chunking needed, fall back to normal review
       return null;
     }
 
@@ -228,14 +225,12 @@ export class ReviewEngine {
     const comments = this.normalizeComments(content.comments);
     const state = this.determineReviewState(content.state, comments);
 
-    // Store repo files in cache after successful review
     if (this.fileCache && repoFiles.length > 0) {
       const cacheKey = `fileTree:${pr.base.repo.owner.login}/${pr.base.repo.name}`;
       this.fileCache.set(cacheKey, repoFiles);
       this.logger.info("Cached file tree", { cacheKey, fileCount: repoFiles.length });
     }
 
-    // Build high-context analysis from impact assessment data
     let enhancedSummary = content.summary;
     if (content.impactAssessment || content.alternativeApproaches || content.sideEffects) {
       const highContextAnalysis: HighContextAnalysis = {
@@ -265,7 +260,6 @@ export class ReviewEngine {
         dependencyChanges: this.parseDependencyChanges(diff),
       };
 
-      // Append high-context analysis to summary
       enhancedSummary = this.formatHighContextSummary(content.summary, highContextAnalysis);
     }
 
@@ -513,7 +507,6 @@ export class ReviewEngine {
   private formatHighContextSummary(baseSummary: string, highContextAnalysis: HighContextAnalysis): string {
     const lines: string[] = [baseSummary];
 
-    // Add Impact Assessment section
     if (highContextAnalysis.impactAssessment) {
       const { impactAssessment } = highContextAnalysis;
       lines.push("");
@@ -532,7 +525,6 @@ export class ReviewEngine {
       }
     }
 
-    // Add Alternative Approaches section
     if (highContextAnalysis.alternativeApproaches.length > 0) {
       lines.push("");
       lines.push("## Alternative Approaches");
@@ -551,7 +543,6 @@ export class ReviewEngine {
       });
     }
 
-    // Add Side Effects section
     if (highContextAnalysis.sideEffects.length > 0) {
       lines.push("");
       lines.push("## Potential Side Effects");
@@ -564,7 +555,6 @@ export class ReviewEngine {
       });
     }
 
-    // Add Dependency Changes section
     if (highContextAnalysis.dependencyChanges.length > 0) {
       lines.push("");
       lines.push("## Dependency Changes");

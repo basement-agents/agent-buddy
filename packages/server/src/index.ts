@@ -38,7 +38,6 @@ export function getIsShuttingDown(): boolean {
   return isShuttingDown;
 }
 
-// Middleware
 app.use("*", requestIdMiddleware());
 app.use("*", securityHeadersMiddleware());
 app.use("*", cors());
@@ -46,11 +45,9 @@ app.use("*", honoLogger());
 app.use("/api/*", rateLimitMiddleware());
 app.use("/api/*", authMiddleware);
 
-// Health check
 app.get("/api/health", async (c) => {
   const rateLimitStatus = getRateLimitStatus();
 
-  // Perform dependency health checks in parallel, don't wait for success
   const healthChecks = await performHealthChecks().catch(() => ({
     provider: { status: "error" as const, message: "Health check failed" },
   }));
@@ -65,7 +62,6 @@ app.get("/api/health", async (c) => {
   });
 });
 
-// Route modules
 app.route("/", createReposRoutes());
 app.route("/", createBuddiesRoutes());
 app.route("/", createReviewsRoutes());
@@ -74,7 +70,6 @@ app.route("/", createWebhooksRoutes());
 app.route("/", createSettingsRoutes());
 app.route("/", createMetricsRoutes());
 
-// Global error handler
 app.onError((err, c) => {
   logger.error("Request error", {
     error: err.message,
@@ -85,12 +80,10 @@ app.onError((err, c) => {
   return c.json(apiError(err.message || "Internal server error"), 500);
 });
 
-// 404 handler
 app.notFound((c) => {
   return c.json(apiNotFound("route", c.req.path), 404);
 });
 
-// Serve function (for CLI)
 export async function serve(port: number): Promise<void> {
   const config = await loadConfig();
   const actualPort = port || config.server?.port || 3000;
@@ -98,7 +91,6 @@ export async function serve(port: number): Promise<void> {
   logger.info(`Server starting on port ${actualPort}`);
   process.env.PORT = String(actualPort);
 
-  // Recover persisted jobs
   try {
     const persisted = await loadAllJobs();
     let recovered = 0;
@@ -133,10 +125,8 @@ export async function serve(port: number): Promise<void> {
     logger.error("Failed to recover persisted jobs", { error: getErrorMessage(err) });
   }
 
-  // Initialize any scheduled reviews
   initializeSchedules(config);
 
-  // Periodically persist running jobs so CLI --watch sees live progress
   const persistenceInterval = setInterval(() => {
     for (const job of getRunningJobs()) {
       saveJob(job).catch((err) => {
@@ -192,11 +182,9 @@ export async function serve(port: number): Promise<void> {
     isShuttingDown = true;
     logger.info("Shutting down server... Waiting for running jobs to complete");
 
-    // Clear all scheduled timers
     cleanupSchedules();
     clearInterval(persistenceInterval);
 
-    // Check for running jobs
     const runningJobs = getRunningJobs();
 
     if (runningJobs.length > 0) {
@@ -207,7 +195,6 @@ export async function serve(port: number): Promise<void> {
         server.close(() => process.exit(1));
       }, SHUTDOWN_TIMEOUT_MS);
 
-      // Check every second if all jobs completed
       const checkInterval = setInterval(() => {
         const stillRunning = getRunningJobs();
         if (stillRunning.length === 0) {
