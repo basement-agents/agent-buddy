@@ -43,14 +43,18 @@ export function usePageParam(): [number, (page: number) => void] {
   }, []);
 
   useEffect(() => {
-    const onPopState = () => {
+    const syncPage = () => {
       const params = new URLSearchParams(window.location.search);
       const p = parseInt(params.get("page") ?? "1", 10);
       const valid = Number.isFinite(p) && p >= 1 ? p : 1;
       setPage(valid);
     };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
+    window.addEventListener("popstate", syncPage);
+    window.addEventListener(NAV_EVENT, syncPage);
+    return () => {
+      window.removeEventListener("popstate", syncPage);
+      window.removeEventListener(NAV_EVENT, syncPage);
+    };
   }, []);
 
   return [page, setPageWithUrl];

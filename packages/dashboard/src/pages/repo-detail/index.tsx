@@ -386,10 +386,10 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
             <p className="text-sm text-zinc-500">No reviews found for this repository</p>
           ) : (
             <div className="space-y-2">
-              {reviewsData.reviews.map((review, index) => (
+              {reviewsData.reviews.map((review) => (
                 <a
                   key={`${review.metadata.repo}-${review.metadata.prNumber}-${review.reviewedAt}`}
-                  href={`/reviews/${index}`}
+                  href={`/reviews/${review.metadata.repo}-${review.metadata.prNumber}`}
                   className="block rounded-lg border p-3 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                 >
                   <div className="flex items-center justify-between">

@@ -10,7 +10,7 @@ import {
 } from "@agent-buddy/core";
 import type { CodeReview } from "@agent-buddy/core";
 import type { ErrorEntry, ReviewJob } from "./state.js";
-import { reviewHistory, reviewJobs } from "./state.js";
+import { addReview, reviewJobs } from "./state.js";
 import { saveJob } from "./persistence.js";
 import { isRetryableError, DEFAULT_MAX_RETRIES } from "./retry-helpers.js";
 
@@ -28,7 +28,7 @@ function updateProgress(job: ReviewJob, percentage: number, stage: string, detai
 
 function completeReviewJob(job: ReviewJob, result: CodeReview, diff: string): void {
   updateProgress(job, 100, "completed", "Review complete");
-  reviewHistory.push({ ...result, diff });
+  addReview({ ...result, diff } as CodeReview);
   job.status = "completed";
   job.result = result;
   job.completedAt = new Date();

@@ -170,13 +170,16 @@ export function createWebhooksRoutes(): Hono {
       return c.json(apiError(eventTypeValidation.error!), 400);
     }
 
-    if (config.server?.webhookSecret) {
-      const valid = GitHubClient.verifyWebhookSignature(body, signature, config.server.webhookSecret);
-      if (!valid) {
-        webhookValidationFailures.signature++;
-        logger.warn("Invalid webhook signature", { signature: signature.substring(0, 20) + "..." });
-        return c.json(apiError("Invalid signature"), 401);
-      }
+    if (!config.server?.webhookSecret) {
+      webhookValidationFailures.signature++;
+      logger.warn("Webhook rejected: no secret configured");
+      return c.json(apiError("Webhook secret not configured"), 503);
+    }
+    const valid = GitHubClient.verifyWebhookSignature(body, signature, config.server.webhookSecret);
+    if (!valid) {
+      webhookValidationFailures.signature++;
+      logger.warn("Invalid webhook signature", { signature: signature.substring(0, 20) + "..." });
+      return c.json(apiError("Invalid signature"), 401);
     }
 
     const headers: Record<string, string> = {};
@@ -290,7 +293,7 @@ export function createWebhooksRoutes(): Hono {
       return c.json({ status: "received" });
     } catch (err) {
       const error = getErrorMessage(err);
-      logger.error("Webhook processing failed", { error, body: body.substring(0, 200) });
+      logger.error("Webhook processing failed", { error });
       return c.json({ error }, 400);
     }
   });

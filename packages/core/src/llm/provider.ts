@@ -89,7 +89,8 @@ export class AnthropicClaudeProvider implements LLMProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Anthropic API error ${response.status}: ${errorText}`);
+        const sanitized = errorText.replace(/sk-[a-zA-Z0-9-]{20,}/g, "sk-...");
+        throw new Error(`Anthropic API error ${response.status}: ${sanitized}`);
       }
 
       const data = (await response.json()) as {

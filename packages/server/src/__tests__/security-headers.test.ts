@@ -46,7 +46,7 @@ describe("securityHeadersMiddleware", () => {
 
     const res = await app.request("/test");
     expect(res.headers.get("Content-Security-Policy")).toBe(
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'"
     );
   });
 

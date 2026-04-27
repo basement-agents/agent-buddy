@@ -12,7 +12,7 @@ export const securityHeadersMiddleware = (): MiddlewareHandler => {
 
     c.header(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'",
     );
 
     c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");

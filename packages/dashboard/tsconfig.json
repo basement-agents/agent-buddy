@@ -9,6 +9,7 @@
     "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "composite": false,
     "noEmit": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "~/*": ["./src/*"]

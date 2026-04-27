@@ -410,7 +410,13 @@ configCmd
       console.log();
       console.log(pc.bold("Configuration"));
       console.log(pc.dim("─".repeat(60)));
-      console.log(JSON.stringify(config, null, 2));
+      const safe = { ...config };
+      if (safe.githubToken) safe.githubToken = "[REDACTED]";
+      if (safe.server?.apiKey) safe.server.apiKey = "[REDACTED]";
+      if (safe.server?.webhookSecret) safe.server.webhookSecret = "[REDACTED]";
+      if (safe.llm?.apiKey) safe.llm.apiKey = "[REDACTED]";
+      if (safe.githubAppPrivateKey) safe.githubAppPrivateKey = "[REDACTED]";
+      console.log(JSON.stringify(safe, null, 2));
       console.log();
     } catch (err) {
       console.error(pc.red(`Failed: ${getErrorMessage(err)}`));

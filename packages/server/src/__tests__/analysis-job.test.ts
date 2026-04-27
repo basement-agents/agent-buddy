@@ -126,7 +126,7 @@ describe("analysis-job processor", () => {
       expect(job?.progressDetail).toBe("Buddy profile created successfully");
       expect(job?.completedAt).toBeInstanceOf(Date);
 
-      expect(mockGetPRsReviewedBy).toHaveBeenCalledWith(mockOwner, mockRepo, mockUsername);
+      expect(mockGetPRsReviewedBy).toHaveBeenCalledWith(mockOwner, mockRepo, mockUsername, undefined, mockMaxPrs);
       expect(mockCreateBuddy).toHaveBeenCalledWith(
         mockUsername,
         mockReviewData,
@@ -188,7 +188,7 @@ describe("analysis-job processor", () => {
 
       expect(mockCreateBuddy).toHaveBeenCalledWith(
         mockUsername,
-        manyReviews.slice(0, mockMaxPrs),
+        manyReviews,
         mockOwner,
         mockRepo
       );
@@ -275,7 +275,7 @@ describe("analysis-job processor", () => {
       expect(job?.completedAt).toBeInstanceOf(Date);
 
       expect(mockReadProfile).toHaveBeenCalledWith(mockBuddyId);
-      expect(mockGetPRsReviewedBy).toHaveBeenCalledWith("org", "repo", mockBuddyId);
+      expect(mockGetPRsReviewedBy).toHaveBeenCalledWith("org", "repo", mockBuddyId, undefined, 50);
       expect(mockUpdateBuddy).toHaveBeenCalledWith(
         mockBuddyId,
         mockReviewData,
