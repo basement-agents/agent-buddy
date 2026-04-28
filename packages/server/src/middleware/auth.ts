@@ -14,7 +14,7 @@ const authMiddleware: MiddlewareHandler<Env> = async (c, next) => {
   const config = await loadConfig();
 
   if (!config.server?.apiKey) {
-    return next();
+    return c.json(apiError("Server not configured: API key is required. Run 'agent-buddy init' to set up."), 503);
   }
 
   if (!apiKey || !safeEqual(apiKey, config.server.apiKey)) {

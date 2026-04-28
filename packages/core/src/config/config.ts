@@ -8,6 +8,10 @@ const logger = new Logger("config");
 
 const CONFIG_PATH = path.join(BASE_DIR, "config.json");
 
+let cachedConfig: AgentBuddyConfig | null = null;
+let cachedAt = 0;
+const CACHE_TTL_MS = 5000;
+
 const DEFAULT_CONFIG: AgentBuddyConfig = {
   version: "1.0.0",
   repos: [],
@@ -26,6 +30,10 @@ const DEFAULT_CONFIG: AgentBuddyConfig = {
 };
 
 export async function loadConfig(): Promise<AgentBuddyConfig> {
+  const now = Date.now();
+  if (cachedConfig && now - cachedAt < CACHE_TTL_MS) {
+    return cachedConfig;
+  }
   try {
     const raw = await fs.readFile(CONFIG_PATH, "utf-8");
     const parsed = JSON.parse(raw);
@@ -38,6 +46,8 @@ export async function loadConfig(): Promise<AgentBuddyConfig> {
     if (!config.githubToken) {
       config.githubToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
     }
+    cachedConfig = config;
+    cachedAt = now;
     return config;
   } catch (err) {
     if (err instanceof ConfigError) {
@@ -48,14 +58,22 @@ export async function loadConfig(): Promise<AgentBuddyConfig> {
     }
     const config = { ...DEFAULT_CONFIG };
     config.githubToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+    cachedConfig = config;
+    cachedAt = now;
     return config;
   }
+}
+
+export function invalidateConfigCache(): void {
+  cachedConfig = null;
+  cachedAt = 0;
 }
 
 export async function saveConfig(config: AgentBuddyConfig): Promise<void> {
   await fs.mkdir(BASE_DIR, { recursive: true });
   config.version = "1.0.0";
   await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2) + "\n");
+  invalidateConfigCache();
 }
 
 export async function addRepo(

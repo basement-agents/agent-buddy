@@ -2,10 +2,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { SettingsPage } from "../pages/Settings";
+import { SettingsPage } from "../pages/settings";
 
 // Mock API module
-vi.mock("@/lib/api", () => ({
+vi.mock("~/lib/api", () => ({
   api: {
     getSettings: vi.fn(),
     updateSettings: vi.fn(),
@@ -22,39 +22,39 @@ vi.mock("@/lib/api", () => ({
 }));
 
 // Mock hooks
-vi.mock("@/lib/hooks", () => ({
+vi.mock("~/lib/hooks", () => ({
   useRepos: vi.fn(),
   useNavigate: () => vi.fn(),
 }));
 
 // Mock toast
-vi.mock("@/components/ui/toast", () => ({
+vi.mock("~/components/system/toast", () => ({
   useToast: vi.fn(),
 }));
 
 // Mock UI components
-vi.mock("@/components/ui/button", () => ({
+vi.mock("~/components/system/button", () => ({
   Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
 }));
 
-vi.mock("@/components/ui/input", () => ({
+vi.mock("~/components/system/input", () => ({
   Input: (props: any) => <input {...props} />,
 }));
 
-vi.mock("@/components/ui/card", () => ({
+vi.mock("~/components/system/card", () => ({
   Card: ({ children }: any) => <div data-testid="card">{children}</div>,
   CardContent: ({ children }: any) => <div data-testid="card-content">{children}</div>,
   CardHeader: ({ children }: any) => <div data-testid="card-header">{children}</div>,
   CardTitle: ({ children }: any) => <div data-testid="card-title">{children}</div>,
 }));
 
-vi.mock("@/components/ui/badge", () => ({
+vi.mock("~/components/system/badge", () => ({
   Badge: ({ children, ...props }: any) => <span {...props}>{children}</span>,
 }));
 
-import { api } from "@/lib/api";
-import { useRepos } from "@/lib/hooks";
-import { useToast } from "@/components/ui/toast";
+import { api } from "~/lib/api";
+import { useRepos } from "~/lib/hooks";
+import { useToast } from "~/components/system/toast";
 
 describe("SettingsPage", () => {
   const mockShowToast = vi.fn();

@@ -121,7 +121,8 @@ export async function processAnalysisJob(
         if (!currentJob || currentJob.status !== "queued") return;
         try {
           await processAnalysisJob(jobId, username, owner, repo, token, maxPrs);
-        } catch {
+        } catch (retryErr) {
+          logger.error("Analysis retry failed", { jobId, error: getErrorMessage(retryErr) });
           const retryJob = analysisJobs.get(jobId);
           if (retryJob) {
             retryJob.status = "failed";
@@ -186,7 +187,8 @@ export async function processUpdateJob(
         if (!currentJob || currentJob.status !== "queued") return;
         try {
           await processUpdateJob(jobId, buddyId, repoStr, token);
-        } catch {
+        } catch (retryErr) {
+          logger.error("Update retry failed", { jobId, error: getErrorMessage(retryErr) });
           const retryJob = analysisJobs.get(jobId);
           if (retryJob) {
             retryJob.status = "failed";

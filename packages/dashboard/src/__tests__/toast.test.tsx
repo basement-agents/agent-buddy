@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { ToastProvider, useToast } from "../components/ui/toast";
+import { ToastProvider, useToast } from "~/components/system/toast";
 
 vi.stubGlobal("crypto", { randomUUID: () => "test-uuid" });
 

@@ -13,7 +13,7 @@ describe("authMiddleware", () => {
     vi.clearAllMocks();
   });
 
-  it("should pass through when config has no apiKey", async () => {
+  it("should return 503 when config has no apiKey", async () => {
     const { loadConfig } = await import("@agent-buddy/core");
     vi.mocked(loadConfig).mockResolvedValue({
       version: "1.0.0",
@@ -25,9 +25,9 @@ describe("authMiddleware", () => {
     app.get("/test", (c) => c.json({ ok: true }));
 
     const res = await app.request("/test");
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(503);
     const data = await res.json();
-    expect(data).toEqual({ ok: true });
+    expect(data).toEqual({ error: "Server not configured: API key is required. Run 'agent-buddy init' to set up." });
   });
 
   it("should pass through when apiKey is configured and request has correct key", async () => {

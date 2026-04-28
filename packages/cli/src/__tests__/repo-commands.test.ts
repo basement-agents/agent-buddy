@@ -247,7 +247,7 @@ describe("CLI repo commands", () => {
       vi.mocked(listRepos).mockResolvedValue(mockRepos as RepoConfig[]);
 
       const repos = await listRepos();
-      const jsonOutput = repos.map((r) => ({
+      const jsonOutput = repos.map((r: { id: string; owner: string; repo: string; buddyId?: string | null; autoReview: boolean; triggerMode: string }) => ({
         id: r.id,
         owner: r.owner,
         repo: r.repo,
@@ -298,7 +298,7 @@ describe("CLI repo commands", () => {
       vi.mocked(listRepos).mockResolvedValue(mockRepos as RepoConfig[]);
 
       const repos = await listRepos();
-      const enabledCount = repos.filter((r) => r.autoReview).length;
+      const enabledCount = repos.filter((r: { autoReview: boolean }) => r.autoReview).length;
 
       expect(enabledCount).toBe(2);
     });
@@ -411,7 +411,7 @@ describe("CLI repo commands", () => {
 
       const config = await loadConfig();
       const repoId = "facebook/react";
-      const repoConfig = config.repos.find((r) => r.id === repoId);
+      const repoConfig = config.repos.find((r: { id: string }) => r.id === repoId);
 
       expect(repoConfig).toBeDefined();
       expect(repoConfig?.id).toBe("facebook/react");
@@ -435,7 +435,7 @@ describe("CLI repo commands", () => {
 
       const config = await loadConfig();
       const repoId = "vuejs/vue";
-      const repoConfig = config.repos.find((r) => r.id === repoId);
+      const repoConfig = config.repos.find((r: { id: string }) => r.id === repoId);
 
       expect(repoConfig).toBeUndefined();
     });
@@ -461,7 +461,7 @@ describe("CLI repo commands", () => {
       const repoId = "facebook/react";
       const buddyId = "buddy-123";
 
-      const repoConfig = config.repos.find((r) => r.id === repoId);
+      const repoConfig = config.repos.find((r: { id: string }) => r.id === repoId);
       if (repoConfig) {
         repoConfig.buddyId = buddyId;
         await saveConfig(config);
@@ -492,7 +492,7 @@ describe("CLI repo commands", () => {
       const repoId = "facebook/react";
       const buddyId = "buddy-123";
 
-      const repoConfig = config.repos.find((r) => r.id === repoId);
+      const repoConfig = config.repos.find((r: { id: string }) => r.id === repoId);
       if (repoConfig) {
         repoConfig.buddyId = buddyId;
         await saveConfig(config);

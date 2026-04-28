@@ -11,9 +11,11 @@ export function validateRepoParams(c: Context): { owner: string; repo: string; i
   return { owner, repo, id: `${owner}/${repo}` };
 }
 
+import { RepoConfig } from "@agent-buddy/core";
+
 export async function loadRepoConfig(id: string) {
   const config = await loadConfig();
-  const repoConfig = config.repos.find((r) => r.id === id) ?? null;
+  const repoConfig = config.repos.find((r: RepoConfig) => r.id === id) ?? null;
   return { config, repoConfig };
 }
 

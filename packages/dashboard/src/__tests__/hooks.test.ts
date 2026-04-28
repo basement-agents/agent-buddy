@@ -567,7 +567,7 @@ describe("useJobProgress", () => {
     const { result } = renderHook(() => hooks.useJobProgress("job-123"));
 
     // Send invalid JSON by directly triggering the handler
-    const es = getLastEventSource();
+    const _es = getLastEventSource();
 
     // Manually trigger onmessage with invalid JSON
     act(() => {
@@ -693,7 +693,7 @@ describe("useJobProgress", () => {
     });
 
     it("uses exponential backoff: 1s, 2s, 4s, 8s, 16s", () => {
-      const { result } = renderHook(() => hooks.useJobProgress("job-123"));
+      renderHook(() => hooks.useJobProgress("job-123"));
 
       const delays: number[] = [];
       const originalSetTimeout = global.setTimeout;
@@ -872,7 +872,7 @@ describe("useJobProgress", () => {
       expect(result.current.isConnected).toBe(false);
 
       // Try to trigger error after completion
-      const clearTimeoutSpy = vi.spyOn(global, "clearTimeout");
+      vi.spyOn(global, "clearTimeout");
 
       act(() => {
         // Simulate error event (though connection should be closed)
@@ -908,7 +908,7 @@ describe("useJobProgress", () => {
     });
 
     it("clears timeout on successful connection", () => {
-      const clearTimeoutSpy = vi.spyOn(global, "clearTimeout");
+      vi.spyOn(global, "clearTimeout");
 
       const { result } = renderHook(() => hooks.useJobProgress("job-123"));
 

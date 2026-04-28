@@ -61,7 +61,15 @@ export interface ReviewSchedule {
   lastError?: string;
 }
 
+export const MAX_REVIEW_HISTORY = 1000;
 export const reviewHistory: CodeReview[] = [];
 export const reviewJobs = new Map<string, ReviewJob>();
 export const analysisJobs = new Map<string, AnalysisJob>();
 export const schedules = new Map<string, ReviewSchedule>();
+
+export function addReview(review: CodeReview): void {
+  reviewHistory.unshift(review);
+  if (reviewHistory.length > MAX_REVIEW_HISTORY) {
+    reviewHistory.length = MAX_REVIEW_HISTORY;
+  }
+}

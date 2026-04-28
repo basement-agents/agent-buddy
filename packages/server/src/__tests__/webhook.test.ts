@@ -1249,8 +1249,8 @@ describe("Webhook route handler integration tests", () => {
       ],
     };
 
-    it("should return 400 for invalid JSON body", async () => {
-      vi.mocked(loadConfig).mockResolvedValueOnce(mockConfigWithoutSecret);
+    it("should return 401 for invalid signature when secret is configured", async () => {
+      vi.mocked(loadConfig).mockResolvedValueOnce(mockConfig);
 
       const response = await app.request("/api/webhooks/github", {
         method: "POST",
@@ -1261,13 +1261,13 @@ describe("Webhook route handler integration tests", () => {
         body: "not valid json{{{",
       });
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(401);
       const json = await parseJsonResponse(response);
-      expect(json.error).toBeDefined();
+      expect(json.error).toContain("Invalid signature");
       expect(processReviewJob).not.toHaveBeenCalled();
     });
 
-    it("should accept webhook without signature when no secret configured", async () => {
+    it("should reject webhook without signature when no secret configured", async () => {
       vi.mocked(loadConfig).mockResolvedValueOnce(mockConfigWithoutSecret);
 
       const payload = createValidPRPayload("opened", 800);
@@ -1282,11 +1282,10 @@ describe("Webhook route handler integration tests", () => {
         body,
       });
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(503);
       const json = await parseJsonResponse(response);
-      expect(json.status).toBe("queued");
-      expect(json.jobIds).toBeDefined();
-      expect(processReviewJob).toHaveBeenCalled();
+      expect(json.error).toContain("Webhook secret not configured");
+      expect(processReviewJob).not.toHaveBeenCalled();
     });
   });
 });

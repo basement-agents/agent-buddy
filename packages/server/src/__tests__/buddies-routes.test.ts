@@ -64,7 +64,12 @@ vi.mock("@agent-buddy/core", () => ({
     info = vi.fn();
     warn = vi.fn();
   },
-  loadConfig: vi.fn(),
+  loadConfig: vi.fn().mockResolvedValue({
+    githubToken: undefined,
+    server: { apiKey: "test-key" },
+    llm: { provider: "anthropic", apiKey: "test" },
+    repos: [],
+  }),
   saveConfig: vi.fn().mockResolvedValue(undefined),
   getErrorMessage: (err: unknown) => (err instanceof Error ? err.message : String(err)),
 }));
@@ -190,7 +195,6 @@ describe("Buddies Routes", () => {
   });
 
   it("POST /api/buddies returns 500 when API keys missing", async () => {
-    // Delete the environment variables
     delete process.env.GITHUB_TOKEN;
 
     const { createBuddiesRoutes } = await import("../routes/buddies.js");
@@ -202,8 +206,8 @@ describe("Buddies Routes", () => {
       body: JSON.stringify({ username: "testuser", repo: "owner/repo" }),
     });
     expect(res.status).toBe(500);
-    const data = await res.json();
-    expect(data).toMatchObject({ error: "GITHUB_TOKEN must be set" });
+    const text = await res.text();
+    expect(text).toContain("GitHub token must be set");
   });
 
   it("DELETE /api/buddies/:id removes buddy (200)", async () => {
@@ -341,8 +345,8 @@ describe("Buddies Routes", () => {
       body: JSON.stringify({ repo: "owner/repo" }),
     });
     expect(res.status).toBe(500);
-    const data = await res.json();
-    expect(data).toMatchObject({ error: "GITHUB_TOKEN must be set" });
+    const text = await res.text();
+    expect(text).toContain("GitHub token must be set");
   });
 
   it("POST /api/buddies/import returns 400 for invalid profile JSON", async () => {

@@ -77,7 +77,8 @@ app.onError((err, c) => {
     path: c.req.path,
     method: c.req.method,
   });
-  return c.json(apiError(err.message || "Internal server error"), 500);
+  const message = process.env.NODE_ENV !== "production" ? (err.message || "Internal server error") : "Internal server error";
+  return c.json(apiError(message), 500);
 });
 
 app.notFound((c) => {

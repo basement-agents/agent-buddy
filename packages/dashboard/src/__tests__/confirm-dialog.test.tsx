@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ConfirmDialog } from "../components/ui/confirm-dialog";
+import { ConfirmDialog } from "../components/system/confirm-dialog";
 
 describe("ConfirmDialog", () => {
   it("calls onConfirm when confirm button is clicked", async () => {

@@ -8,7 +8,8 @@ const STORAGE_KEY = "agent-buddy-theme";
 function getSystemTheme(): "light" | "dark" {
   try {
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  } catch {
+  } catch (err) {
+    console.warn("Failed to detect system theme", err);
     return "light";
   }
 }
@@ -22,7 +23,8 @@ function readStoredTheme(): Theme {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && (VALID_THEMES as readonly string[]).includes(stored)) return stored as Theme;
     return "system";
-  } catch {
+  } catch (err) {
+    console.warn("Failed to read stored theme", err);
     return "system";
   }
 }
@@ -46,7 +48,7 @@ export function useTheme() {
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);
-    try { localStorage.setItem(STORAGE_KEY, t); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, t); } catch (err) { console.warn("Failed to persist theme", err); }
   }, []);
 
   return { theme, resolvedTheme, setTheme };

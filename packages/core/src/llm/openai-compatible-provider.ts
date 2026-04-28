@@ -81,7 +81,8 @@ export abstract class OpenAICompatibleProvider implements LLMProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`${this.providerName} API error ${response.status}: ${errorText}`);
+        const sanitized = errorText.replace(/sk-[a-zA-Z0-9-]{20,}/g, "sk-...").replace(/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g, "eyJ...");
+        throw new Error(`${this.providerName} API error ${response.status}: ${sanitized}`);
       }
 
       const data = (await response.json()) as {

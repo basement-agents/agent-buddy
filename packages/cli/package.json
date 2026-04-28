@@ -8,12 +8,12 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/",
     "clean": "rm -rf dist",
     "dev": "tsc -p tsconfig.json --watch"
   },
   "dependencies": {
     "@agent-buddy/core": "*",
+    "@agent-buddy/server": "*",
     "@inquirer/prompts": "^8.4.1",
     "commander": "^13.1.0",
     "ora": "^8.2.0",
@@ -21,7 +21,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.19.17",
+    "oxfmt": "^0.47.0",
+    "oxlint": "^1.62.0",
     "typescript": "^5.8.0",
+    "ultracite": "^7.6.2",
     "vitest": "^4.1.4"
   }
 }

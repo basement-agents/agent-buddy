@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Layout } from "../components/layout/Layout";
+import { Layout } from "../components/layout/layout";
 
 describe("Layout", () => {
   beforeEach(() => {

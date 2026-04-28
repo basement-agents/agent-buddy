@@ -17,7 +17,7 @@ vi.mock("../jobs/review.js", () => ({
 
 vi.mock("@agent-buddy/core", () => ({
   loadConfig: vi.fn(async () => ({
-    server: { apiKey: undefined },
+    server: { apiKey: "test-api-key" },
     repos: [],
   })),
   saveConfig: vi.fn(),
@@ -60,7 +60,9 @@ describe("Server middleware chain", () => {
     ];
 
     for (const endpoint of endpoints) {
-      const res = await app.request(endpoint);
+      const res = await app.request(endpoint, {
+        headers: { "x-api-key": "test-api-key" },
+      });
       expect(res.status).toBe(200);
     }
   });

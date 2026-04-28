@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Pagination } from "../components/ui/pagination";
+import { Pagination } from "~/components/system/pagination";
 
 describe("Pagination", () => {
   describe("Renders nothing for 0 or 1 pages", () => {
