@@ -12,6 +12,7 @@ Every agent and contributor MUST read it before performing any task here.
 - Read `docs/project-*.md` first for the package you're working in — each contains Goal, Architecture, and Interfaces.
 - Domain logic details → `research/internal/`. External references → `research/external/`.
 - Package-specific setup lives in each package's `README.md`. Repo-wide rules live in this file.
+- `AGENTS.md` is a symlink to this file; both filenames resolve to the same content.
 - Update `CLAUDE.md` and relevant `docs/` in the same commit whenever structure or contracts change.
 - Code and docs may be in Korean or English. Technical identifiers must use English.
 - Do not guess; search the codebase or consult `research/` instead.
@@ -28,10 +29,15 @@ agent-buddy/
 │   ├── cli/           # CLI tool (Commander.js)
 │   ├── server/        # API server (Hono)
 │   └── dashboard/     # Web UI (React + Vite + TanStack Router)
-├── docs/              # project-*.md (package specs)
+├── docs/
+│   ├── project-*.md       # package specs (Goal, Architecture, Interfaces)
+│   ├── architecture/      # DEPENDENCY_RULES.md, DECISIONS.md (ADR)
+│   └── quality/           # KNOWN_ISSUES.md
 ├── research/
 │   ├── internal/      # domain-*.md (domain contracts)
 │   └── external/      # External references
+├── scripts/           # check-doc-links.mjs, lint-architecture.mjs
+├── .github/workflows/ # ci.yml
 ├── turbo.json
 ├── tsconfig.base.json
 └── package.json
@@ -92,5 +98,9 @@ Tests are co-located with their source (`foo.ts` + `foo.test.ts`).
 ## CI Baseline
 
 ```bash
+node scripts/check-doc-links.mjs
+node scripts/lint-architecture.mjs
 npm run typecheck && npm run lint && npm run test
 ```
+
+`.github/workflows/ci.yml` runs the same sequence on every PR. The two `scripts/*.mjs` checks gate doc drift and forbidden cross-package imports — see [`docs/architecture/DEPENDENCY_RULES.md`](docs/architecture/DEPENDENCY_RULES.md). New repeatable mistakes go in [`docs/quality/KNOWN_ISSUES.md`](docs/quality/KNOWN_ISSUES.md); cross-cutting choices in [`docs/architecture/DECISIONS.md`](docs/architecture/DECISIONS.md).
