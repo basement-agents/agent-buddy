@@ -1,22 +1,21 @@
-import { Layout } from "@/components/layout/Layout";
-import { ToastProvider } from "@/components/ui/toast";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Layout } from "~/components/layout/layout";
+import { ToastProvider } from "~/components/system/toast";
+import { ErrorBoundary } from "~/components/shared/error-boundary";
+import { Skeleton } from "~/components/system/skeleton";
 import * as React from "react";
 import { useState, useEffect } from "react";
 
-// Lazy load all page components
-const HomePage = React.lazy(() => import("@/pages/Home").then(m => ({ default: m.HomePage })));
-const ReposPage = React.lazy(() => import("@/pages/Repos").then(m => ({ default: m.ReposPage })));
-const RepoDetailPage = React.lazy(() => import("@/pages/RepoDetail").then(m => ({ default: m.RepoDetailPage })));
-const BuddiesPage = React.lazy(() => import("@/pages/Buddies").then(m => ({ default: m.BuddiesPage })));
-const BuddyDetailPage = React.lazy(() => import("@/pages/BuddyDetail").then(m => ({ default: m.BuddyDetailPage })));
-const BuddyComparePage = React.lazy(() => import("@/pages/BuddyCompare").then(m => ({ default: m.BuddyComparePage })));
-const ReviewsPage = React.lazy(() => import("@/pages/Reviews").then(m => ({ default: m.ReviewsPage })));
-const ReviewDetailPage = React.lazy(() => import("@/pages/ReviewDetailPage").then(m => ({ default: m.ReviewDetailPage })));
-const JobsPage = React.lazy(() => import("@/pages/Jobs").then(m => ({ default: m.JobsPage })));
-const SettingsPage = React.lazy(() => import("@/pages/Settings").then(m => ({ default: m.SettingsPage })));
-const NotFoundPage = React.lazy(() => import("@/pages/NotFound").then(m => ({ default: m.NotFoundPage })));
+const HomePage = React.lazy(() => import("~/pages/home/index").then(m => ({ default: m.HomePage })));
+const ReposPage = React.lazy(() => import("~/pages/repos/index").then(m => ({ default: m.ReposPage })));
+const RepoDetailPage = React.lazy(() => import("~/pages/repo-detail/index").then(m => ({ default: m.RepoDetailPage })));
+const BuddiesPage = React.lazy(() => import("~/pages/buddies/index").then(m => ({ default: m.BuddiesPage })));
+const BuddyDetailPage = React.lazy(() => import("~/pages/buddy-detail/index").then(m => ({ default: m.BuddyDetailPage })));
+const BuddyComparePage = React.lazy(() => import("~/pages/buddy-compare/index").then(m => ({ default: m.BuddyComparePage })));
+const ReviewsPage = React.lazy(() => import("~/pages/reviews/index").then(m => ({ default: m.ReviewsPage })));
+const ReviewDetailPage = React.lazy(() => import("~/pages/review-detail-page/index").then(m => ({ default: m.ReviewDetailPage })));
+const JobsPage = React.lazy(() => import("~/pages/jobs/index").then(m => ({ default: m.JobsPage })));
+const SettingsPage = React.lazy(() => import("~/pages/settings/index").then(m => ({ default: m.SettingsPage })));
+const NotFoundPage = React.lazy(() => import("~/pages/not-found/index").then(m => ({ default: m.NotFoundPage })));
 
 function LoadingFallback() {
   return (
