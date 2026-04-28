@@ -63,8 +63,8 @@ async function executeReview(
   if (!job) throw new Error(`Review job ${jobId} not found`);
 
   const [owner, repo] = repoId.split("/");
-  const token = process.env.GH_TOKEN;
-  if (!token) throw new Error("Missing GH_TOKEN");
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) throw new Error("Missing GITHUB_TOKEN");
 
   const config = await loadConfig();
   const repoConfig = config.repos.find((r: RepoConfig) => r.id === repoId);
