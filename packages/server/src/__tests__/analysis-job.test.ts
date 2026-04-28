@@ -131,7 +131,8 @@ describe("analysis-job processor", () => {
         mockUsername,
         mockReviewData,
         mockOwner,
-        mockRepo
+        mockRepo,
+        expect.objectContaining({ report: expect.any(Function) })
       );
     });
 
@@ -190,7 +191,8 @@ describe("analysis-job processor", () => {
         mockUsername,
         manyReviews,
         mockOwner,
-        mockRepo
+        mockRepo,
+        expect.objectContaining({ report: expect.any(Function) })
       );
     });
   });
@@ -280,7 +282,9 @@ describe("analysis-job processor", () => {
         mockBuddyId,
         mockReviewData,
         "org",
-        "repo"
+        "repo",
+        undefined,
+        expect.objectContaining({ report: expect.any(Function) })
       );
     });
 
@@ -345,6 +349,47 @@ describe("analysis-job processor", () => {
       const job = analysisJobs.get(mockJobId);
       expect(job?.status).toBe("failed");
       expect(job?.error).toBe("Update failed");
+    });
+  });
+
+  describe("reporter forwarding to analysis job state", () => {
+    it("processAnalysisJob propagates reporter updates (subStep, model, elapsedMs, fraction → 30~95% mapping)", async () => {
+      const jobId = "job-rep";
+      const username = "reviewer";
+      const owner = "org";
+      const repo = "repo";
+
+      analysisJobs.set(jobId, {
+        id: jobId, buddyId: username, repo: `${owner}/${repo}`,
+        status: "queued", createdAt: new Date(),
+      });
+
+      const mockReviewData = [
+        { pr: { number: 1, title: "P", state: "closed" } as never, reviews: [], comments: [] },
+      ];
+      mockGetPRsReviewedBy.mockResolvedValue(mockReviewData);
+
+      let pctAfterFraction = 0;
+      mockCreateBuddy.mockImplementation(async (..._args: unknown[]) => {
+        const reporter = _args[4] as { report: (u: Record<string, unknown>) => void };
+        reporter.report({ stage: "soul_profile_llm", subStep: "memory 1/2", model: "claude-3", elapsedMs: 99 });
+        reporter.report({ fraction: 0.5 });
+        pctAfterFraction = analysisJobs.get(jobId)!.progressPercentage ?? 0;
+        return {
+          id: username, username, soul: "", user: "", memory: "", sourceRepos: [`${owner}/${repo}`],
+          createdAt: new Date(), updatedAt: new Date(),
+        };
+      });
+
+      await processAnalysisJob(jobId, username, owner, repo, "tok", 10);
+
+      const job = analysisJobs.get(jobId);
+      expect(job?.subStep).toBe("memory 1/2");
+      expect(job?.currentModel).toBe("claude-3");
+      expect(job?.elapsedMs).toBe(99);
+      expect(pctAfterFraction).toBe(63);
+      expect(job?.status).toBe("completed");
+      expect(job?.progressPercentage).toBe(100);
     });
   });
 });

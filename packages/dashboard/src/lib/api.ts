@@ -275,6 +275,9 @@ export interface JobListItem {
   progressPercentage?: number;
   progressStage?: string;
   progressDetail?: string;
+  elapsedMs?: number;
+  subStep?: string;
+  currentModel?: string;
   error?: string;
   createdAt: string;
   completedAt?: string;
@@ -360,6 +363,9 @@ export interface ReviewJob {
   progressPercentage?: number;
   progressStage?: string;
   progressDetail?: string;
+  elapsedMs?: number;
+  subStep?: string;
+  currentModel?: string;
 }
 
 export interface AnalysisJob {
@@ -371,6 +377,9 @@ export interface AnalysisJob {
   progressStage?: string;
   progressPercentage?: number;
   progressDetail?: string;
+  elapsedMs?: number;
+  subStep?: string;
+  currentModel?: string;
   error?: string;
   createdAt: string;
   completedAt?: string;

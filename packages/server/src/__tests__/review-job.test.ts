@@ -273,6 +273,41 @@ describe("Review Job Processor", () => {
 
       await promise;
     });
+
+    it("forwards reporter updates from engine to job state (subStep, model, elapsedMs, fraction → 50~80% mapping)", async () => {
+      const reporterCalls: any[] = [];
+      let pctAfterFraction = 0;
+      mockPerformReview.mockImplementationOnce(async (...args: any[]) => {
+        const reporter = args[4];
+        reporter.report({ stage: "llm_call", subStep: "chunk 1/2", model: "claude-3", elapsedMs: 42, detail: "Calling LLM..." });
+        reporterCalls.push({ stage: "llm_call", subStep: "chunk 1/2" });
+        reporter.report({ fraction: 0.5 });
+        pctAfterFraction = reviewJobs.get("job-rep")!.progressPercentage ?? 0;
+        return {
+          summary: "ok", state: "approved", comments: [],
+          metadata: { llmModel: "claude-3", tokenUsage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 }, durationMs: 100 },
+        };
+      });
+
+      reviewJobs.set("job-rep", {
+        id: "job-rep", repoId: "owner/repo", prNumber: 7, buddyId: "buddy-1",
+        status: "queued", createdAt: new Date(),
+      });
+
+      process.env.GITHUB_TOKEN = "t";
+      process.env.ANTHROPIC_API_KEY = "k";
+
+      await processReviewJob("job-rep", "owner/repo", 7, "buddy-1");
+
+      const job = reviewJobs.get("job-rep")!;
+      expect(reporterCalls.some((c) => c.stage === "llm_call")).toBe(true);
+      expect(job.subStep).toBe("chunk 1/2");
+      expect(job.currentModel).toBe("claude-3");
+      expect(job.elapsedMs).toBe(42);
+      expect(pctAfterFraction).toBe(65);
+      expect(job.progressStage).toBe("completed");
+      expect(job.progressPercentage).toBe(100);
+    });
   });
 
   describe("processReviewJob - exponential backoff", () => {

@@ -8,9 +8,26 @@ import {
   getErrorMessage,
   calculateBackoffDelay,
 } from "@agent-buddy/core";
+import type { ProgressReporter, ProgressUpdate } from "@agent-buddy/core";
 import { analysisJobs } from "./state.js";
 import type { AnalysisJob, ErrorEntry } from "./state.js";
 import { isRetryableError, DEFAULT_MAX_RETRIES } from "./retry-helpers.js";
+
+function makeAnalysisReporter(job: AnalysisJob): ProgressReporter {
+  return {
+    report(u: ProgressUpdate): void {
+      if (u.stage !== undefined) job.progressStage = u.stage;
+      if (u.detail !== undefined) job.progressDetail = u.detail;
+      if (u.subStep !== undefined) job.subStep = u.subStep;
+      if (u.elapsedMs !== undefined) job.elapsedMs = u.elapsedMs;
+      if (u.model !== undefined) job.currentModel = u.model;
+      if (typeof u.fraction === "number") {
+        const clamped = Math.min(1, Math.max(0, u.fraction));
+        job.progressPercentage = Math.round(30 + clamped * 65);
+      }
+    },
+  };
+}
 
 const logger = new Logger("analysis-job");
 
@@ -110,7 +127,8 @@ export async function processAnalysisJob(
     job.progressDetail = "Generating buddy profile...";
 
     job.progressStage = "generating_profile";
-    await pipeline.createBuddy(username, data, owner, repo);
+    const reporter = makeAnalysisReporter(job);
+    await pipeline.createBuddy(username, data, owner, repo, reporter);
 
     completeJob(job, "Buddy profile created successfully");
   } catch (err) {
@@ -159,6 +177,7 @@ export async function processUpdateJob(
     const pipeline = new AnalysisPipeline(llm);
 
     let totalReviews = 0;
+    const reporter = makeAnalysisReporter(job);
     for (let i = 0; i < repos.length; i++) {
       const r = repos[i];
       const [owner, repo] = r.split("/");
@@ -174,7 +193,7 @@ export async function processUpdateJob(
         job.progressPercentage = Math.floor(((i + 0.5) / repos.length) * 50) + 50;
 
         job.progressStage = "analyzing_patterns";
-        await pipeline.updateBuddy(buddyId, reviewData, owner, repo);
+        await pipeline.updateBuddy(buddyId, reviewData, owner, repo, undefined, reporter);
       }
     }
 

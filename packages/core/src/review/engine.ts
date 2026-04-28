@@ -13,7 +13,8 @@ import type {
 import { buildCodeReviewPrompt, buildHighContextReviewPrompt } from "../llm/prompts.js";
 import type { CreateReviewRequest } from "../github/types.js";
 import { evaluateCustomRules } from "./rules.js";
-import { Logger } from "../utils/index.js";
+import { Logger, noopReporter, withHeartbeat } from "../utils/index.js";
+import type { ProgressReporter } from "../utils/index.js";
 import { FileContextCache } from "../cache/file-cache.js";
 import { getFeedbackSummary, getRecentFeedback } from "../learning/feedback.js";
 
@@ -91,22 +92,30 @@ export class ReviewEngine {
   async reviewDiff(
     pr: PullRequest,
     diff: string,
-    buddyProfile?: BuddyProfile
+    buddyProfile?: BuddyProfile,
+    reporter: ProgressReporter = noopReporter,
+    llmLabel: string = "llm_call"
   ): Promise<CodeReview> {
+    reporter.report({ stage: "building_prompt", detail: "Building review prompt..." });
     const truncatedDiff = this.truncateToTokenBudget(diff);
     let prompt = buildCodeReviewPrompt(pr, truncatedDiff, buddyProfile);
     prompt = await this.appendFeedbackContext(prompt);
 
     const start = Date.now();
 
-    const { content, usage, model } = await this.llm.generateStructured<RawReviewResponse>([
-      { role: "user", content: prompt },
-    ]);
+    const { content, usage, model } = await withHeartbeat(
+      reporter,
+      { stage: llmLabel, detail: "Calling LLM..." },
+      () => this.llm.generateStructured<RawReviewResponse>([{ role: "user", content: prompt }])
+    );
+    reporter.report({ stage: llmLabel, model, elapsedMs: Date.now() - start });
 
     const durationMs = Date.now() - start;
+    reporter.report({ stage: "parsing_response", detail: "Parsing LLM response...", model });
     let comments = this.normalizeComments(content.comments);
 
     if (this.customRules) {
+      reporter.report({ stage: "evaluating_rules", detail: "Evaluating custom rules..." });
       const customComments = evaluateCustomRules(this.customRules, diff);
       comments = [...comments, ...customComments];
     }
@@ -165,7 +174,8 @@ export class ReviewEngine {
   private async reviewChunkedDiff(
     pr: PullRequest,
     diff: string,
-    buddyProfile?: BuddyProfile
+    buddyProfile?: BuddyProfile,
+    reporter: ProgressReporter = noopReporter
   ): Promise<{ comments: ReviewCommentItem[]; summaryParts: string[]; tokenUsage: TokenUsage; durationMs: number; model: string } | null> {
     const chunks = this.splitDiffIntoChunks(diff);
 
@@ -180,13 +190,19 @@ export class ReviewEngine {
     let model = "";
 
     for (let i = 0; i < chunks.length; i++) {
+      const subStep = `chunk ${i + 1}/${chunks.length}`;
+      reporter.report({ stage: "building_prompt", subStep, detail: `Preparing ${subStep}...` });
+
       let chunkPrompt = buildCodeReviewPrompt(pr, chunks[i], buddyProfile);
       chunkPrompt += `\n\nNote: This is part ${i + 1} of ${chunks.length} chunks of a large PR. Focus only on the files in this chunk.`;
       chunkPrompt = await this.appendFeedbackContext(chunkPrompt);
 
-      const { content, usage, model: m } = await this.llm.generateStructured<RawReviewResponse>([
-        { role: "user", content: chunkPrompt },
-      ]);
+      const { content, usage, model: m } = await withHeartbeat(
+        reporter,
+        { stage: "llm_call", subStep, detail: `Calling LLM for ${subStep}...` },
+        () => this.llm.generateStructured<RawReviewResponse>([{ role: "user", content: chunkPrompt }])
+      );
+      reporter.report({ stage: "llm_call", subStep, model: m, fraction: (i + 1) / chunks.length });
 
       model = m;
       allComments.push(...this.normalizeComments(content.comments));
@@ -209,19 +225,26 @@ export class ReviewEngine {
     pr: PullRequest,
     diff: string,
     repoFiles: string[],
-    buddyProfile?: BuddyProfile
+    buddyProfile?: BuddyProfile,
+    reporter: ProgressReporter = noopReporter,
+    llmLabel: string = "llm_call"
   ): Promise<CodeReview> {
+    reporter.report({ stage: "building_prompt", detail: "Building high-context prompt..." });
     const truncatedDiff = this.truncateToTokenBudget(diff);
     let prompt = buildHighContextReviewPrompt(pr, truncatedDiff, repoFiles, buddyProfile);
     prompt = await this.appendFeedbackContext(prompt);
 
     const start = Date.now();
 
-    const { content, usage, model } = await this.llm.generateStructured<RawReviewResponse>([
-      { role: "user", content: prompt },
-    ]);
+    const { content, usage, model } = await withHeartbeat(
+      reporter,
+      { stage: llmLabel, detail: "Calling LLM (high-context)..." },
+      () => this.llm.generateStructured<RawReviewResponse>([{ role: "user", content: prompt }])
+    );
+    reporter.report({ stage: llmLabel, model, elapsedMs: Date.now() - start });
 
     const durationMs = Date.now() - start;
+    reporter.report({ stage: "parsing_response", detail: "Parsing high-context response...", model });
     const comments = this.normalizeComments(content.comments);
     const state = this.determineReviewState(content.state, comments);
 
@@ -285,24 +308,25 @@ export class ReviewEngine {
     pr: PullRequest,
     diff: string,
     buddyProfile?: BuddyProfile,
-    repoFiles?: string[]
+    repoFiles?: string[],
+    reporter: ProgressReporter = noopReporter
   ): Promise<CodeReview> {
     const estimatedTokens = Math.ceil(diff.length / 4);
     if (estimatedTokens > this.maxTokensPerReview && !repoFiles) {
-      const chunked = await this.tryChunkedReview(pr, diff, buddyProfile);
+      const chunked = await this.tryChunkedReview(pr, diff, buddyProfile, reporter);
       if (chunked) return chunked;
     }
 
     const effectiveRepoFiles = this.resolveRepoFiles(pr, repoFiles);
     if (effectiveRepoFiles) {
-      return this.performCombinedReview(pr, diff, effectiveRepoFiles, buddyProfile);
+      return this.performCombinedReview(pr, diff, effectiveRepoFiles, buddyProfile, reporter);
     }
 
-    return this.reviewDiff(pr, diff, buddyProfile);
+    return this.reviewDiff(pr, diff, buddyProfile, reporter);
   }
 
-  private async tryChunkedReview(pr: PullRequest, diff: string, buddyProfile?: BuddyProfile): Promise<CodeReview | null> {
-    const chunkedResult = await this.reviewChunkedDiff(pr, diff, buddyProfile);
+  private async tryChunkedReview(pr: PullRequest, diff: string, buddyProfile?: BuddyProfile, reporter: ProgressReporter = noopReporter): Promise<CodeReview | null> {
+    const chunkedResult = await this.reviewChunkedDiff(pr, diff, buddyProfile, reporter);
     if (!chunkedResult) return null;
 
     let comments = chunkedResult.comments;
@@ -330,6 +354,17 @@ export class ReviewEngine {
     };
   }
 
+  private namespaceReporter(parent: ProgressReporter, label: string): ProgressReporter {
+    return {
+      report(u) {
+        parent.report({
+          ...u,
+          subStep: u.subStep ? `${label} · ${u.subStep}` : label,
+        });
+      },
+    };
+  }
+
   private resolveRepoFiles(pr: PullRequest, repoFiles?: string[]): string[] | undefined {
     if (repoFiles) return repoFiles;
     if (!this.fileCache) return undefined;
@@ -346,11 +381,14 @@ export class ReviewEngine {
     pr: PullRequest,
     diff: string,
     repoFiles: string[],
-    buddyProfile?: BuddyProfile
+    buddyProfile?: BuddyProfile,
+    reporter: ProgressReporter = noopReporter
   ): Promise<CodeReview> {
+    const lowReporter = this.namespaceReporter(reporter, "low-context");
+    const highReporter = this.namespaceReporter(reporter, "high-context");
     const [lowCtx, highCtx] = await Promise.all([
-      this.reviewDiff(pr, diff, buddyProfile),
-      this.reviewWithContext(pr, diff, repoFiles, buddyProfile),
+      this.reviewDiff(pr, diff, buddyProfile, lowReporter, "low-context LLM"),
+      this.reviewWithContext(pr, diff, repoFiles, buddyProfile, highReporter, "high-context LLM"),
     ]);
 
     const mergedComments = this.deduplicateComments([...lowCtx.comments, ...highCtx.comments]);

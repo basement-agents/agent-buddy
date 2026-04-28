@@ -23,6 +23,9 @@ export interface ReviewJob {
   progressPercentage?: number;
   progressStage?: string;
   progressDetail?: string;
+  elapsedMs?: number;
+  subStep?: string;
+  currentModel?: string;
   retryCount?: number;
   maxRetries?: number;
   errorHistory?: ErrorEntry[];
@@ -40,9 +43,12 @@ export interface AnalysisJob {
   repo: string;
   status: "queued" | "running" | "completed" | "failed" | "cancelled";
   progress?: string;
-  progressStage?: "queued" | "fetching_reviews" | "analyzing_patterns" | "generating_profile" | "completed" | "failed";
+  progressStage?: string;
   progressPercentage?: number;
   progressDetail?: string;
+  elapsedMs?: number;
+  subStep?: string;
+  currentModel?: string;
   error?: string;
   createdAt: Date;
   completedAt?: Date;

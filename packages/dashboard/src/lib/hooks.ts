@@ -191,6 +191,9 @@ export interface JobProgress {
   progressStage?: string;
   progressDetail?: string;
   progressPercentage?: number;
+  elapsedMs?: number;
+  subStep?: string;
+  currentModel?: string;
   error?: string;
 }
 

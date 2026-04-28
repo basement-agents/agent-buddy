@@ -213,4 +213,58 @@ describe("JobsPage", () => {
       expect(mockCancelJob).toHaveBeenCalled();
     });
   });
+
+  it("renders subStep, currentModel, and elapsed time in progress status text", async () => {
+    mockListJobs.mockResolvedValue({
+      data: [
+        {
+          id: "review-detail",
+          type: "review" as const,
+          repoId: "owner/repo",
+          prNumber: 99,
+          buddyId: "buddy-1",
+          status: "running" as const,
+          progressPercentage: 70,
+          progressStage: "llm_call",
+          progressDetail: "Calling LLM...",
+          subStep: "chunk 2/5",
+          currentModel: "claude-3-5-sonnet",
+          elapsedMs: 12_000,
+          createdAt: "2026-04-19T10:00:00Z",
+        },
+      ],
+      page: 1, limit: 20, total: 1, totalPages: 1,
+    });
+    const { JobsPage } = await import("~/pages/jobs");
+    render(<JobsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/\[chunk 2\/5\].*claude-3-5-sonnet.*12s/)).toBeInTheDocument();
+    });
+  });
+
+  it("formats elapsed time greater than 1 minute as Nm Ms", async () => {
+    mockListJobs.mockResolvedValue({
+      data: [
+        {
+          id: "review-long",
+          type: "review" as const,
+          repoId: "owner/repo",
+          prNumber: 100,
+          status: "running" as const,
+          progressPercentage: 50,
+          progressStage: "llm_call",
+          elapsedMs: 75_000,
+          createdAt: "2026-04-19T10:00:00Z",
+        },
+      ],
+      page: 1, limit: 20, total: 1, totalPages: 1,
+    });
+    const { JobsPage } = await import("~/pages/jobs");
+    render(<JobsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/1m 15s/)).toBeInTheDocument();
+    });
+  });
 });
