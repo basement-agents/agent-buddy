@@ -39,3 +39,6 @@ test-results.json
 
 # OMC
 .omc/
+
+# Build artifacts
+*.tsbuildinfo
