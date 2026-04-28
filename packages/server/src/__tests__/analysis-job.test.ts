@@ -391,5 +391,46 @@ describe("analysis-job processor", () => {
       expect(job?.status).toBe("completed");
       expect(job?.progressPercentage).toBe(100);
     });
+
+    it("processUpdateJob keeps progressPercentage monotonic across multiple repos", async () => {
+      const jobId = "job-update-mono";
+      const buddyId = "reviewer";
+      const token = "tok";
+
+      analysisJobs.set(jobId, {
+        id: jobId, buddyId, repo: "n/a",
+        status: "queued", createdAt: new Date(),
+      });
+
+      const profile = {
+        id: buddyId, username: buddyId,
+        soul: "", user: "", memory: "",
+        sourceRepos: ["org/a", "org/b"],
+        createdAt: new Date(), updatedAt: new Date(),
+      };
+      mockReadProfile.mockResolvedValue(profile);
+      mockGetPRsReviewedBy.mockResolvedValue([
+        { pr: { number: 1, title: "x", state: "closed" } as never, reviews: [], comments: [] },
+      ]);
+
+      const observed: number[] = [];
+      mockUpdateBuddy.mockImplementation(async (..._args: unknown[]) => {
+        const reporter = _args[5] as { report: (u: Record<string, unknown>) => void };
+        for (const f of [0, 0.25, 0.5, 0.75, 1]) {
+          reporter.report({ fraction: f });
+          observed.push(analysisJobs.get(jobId)!.progressPercentage ?? -1);
+        }
+        return profile;
+      });
+
+      await processUpdateJob(jobId, buddyId, undefined, token);
+
+      for (let i = 1; i < observed.length; i++) {
+        expect(observed[i]).toBeGreaterThanOrEqual(observed[i - 1]);
+      }
+      const job = analysisJobs.get(jobId);
+      expect(job?.status).toBe("completed");
+      expect(job?.progressPercentage).toBe(100);
+    });
   });
 });

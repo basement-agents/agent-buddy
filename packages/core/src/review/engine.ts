@@ -94,7 +94,8 @@ export class ReviewEngine {
     diff: string,
     buddyProfile?: BuddyProfile,
     reporter: ProgressReporter = noopReporter,
-    llmLabel: string = "llm_call"
+    llmLabel: string = "llm_call",
+    fractionRange?: [number, number]
   ): Promise<CodeReview> {
     reporter.report({ stage: "building_prompt", detail: "Building review prompt..." });
     const truncatedDiff = this.truncateToTokenBudget(diff);
@@ -106,7 +107,8 @@ export class ReviewEngine {
     const { content, usage, model } = await withHeartbeat(
       reporter,
       { stage: llmLabel, detail: "Calling LLM..." },
-      () => this.llm.generateStructured<RawReviewResponse>([{ role: "user", content: prompt }])
+      () => this.llm.generateStructured<RawReviewResponse>([{ role: "user", content: prompt }]),
+      { fractionRange }
     );
     reporter.report({ stage: llmLabel, model, elapsedMs: Date.now() - start });
 
@@ -191,7 +193,8 @@ export class ReviewEngine {
 
     for (let i = 0; i < chunks.length; i++) {
       const subStep = `chunk ${i + 1}/${chunks.length}`;
-      reporter.report({ stage: "building_prompt", subStep, detail: `Preparing ${subStep}...` });
+      const chunkRange: [number, number] = [i / chunks.length, (i + 1) / chunks.length];
+      reporter.report({ stage: "building_prompt", subStep, detail: `Preparing ${subStep}...`, fraction: chunkRange[0] });
 
       let chunkPrompt = buildCodeReviewPrompt(pr, chunks[i], buddyProfile);
       chunkPrompt += `\n\nNote: This is part ${i + 1} of ${chunks.length} chunks of a large PR. Focus only on the files in this chunk.`;
@@ -200,9 +203,10 @@ export class ReviewEngine {
       const { content, usage, model: m } = await withHeartbeat(
         reporter,
         { stage: "llm_call", subStep, detail: `Calling LLM for ${subStep}...` },
-        () => this.llm.generateStructured<RawReviewResponse>([{ role: "user", content: chunkPrompt }])
+        () => this.llm.generateStructured<RawReviewResponse>([{ role: "user", content: chunkPrompt }]),
+        { fractionRange: chunkRange }
       );
-      reporter.report({ stage: "llm_call", subStep, model: m, fraction: (i + 1) / chunks.length });
+      reporter.report({ stage: "llm_call", subStep, model: m, fraction: chunkRange[1] });
 
       model = m;
       allComments.push(...this.normalizeComments(content.comments));
@@ -227,7 +231,8 @@ export class ReviewEngine {
     repoFiles: string[],
     buddyProfile?: BuddyProfile,
     reporter: ProgressReporter = noopReporter,
-    llmLabel: string = "llm_call"
+    llmLabel: string = "llm_call",
+    fractionRange?: [number, number]
   ): Promise<CodeReview> {
     reporter.report({ stage: "building_prompt", detail: "Building high-context prompt..." });
     const truncatedDiff = this.truncateToTokenBudget(diff);
@@ -239,7 +244,8 @@ export class ReviewEngine {
     const { content, usage, model } = await withHeartbeat(
       reporter,
       { stage: llmLabel, detail: "Calling LLM (high-context)..." },
-      () => this.llm.generateStructured<RawReviewResponse>([{ role: "user", content: prompt }])
+      () => this.llm.generateStructured<RawReviewResponse>([{ role: "user", content: prompt }]),
+      { fractionRange }
     );
     reporter.report({ stage: llmLabel, model, elapsedMs: Date.now() - start });
 
@@ -322,7 +328,7 @@ export class ReviewEngine {
       return this.performCombinedReview(pr, diff, effectiveRepoFiles, buddyProfile, reporter);
     }
 
-    return this.reviewDiff(pr, diff, buddyProfile, reporter);
+    return this.reviewDiff(pr, diff, buddyProfile, reporter, "llm_call", [0, 1]);
   }
 
   private async tryChunkedReview(pr: PullRequest, diff: string, buddyProfile?: BuddyProfile, reporter: ProgressReporter = noopReporter): Promise<CodeReview | null> {
