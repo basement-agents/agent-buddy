@@ -31,7 +31,7 @@ function parseDiff(diff: string): DiffHunk[] {
   let newLine = 0;
 
   for (const raw of lines) {
-    const hunkMatch = raw.match(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @~/);
+    const hunkMatch = raw.match(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
     if (hunkMatch) {
       if (currentHunk) hunks.push(currentHunk);
       oldLine = parseInt(hunkMatch[1], 10);
