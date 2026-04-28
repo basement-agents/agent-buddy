@@ -8,7 +8,7 @@ import {
   getErrorMessage,
   calculateBackoffDelay,
 } from "@agent-buddy/core";
-import type { CodeReview } from "@agent-buddy/core";
+import type { CodeReview, ProgressReporter, ProgressUpdate } from "@agent-buddy/core";
 import type { ErrorEntry, ReviewJob } from "./state.js";
 import { addReview, reviewJobs } from "./state.js";
 import { saveJob } from "./persistence.js";
@@ -24,6 +24,22 @@ function updateProgress(job: ReviewJob, percentage: number, stage: string, detai
   job.progressPercentage = percentage;
   job.progressStage = stage;
   job.progressDetail = detail;
+}
+
+function makeReviewReporter(job: ReviewJob): ProgressReporter {
+  return {
+    report(u: ProgressUpdate): void {
+      if (u.stage !== undefined) job.progressStage = u.stage;
+      if (u.detail !== undefined) job.progressDetail = u.detail;
+      if (u.subStep !== undefined) job.subStep = u.subStep;
+      if (u.elapsedMs !== undefined) job.elapsedMs = u.elapsedMs;
+      if (u.model !== undefined) job.currentModel = u.model;
+      if (typeof u.fraction === "number") {
+        const clamped = Math.min(1, Math.max(0, u.fraction));
+        job.progressPercentage = Math.round(50 + clamped * 30);
+      }
+    },
+  };
 }
 
 function completeReviewJob(job: ReviewJob, result: CodeReview, diff: string): void {
@@ -47,8 +63,8 @@ async function executeReview(
   if (!job) throw new Error(`Review job ${jobId} not found`);
 
   const [owner, repo] = repoId.split("/");
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) throw new Error("Missing GITHUB_TOKEN");
+  const token = process.env.GH_TOKEN;
+  if (!token) throw new Error("Missing GH_TOKEN");
 
   const config = await loadConfig();
   const repoConfig = config.repos.find((r: RepoConfig) => r.id === repoId);
@@ -95,7 +111,8 @@ async function executeReview(
     }
   }
 
-  const review = await engine.performReview(pr, diff, buddyProfile ?? undefined, repoFiles);
+  const reporter = makeReviewReporter(job);
+  const review = await engine.performReview(pr, diff, buddyProfile ?? undefined, repoFiles, reporter);
 
   updateProgress(job, 80, "posting_review", attempt > 0 ? `Posting review (retry ${attempt + 1})...` : "Posting review to GitHub...");
 

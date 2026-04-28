@@ -7,7 +7,8 @@ import type {
   PullRequest,
 } from "../index.js";
 import { buildAnalysisPrompt, buildSoulPrompt, buildUserPrompt } from "../llm/prompts.js";
-import { getErrorMessage } from "../utils/index.js";
+import { getErrorMessage, noopReporter, withHeartbeat } from "../utils/index.js";
+import type { ProgressReporter } from "../utils/index.js";
 import { BuddyFileSystemStorage } from "../buddy/storage.js";
 import type { BuddyProfile, MemoryEntry } from "../buddy/types.js";
 import { getFeedbackSummary, getRecentFeedback } from "../learning/feedback.js";
@@ -24,12 +25,22 @@ export class AnalysisPipeline {
     this.storage = storage || new BuddyFileSystemStorage();
   }
 
-  private async analyzeWithPrompt(prompt: string, errorPrefix: string): Promise<AnalysisResult> {
+  private async analyzeWithPrompt(
+    prompt: string,
+    errorPrefix: string,
+    reporter: ProgressReporter = noopReporter,
+    base: { stage?: string; subStep?: string; detail?: string } = { stage: "llm_call" }
+  ): Promise<AnalysisResult> {
     try {
-      const { content } = await this.llm.generateStructured<AnalysisResult>(
-        [{ role: "user", content: prompt }],
-        { maxTokens: 16384 },
+      const { content, model } = await withHeartbeat(
+        reporter,
+        { stage: base.stage ?? "llm_call", subStep: base.subStep, detail: base.detail ?? "Calling LLM..." },
+        () => this.llm.generateStructured<AnalysisResult>(
+          [{ role: "user", content: prompt }],
+          { maxTokens: 16384 },
+        )
       );
+      reporter.report({ stage: base.stage ?? "llm_call", subStep: base.subStep, model });
       return { ...content, generatedAt: new Date() };
     } catch (error) {
       throw new Error(`${errorPrefix}: ${getErrorMessage(error)}`, { cause: error });
@@ -39,10 +50,17 @@ export class AnalysisPipeline {
   private async generateProfile(
     promptFn: (json: string, username: string) => string,
     analysisResult: AnalysisResult,
-    username: string
+    username: string,
+    reporter: ProgressReporter = noopReporter,
+    label: string = "profile_llm"
   ): Promise<string> {
     const prompt = promptFn(JSON.stringify(analysisResult, null, 2), username);
-    const { content } = await this.llm.generate([{ role: "user", content: prompt }], { maxTokens: PROFILE_MAX_TOKENS });
+    const { content, model } = await withHeartbeat(
+      reporter,
+      { stage: label, detail: `Generating profile for ${username}...` },
+      () => this.llm.generate([{ role: "user", content: prompt }], { maxTokens: PROFILE_MAX_TOKENS })
+    );
+    reporter.report({ stage: label, model });
     if (!content || content.trim().length === 0) {
       throw new Error(`Profile generation returned empty content for ${username}`);
     }
@@ -53,23 +71,29 @@ export class AnalysisPipeline {
     pr: PullRequest,
     reviews: PRReview[],
     comments: GHReviewComment[],
-    issueComments: IssueComment[] = []
+    issueComments: IssueComment[] = [],
+    reporter: ProgressReporter = noopReporter
   ): Promise<AnalysisResult> {
     return this.analyzeWithPrompt(
       buildAnalysisPrompt([{ pr, reviews, comments, issueComments }]),
-      `analyzePRReview failed for PR #${pr.number}`
+      `analyzePRReview failed for PR #${pr.number}`,
+      reporter,
+      { stage: "llm_call", detail: `Analyzing PR #${pr.number}...` }
     );
   }
 
   async analyzeReviewerHistory(
-    reviewData: { pr: PullRequest; reviews: PRReview[]; comments: GHReviewComment[]; issueComments?: IssueComment[] }[]
+    reviewData: { pr: PullRequest; reviews: PRReview[]; comments: GHReviewComment[]; issueComments?: IssueComment[] }[],
+    reporter: ProgressReporter = noopReporter
   ): Promise<AnalysisResult> {
     const BATCH_SIZE = 3;
 
     if (reviewData.length <= BATCH_SIZE) {
       return this.analyzeWithPrompt(
         buildAnalysisPrompt(reviewData),
-        `analyzeReviewerHistory failed for ${reviewData.length} review(s)`
+        `analyzeReviewerHistory failed for ${reviewData.length} review(s)`,
+        reporter,
+        { stage: "llm_call", detail: `Analyzing ${reviewData.length} review(s)...` }
       );
     }
 
@@ -80,25 +104,39 @@ export class AnalysisPipeline {
 
     const batchResults: AnalysisResult[] = [];
     for (let i = 0; i < batches.length; i++) {
+      const subStep = `analysis batch ${i + 1}/${batches.length}`;
+      reporter.report({ stage: "building_prompt", subStep, fraction: i / batches.length });
       const result = await this.analyzeWithPrompt(
         buildAnalysisPrompt(batches[i]),
-        `analyzeReviewerHistory batch ${i + 1}/${batches.length}`
+        `analyzeReviewerHistory batch ${i + 1}/${batches.length}`,
+        reporter,
+        { stage: "llm_call", subStep, detail: `Analyzing ${subStep}...` }
       );
+      reporter.report({ stage: "llm_call", subStep, fraction: (i + 1) / batches.length });
       batchResults.push(result);
     }
 
     return mergeAnalysisResults(batchResults);
   }
 
-  async buildSoulProfile(analysisResult: AnalysisResult, username: string, feedbackNotes?: string): Promise<string> {
+  async buildSoulProfile(
+    analysisResult: AnalysisResult,
+    username: string,
+    feedbackNotes?: string,
+    reporter: ProgressReporter = noopReporter
+  ): Promise<string> {
     const promptFn = feedbackNotes
       ? (json: string, user: string) => buildSoulPrompt(json, user, feedbackNotes)
       : buildSoulPrompt;
-    return this.generateProfile(promptFn, analysisResult, username);
+    return this.generateProfile(promptFn, analysisResult, username, reporter, "soul_profile_llm");
   }
 
-  async buildUserProfile(analysisResult: AnalysisResult, username: string): Promise<string> {
-    return this.generateProfile(buildUserPrompt, analysisResult, username);
+  async buildUserProfile(
+    analysisResult: AnalysisResult,
+    username: string,
+    reporter: ProgressReporter = noopReporter
+  ): Promise<string> {
+    return this.generateProfile(buildUserPrompt, analysisResult, username, reporter, "user_profile_llm");
   }
 
   async createMemoryEntry(
@@ -164,13 +202,15 @@ export class AnalysisPipeline {
     username: string,
     reviewData: { pr: PullRequest; reviews: PRReview[]; comments: GHReviewComment[]; issueComments?: IssueComment[] }[],
     org: string,
-    repo: string
+    repo: string,
+    reporter: ProgressReporter = noopReporter
   ): Promise<BuddyProfile> {
-    const analysis = await this.analyzeReviewerHistory(reviewData);
+    const analysis = await this.analyzeReviewerHistory(reviewData, reporter);
 
+    reporter.report({ stage: "generating_profile", detail: "Generating SOUL/USER profiles in parallel..." });
     const [soul, user] = await Promise.all([
-      this.buildSoulProfile(analysis, username),
-      this.buildUserProfile(analysis, username),
+      this.buildSoulProfile(analysis, username, undefined, reporter),
+      this.buildUserProfile(analysis, username, reporter),
     ]);
 
     const highestPrNumber = Math.max(...reviewData.map(({ pr }) => pr.number), 0);
@@ -189,7 +229,13 @@ export class AnalysisPipeline {
 
     await this.storage.writeProfile(username, profile);
 
-    for (const { pr, reviews, comments, issueComments } of reviewData) {
+    for (let i = 0; i < reviewData.length; i++) {
+      const { pr, reviews, comments, issueComments } = reviewData[i];
+      reporter.report({
+        stage: "writing_memory",
+        subStep: `memory ${i + 1}/${reviewData.length}`,
+        detail: `Writing memory for PR #${pr.number}...`,
+      });
       await this.createMemoryEntry(username, org, repo, pr, reviews, comments, issueComments);
     }
 
@@ -201,7 +247,8 @@ export class AnalysisPipeline {
     newReviewData: { pr: PullRequest; reviews: PRReview[]; comments: GHReviewComment[]; issueComments?: IssueComment[] }[],
     org: string,
     repo: string,
-    options?: { sincePr?: number; force?: boolean }
+    options?: { sincePr?: number; force?: boolean },
+    reporter: ProgressReporter = noopReporter
   ): Promise<BuddyProfile> {
     const existing = await this.storage.readProfile(buddyId);
     if (!existing) throw new Error(`Buddy ${buddyId} not found`);
@@ -216,7 +263,7 @@ export class AnalysisPipeline {
       return existing;
     }
 
-    const newAnalysis = await this.analyzeReviewerHistory(dataToProcess);
+    const newAnalysis = await this.analyzeReviewerHistory(dataToProcess, reporter);
 
     const feedbackSummary = await getFeedbackSummary(buddyId);
     const recentFeedback = await getRecentFeedback(buddyId, 20);
@@ -240,9 +287,10 @@ export class AnalysisPipeline {
       ].filter(Boolean).join("\n\n");
     }
 
+    reporter.report({ stage: "generating_profile", detail: "Generating SOUL/USER profiles in parallel..." });
     const [newSoul, newUser] = await Promise.all([
-      this.buildSoulProfile(newAnalysis, buddyId, feedbackNotes),
-      this.buildUserProfile(newAnalysis, buddyId),
+      this.buildSoulProfile(newAnalysis, buddyId, feedbackNotes, reporter),
+      this.buildUserProfile(newAnalysis, buddyId, reporter),
     ]);
 
     const highestPrNumber = Math.max(...dataToProcess.map(({ pr }) => pr.number), 0);
@@ -258,7 +306,13 @@ export class AnalysisPipeline {
 
     await this.storage.writeProfile(buddyId, updated);
 
-    for (const { pr, reviews, comments, issueComments } of dataToProcess) {
+    for (let i = 0; i < dataToProcess.length; i++) {
+      const { pr, reviews, comments, issueComments } = dataToProcess[i];
+      reporter.report({
+        stage: "writing_memory",
+        subStep: `memory ${i + 1}/${dataToProcess.length}`,
+        detail: `Writing memory for PR #${pr.number}...`,
+      });
       await this.createMemoryEntry(buddyId, org, repo, pr, reviews, comments, issueComments);
     }
 

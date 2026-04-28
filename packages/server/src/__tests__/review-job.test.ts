@@ -61,7 +61,7 @@ describe("Review Job Processor", () => {
         status: "queued", createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "test-token";
+      process.env.GH_TOKEN = "test-token";
       process.env.ANTHROPIC_API_KEY = "test-key";
 
       await processReviewJob("job-1", "owner/repo", 42, "buddy-1", "low-context");
@@ -79,7 +79,7 @@ describe("Review Job Processor", () => {
         id: "job-2", repoId: "owner/repo", prNumber: 1, status: "queued", createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "t";
+      process.env.GH_TOKEN = "t";
       process.env.ANTHROPIC_API_KEY = "k";
 
       await processReviewJob("job-2", "owner/repo", 1);
@@ -98,13 +98,13 @@ describe("Review Job Processor", () => {
         retryCount: 0, maxRetries: 0, errorHistory: [], createdAt: new Date(),
       });
 
-      delete process.env.GITHUB_TOKEN;
+      delete process.env.GH_TOKEN;
       delete process.env.ANTHROPIC_API_KEY;
 
       await processReviewJob("job-3", "owner/repo", 1);
 
       expect(reviewJobs.get("job-3")!.status).toBe("failed");
-      expect(reviewJobs.get("job-3")!.error).toBe("Missing GITHUB_TOKEN");
+      expect(reviewJobs.get("job-3")!.error).toBe("Missing GH_TOKEN");
     });
 
     it("handles LLM failure during review", async () => {
@@ -115,7 +115,7 @@ describe("Review Job Processor", () => {
         status: "queued", createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "t";
+      process.env.GH_TOKEN = "t";
       process.env.ANTHROPIC_API_KEY = "k";
 
       await processReviewJob("job-4", "owner/repo", 1, "buddy-1");
@@ -136,7 +136,7 @@ describe("Review Job Processor", () => {
         status: "queued", createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "t";
+      process.env.GH_TOKEN = "t";
       process.env.ANTHROPIC_API_KEY = "k";
 
       await processReviewJob("job-5", "owner/repo", 999, "buddy-1");
@@ -155,7 +155,7 @@ describe("Review Job Processor", () => {
         status: "queued", createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "t";
+      process.env.GH_TOKEN = "t";
       process.env.ANTHROPIC_API_KEY = "k";
 
       await processReviewJob("job-6", "owner/repo", 1, "buddy-1");
@@ -177,7 +177,7 @@ describe("Review Job Processor", () => {
         createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "t";
+      process.env.GH_TOKEN = "t";
       process.env.ANTHROPIC_API_KEY = "k";
 
       await processReviewJob("job-7", "owner/repo", 1, "buddy-1");
@@ -202,7 +202,7 @@ describe("Review Job Processor", () => {
         status: "queued", retryCount: 0, maxRetries: 3, errorHistory: [], createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "t";
+      process.env.GH_TOKEN = "t";
       process.env.ANTHROPIC_API_KEY = "k";
 
       await processReviewJob("job-8", "owner/repo", 1, "buddy-1");
@@ -227,7 +227,7 @@ describe("Review Job Processor", () => {
         createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "t";
+      process.env.GH_TOKEN = "t";
       process.env.ANTHROPIC_API_KEY = "k";
 
       await processReviewJob("job-9", "owner/repo", 1, "buddy-1");
@@ -243,7 +243,7 @@ describe("Review Job Processor", () => {
         status: "queued", createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "t";
+      process.env.GH_TOKEN = "t";
       process.env.ANTHROPIC_API_KEY = "k";
 
       await processReviewJob("job-10", "owner/repo", 1, "buddy-1");
@@ -260,7 +260,7 @@ describe("Review Job Processor", () => {
         status: "queued", createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "t";
+      process.env.GH_TOKEN = "t";
       process.env.ANTHROPIC_API_KEY = "k";
 
       // Start processing but don't await
@@ -272,6 +272,41 @@ describe("Review Job Processor", () => {
       expect(reviewJobs.get("job-11")!.progressStage).toBe("fetching_pr_data");
 
       await promise;
+    });
+
+    it("forwards reporter updates from engine to job state (subStep, model, elapsedMs, fraction → 50~80% mapping)", async () => {
+      const reporterCalls: any[] = [];
+      let pctAfterFraction = 0;
+      mockPerformReview.mockImplementationOnce(async (...args: any[]) => {
+        const reporter = args[4];
+        reporter.report({ stage: "llm_call", subStep: "chunk 1/2", model: "claude-3", elapsedMs: 42, detail: "Calling LLM..." });
+        reporterCalls.push({ stage: "llm_call", subStep: "chunk 1/2" });
+        reporter.report({ fraction: 0.5 });
+        pctAfterFraction = reviewJobs.get("job-rep")!.progressPercentage ?? 0;
+        return {
+          summary: "ok", state: "approved", comments: [],
+          metadata: { llmModel: "claude-3", tokenUsage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 }, durationMs: 100 },
+        };
+      });
+
+      reviewJobs.set("job-rep", {
+        id: "job-rep", repoId: "owner/repo", prNumber: 7, buddyId: "buddy-1",
+        status: "queued", createdAt: new Date(),
+      });
+
+      process.env.GH_TOKEN = "t";
+      process.env.ANTHROPIC_API_KEY = "k";
+
+      await processReviewJob("job-rep", "owner/repo", 7, "buddy-1");
+
+      const job = reviewJobs.get("job-rep")!;
+      expect(reporterCalls.some((c) => c.stage === "llm_call")).toBe(true);
+      expect(job.subStep).toBe("chunk 1/2");
+      expect(job.currentModel).toBe("claude-3");
+      expect(job.elapsedMs).toBe(42);
+      expect(pctAfterFraction).toBe(65);
+      expect(job.progressStage).toBe("completed");
+      expect(job.progressPercentage).toBe(100);
     });
   });
 
@@ -286,7 +321,7 @@ describe("Review Job Processor", () => {
         status: "queued", createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "t";
+      process.env.GH_TOKEN = "t";
       process.env.ANTHROPIC_API_KEY = "k";
 
       await processReviewJob("job-12", "owner/repo", 1, "buddy-1");
@@ -314,7 +349,7 @@ describe("Review Job Processor", () => {
         status: "queued", createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "t";
+      process.env.GH_TOKEN = "t";
       process.env.ANTHROPIC_API_KEY = "k";
 
       // Start processing
@@ -342,7 +377,7 @@ describe("Review Job Processor", () => {
         status: "queued", createdAt: new Date(),
       });
 
-      process.env.GITHUB_TOKEN = "t";
+      process.env.GH_TOKEN = "t";
       process.env.ANTHROPIC_API_KEY = "k";
 
       await processReviewJob("job-14", "owner/repo", 1, "buddy-1");

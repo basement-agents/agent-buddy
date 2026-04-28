@@ -30,11 +30,34 @@ function formatTime(dateStr: string): string {
   return date.toLocaleDateString();
 }
 
+function formatElapsed(ms: number): string {
+  const safe = Math.max(0, ms);
+  if (safe < 1000) return `${Math.round(safe / 100) / 10}s`;
+  const totalSeconds = Math.round(safe / 1000);
+  if (totalSeconds < 60) return `${totalSeconds}s`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}m ${seconds}s`;
+}
+
+function buildStatusText(parts: { subStep?: string; model?: string; elapsedMs?: number; detail?: string }): string | undefined {
+  const segments: string[] = [];
+  if (parts.subStep) segments.push(`[${parts.subStep}]`);
+  if (parts.model) segments.push(parts.model);
+  if (parts.elapsedMs !== undefined && parts.elapsedMs > 0) segments.push(formatElapsed(parts.elapsedMs));
+  if (parts.detail) segments.push(parts.detail);
+  return segments.length > 0 ? segments.join(" · ") : undefined;
+}
+
 function JobRow({ job, progress, isConnected, onCancel }: { job: JobListItem; progress: ReturnType<typeof useJobProgress>["progress"]; isConnected: boolean; onCancel: (id: string) => void }) {
   const liveProgress = progress?.id === job.id ? progress : null;
   const displayPct = liveProgress?.progressPercentage ?? job.progressPercentage ?? 0;
   const displayStage = liveProgress?.progressStage ?? job.progressStage;
   const displayDetail = liveProgress?.progressDetail ?? job.progressDetail;
+  const displaySubStep = liveProgress?.subStep ?? job.subStep;
+  const displayModel = liveProgress?.currentModel ?? job.currentModel;
+  const displayElapsedMs = liveProgress?.elapsedMs ?? job.elapsedMs;
+  const statusText = buildStatusText({ subStep: displaySubStep, model: displayModel, elapsedMs: displayElapsedMs, detail: displayDetail });
   const isActive = job.status === "running" || job.status === "queued";
 
   return (
@@ -61,7 +84,7 @@ function JobRow({ job, progress, isConnected, onCancel }: { job: JobListItem; pr
       </td>
       <td className="px-4 py-3 w-48">
         {isActive ? (
-          <ProgressBar percentage={displayPct} label={displayStage} statusText={displayDetail} />
+          <ProgressBar percentage={displayPct} label={displayStage} statusText={statusText} />
         ) : job.status === "failed" && job.error ? (
           <span className="text-xs text-red-500 truncate" title={job.error}>{job.error}</span>
         ) : null}

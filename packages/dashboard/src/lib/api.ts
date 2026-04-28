@@ -25,6 +25,31 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
+function formatErrorMessage(error: unknown, status: number): string {
+  if (typeof error === "string" && error) return error;
+  if (error && typeof error === "object") {
+    const e = error as { issues?: unknown; message?: unknown };
+    if (Array.isArray(e.issues)) {
+      const parts = e.issues
+        .map((i) => {
+          const issue = i as { path?: unknown; message?: unknown };
+          const pathArr = Array.isArray(issue.path) ? issue.path : [];
+          const path = pathArr.join(".");
+          const msg = typeof issue.message === "string" ? issue.message : "invalid";
+          return path ? `${path}: ${msg}` : msg;
+        })
+        .filter(Boolean);
+      if (parts.length > 0) return parts.join("; ");
+    }
+    if (typeof e.message === "string" && e.message) return e.message;
+    try {
+      return JSON.stringify(error).slice(0, 300);
+    } catch {
+    }
+  }
+  return `HTTP ${status}`;
+}
+
 class ApiError extends Error {
   constructor(
     public status: number,
@@ -72,7 +97,7 @@ async function request<T>(path: string, options: RequestOptions = {}, retryCount
     const errorBody = await res.json().catch(() => ({ error: "Request failed" }));
     throw new ApiError(
       res.status,
-      errorBody.error || `HTTP ${res.status}`,
+      formatErrorMessage(errorBody.error, res.status),
       requestId,
       isRateLimit,
       retryAfter ? parseInt(retryAfter, 10) : undefined
@@ -275,6 +300,9 @@ export interface JobListItem {
   progressPercentage?: number;
   progressStage?: string;
   progressDetail?: string;
+  elapsedMs?: number;
+  subStep?: string;
+  currentModel?: string;
   error?: string;
   createdAt: string;
   completedAt?: string;
@@ -360,6 +388,9 @@ export interface ReviewJob {
   progressPercentage?: number;
   progressStage?: string;
   progressDetail?: string;
+  elapsedMs?: number;
+  subStep?: string;
+  currentModel?: string;
 }
 
 export interface AnalysisJob {
@@ -371,6 +402,9 @@ export interface AnalysisJob {
   progressStage?: string;
   progressPercentage?: number;
   progressDetail?: string;
+  elapsedMs?: number;
+  subStep?: string;
+  currentModel?: string;
   error?: string;
   createdAt: string;
   completedAt?: string;
@@ -457,11 +491,23 @@ export interface SettingsData {
   llm?: LLMProviderSettings;
 }
 
+export type LLMProviderType = "anthropic" | "openrouter" | "openai" | "local" | "cli";
+export type CliParseFormat = "single-json" | "jsonl-opencode" | "jsonl-codex";
+
 export interface LLMProviderSettings {
-  provider: "anthropic" | "openrouter" | "openai";
+  provider: LLMProviderType;
   apiKey?: string;
   baseUrl?: string;
   defaultModel?: string;
+  command?: string;
+  args?: string[];
+  interactiveShell?: boolean;
+  parseFormat?: CliParseFormat;
+  responsePath?: string;
+  usageInputPath?: string;
+  usageOutputPath?: string;
+  modelPath?: string;
+  timeoutMs?: number;
 }
 
 export interface LLMTestResult {

@@ -1278,4 +1278,80 @@ describe("AnalysisPipeline", () => {
       expect(result.keyLearnings).toContain("Requested changes on this PR");
     });
   });
+
+  describe("Progress reporter integration", () => {
+    function basePR(n: number): PullRequest {
+      return {
+        number: n,
+        title: `PR ${n}`,
+        body: "",
+        state: "open" as const,
+        author: { login: "author", id: 1, avatarUrl: "", url: "" },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        headRef: "feature",
+        baseRef: "main",
+        files: [],
+        additions: 1,
+        deletions: 0,
+        changedFiles: 1,
+      } as PullRequest;
+    }
+
+    it("reports llm_call and writing_memory stages from createBuddy", async () => {
+      const pipeline = new AnalysisPipeline(mockLLM, mockStorage);
+      const calls: Array<{ stage?: string; subStep?: string }> = [];
+      const reporter = { report: (u: { stage?: string; subStep?: string }) => calls.push(u) };
+
+      const reviewData = [
+        { pr: basePR(1), reviews: [], comments: [] },
+        { pr: basePR(2), reviews: [], comments: [] },
+      ];
+
+      await pipeline.createBuddy("test-user", reviewData, "org", "repo", reporter);
+
+      const stages = new Set(calls.map((c) => c.stage));
+      expect(stages.has("llm_call")).toBe(true);
+      expect(stages.has("generating_profile")).toBe(true);
+      expect(stages.has("writing_memory")).toBe(true);
+
+      const memSubSteps = calls.map((c) => c.subStep).filter((s) => s && /^memory \d+\/\d+$/.test(s));
+      expect(memSubSteps.length).toBe(2);
+    });
+
+    it("emits soul_profile_llm and user_profile_llm stages", async () => {
+      const pipeline = new AnalysisPipeline(mockLLM, mockStorage);
+      const calls: Array<{ stage?: string }> = [];
+      const reporter = { report: (u: { stage?: string }) => calls.push(u) };
+
+      await pipeline.createBuddy(
+        "test-user",
+        [{ pr: basePR(1), reviews: [], comments: [] }],
+        "org",
+        "repo",
+        reporter
+      );
+
+      const stages = new Set(calls.map((c) => c.stage));
+      expect(stages.has("soul_profile_llm")).toBe(true);
+      expect(stages.has("user_profile_llm")).toBe(true);
+    });
+
+    it("emits batch subSteps when reviewerHistory exceeds BATCH_SIZE", async () => {
+      const pipeline = new AnalysisPipeline(mockLLM, mockStorage);
+      const calls: Array<{ stage?: string; subStep?: string }> = [];
+      const reporter = { report: (u: { stage?: string; subStep?: string }) => calls.push(u) };
+
+      const reviewData = [1, 2, 3, 4, 5].map((n) => ({
+        pr: basePR(n),
+        reviews: [],
+        comments: [],
+      }));
+
+      await pipeline.analyzeReviewerHistory(reviewData, reporter);
+
+      const subSteps = calls.map((c) => c.subStep).filter((s): s is string => Boolean(s));
+      expect(subSteps.some((s) => /^analysis batch \d+\/\d+$/.test(s))).toBe(true);
+    });
+  });
 });

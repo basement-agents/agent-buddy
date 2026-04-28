@@ -2918,4 +2918,66 @@ index abc..def 100644
       expect(changes.length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  describe("Progress reporter integration", () => {
+    it("reports building_prompt, llm_call, parsing_response stages from reviewDiff", async () => {
+      const llm = createMockLLM();
+      const eng = new ReviewEngine(llm);
+      const calls: any[] = [];
+      const reporter = { report: (u: any) => calls.push(u) };
+
+      await eng.reviewDiff(createTestPR(), "diff --git a/x b/x", undefined, reporter);
+
+      const stages = calls.map((c) => c.stage);
+      expect(stages).toContain("building_prompt");
+      expect(stages).toContain("llm_call");
+      expect(stages).toContain("parsing_response");
+      const llmCall = calls.find((c) => c.stage === "llm_call" && c.model);
+      expect(llmCall).toBeDefined();
+    });
+
+    it("reports evaluating_rules when custom rules are present", async () => {
+      const llm = createMockLLM();
+      const rules: CustomRule[] = [
+        { id: "r1", name: "x", pattern: "console.log", severity: "warning", enabled: true },
+      ];
+      const eng = new ReviewEngine(llm, rules);
+      const calls: any[] = [];
+      const reporter = { report: (u: any) => calls.push(u) };
+
+      await eng.reviewDiff(createTestPR(), "+console.log('x');", undefined, reporter);
+
+      expect(calls.map((c) => c.stage)).toContain("evaluating_rules");
+    });
+
+    it("emits chunk subSteps when diff is split", async () => {
+      const llm = createMockLLM();
+      const eng = new ReviewEngine(llm, undefined, 100);
+      const calls: any[] = [];
+      const reporter = { report: (u: any) => calls.push(u) };
+
+      const bigDiff = [
+        `diff --git a/a b/a\n` + "+a\n".repeat(80),
+        `diff --git a/b b/b\n` + "+b\n".repeat(80),
+      ].join("");
+
+      await eng.performReview(createTestPR(), bigDiff, undefined, undefined, reporter);
+
+      const subSteps = calls.map((c) => c.subStep).filter(Boolean);
+      expect(subSteps.some((s) => /^chunk \d+\/\d+$/.test(s as string))).toBe(true);
+    });
+
+    it("labels combined review with low-context and high-context LLM stages", async () => {
+      const llm = createMockLLM();
+      const eng = new ReviewEngine(llm);
+      const calls: any[] = [];
+      const reporter = { report: (u: any) => calls.push(u) };
+
+      await eng.performReview(createTestPR(), "diff --git a/x b/x", undefined, ["src/x.ts"], reporter);
+
+      const stages = new Set(calls.map((c) => c.stage));
+      expect(stages.has("low-context LLM")).toBe(true);
+      expect(stages.has("high-context LLM")).toBe(true);
+    });
+  });
 });
