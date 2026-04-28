@@ -7,6 +7,7 @@ import {
   Logger,
   getErrorMessage,
   calculateBackoffDelay,
+  bandReporter,
 } from "@agent-buddy/core";
 import type { ProgressReporter, ProgressUpdate } from "@agent-buddy/core";
 import { analysisJobs } from "./state.js";
@@ -183,18 +184,25 @@ export async function processUpdateJob(
       const [owner, repo] = r.split("/");
       if (!owner || !repo) continue;
 
-      job.progressDetail = `Fetching reviews from ${r}...`;
-      job.progressPercentage = Math.floor((i / repos.length) * 50);
+      const sliceStart = i / repos.length;
+      const sliceEnd = (i + 1) / repos.length;
+      reporter.report({
+        stage: "fetching_reviews",
+        detail: `Fetching reviews from ${r}...`,
+        fraction: sliceStart,
+      });
 
       const reviewData = await client.getPRsReviewedBy(owner, repo, buddyId, undefined, 50);
       if (reviewData.length > 0) {
         totalReviews += reviewData.length;
-        job.progressDetail = `Updating from ${reviewData.length} reviews on ${r}...`;
-        job.progressPercentage = Math.floor(((i + 0.5) / repos.length) * 50) + 50;
-
-        job.progressStage = "analyzing_patterns";
-        await pipeline.updateBuddy(buddyId, reviewData, owner, repo, undefined, reporter);
+        reporter.report({
+          stage: "analyzing_patterns",
+          detail: `Updating from ${reviewData.length} reviews on ${r}...`,
+        });
+        const slice = bandReporter(reporter, [sliceStart, sliceEnd]);
+        await pipeline.updateBuddy(buddyId, reviewData, owner, repo, undefined, slice);
       }
+      reporter.report({ fraction: sliceEnd });
     }
 
     completeJob(job, `Updated from ${totalReviews} reviews across ${repos.length} repo(s)`);
