@@ -28,8 +28,11 @@ out/
 .env.local
 .env.*.local
 
-# Research (internal)
-research/
+# Research
+# `research/` itself is tracked: internal domain contracts and external references
+# are part of the single source of truth (see CLAUDE.md). Use `research/private/`
+# for genuinely local-only scratch notes.
+research/private/
 
 # Turbo
 .turbo/

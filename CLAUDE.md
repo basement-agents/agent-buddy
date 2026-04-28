@@ -2,36 +2,46 @@
 
 AI code review bot that learns reviewer personas from past PR reviews and performs both low-context (diff-based) and high-context (impact analysis) reviews.
 
+## Repository Guidance
+
+This file is the canonical source of repo-wide rules, structure, and policies.
+Every agent and contributor MUST read it before performing any task here.
+
+## Instructions
+
+- Read `docs/project-*.md` first for the package you're working in — each contains Goal, Architecture, and Interfaces.
+- Domain logic details → `research/internal/`. External references → `research/external/`.
+- Package-specific setup lives in each package's `README.md`. Repo-wide rules live in this file.
+- `AGENTS.md` is a symlink to this file; both filenames resolve to the same content.
+- Update `CLAUDE.md` and relevant `docs/` in the same commit whenever structure or contracts change.
+- Code and docs may be in Korean or English. Technical identifiers must use English.
+- Do not guess; search the codebase or consult `research/` instead.
+- Use `gh` CLI instead of browser workflows for GitHub operations.
+- Commit when each logical unit of work is complete; never use `--no-verify`.
+- Rules using **MUST / NEVER** are mandatory. Rules using *prefer / whenever possible* are guidance.
+
 ## Monorepo Structure
 
 ```
 agent-buddy/
 ├── packages/
 │   ├── core/          # Shared types, interfaces, utilities
-│   ├── cli/           # CLI tool (commander)
+│   ├── cli/           # CLI tool (Commander.js)
 │   ├── server/        # API server (Hono)
 │   └── dashboard/     # Web UI (React + Vite + TanStack Router)
+├── docs/
+│   ├── project-*.md       # package specs (Goal, Architecture, Interfaces)
+│   ├── architecture/      # DEPENDENCY_RULES.md, DECISIONS.md (ADR)
+│   └── quality/           # KNOWN_ISSUES.md
+├── research/
+│   ├── internal/      # domain-*.md (domain contracts)
+│   └── external/      # External references
+├── scripts/           # check-doc-links.mjs, lint-architecture.mjs
+├── .github/workflows/ # ci.yml
 ├── turbo.json
 ├── tsconfig.base.json
 └── package.json
 ```
-
-## Build Commands
-
-- `npm run build` — Build all packages
-- `npm run dev` — Start dev servers
-- `npm run lint` — Lint all packages
-- `npm run typecheck` — Type check all packages
-- `npm run test` — Run all tests
-
-## Tech Stack
-
-- **Language**: TypeScript (strict mode)
-- **Frontend**: React 19, Vite 6, TanStack Router, Tailwind CSS v4, shadcn/ui, @base-ui/react
-- **Backend**: Hono, Node.js
-- **CLI**: Commander.js
-- **Monorepo**: Turborepo
-- **LLM**: Anthropic Claude API
 
 ## Buddy System
 
@@ -43,10 +53,54 @@ Buddies are AI personas learned from real code reviewers. Each buddy has three c
 
 Storage: `~/.agent-buddy/buddy/[id]/`
 
-## Coding Conventions
+## Code Standards
 
-- ESM modules (`"type": "module"`)
-- NodeNext module resolution for packages (bundler for dashboard)
-- Strict TypeScript
-- Prettier for formatting
-- ESLint for linting
+### Naming
+
+- Files/directories: `kebab-case`
+- Classes/Interfaces/Types: `PascalCase`
+- Functions/Variables: `camelCase`
+- Constants: `UPPER_SNAKE_CASE`
+
+### Type Safety
+
+- `any` prohibited in TypeScript
+- Prefer explicit types over inference for public APIs
+
+### Dashboard Conventions
+
+Layout follows Toss FE Fundamentals colocation principle: route-scoped code lives under the route, and `components/common/` + `lib/` hold only shared code consumed by ≥2 routes.
+
+```
+packages/dashboard/src/
+├── app/              # entry/routing (router.tsx, providers.tsx)
+├── api/              # API boundary types
+├── components/
+│   ├── common/       # kebab-case files shared by ≥2 routes
+│   ├── system/       # design system — lowercase dirs with index.tsx
+│   └── layout/       # layout components (sidebar, header)
+├── lib/              # utilities/hooks shared by ≥2 routes
+└── pages/<route>/
+    ├── <route>-page.tsx
+    ├── _components/  # kebab-case files scoped to this route
+    ├── _hooks/       # hooks scoped to this route
+    └── _lib/         # utilities scoped to this route
+```
+
+Tests are co-located with their source (`foo.ts` + `foo.test.ts`).
+
+## Testing
+
+- Mock external API calls (GitHub API, LLM API).
+- Use fixtures for stable test data.
+- Integration tests under `__tests__/` directories.
+
+## CI Baseline
+
+```bash
+node scripts/check-doc-links.mjs
+node scripts/lint-architecture.mjs
+npm run typecheck && npm run lint && npm run test
+```
+
+`.github/workflows/ci.yml` runs the same sequence on every PR. The two `scripts/*.mjs` checks gate doc drift and forbidden cross-package imports — see [`docs/architecture/DEPENDENCY_RULES.md`](docs/architecture/DEPENDENCY_RULES.md). New repeatable mistakes go in [`docs/quality/KNOWN_ISSUES.md`](docs/quality/KNOWN_ISSUES.md); cross-cutting choices in [`docs/architecture/DECISIONS.md`](docs/architecture/DECISIONS.md).
