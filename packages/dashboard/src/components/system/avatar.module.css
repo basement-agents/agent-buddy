@@ -1,0 +1,56 @@
+.avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ds-avatar-size);
+  height: var(--ds-avatar-size);
+  background-color: var(--ds-color-surface-neutral);
+  color: var(--ds-color-text-secondary);
+  font-weight: 600;
+  overflow: hidden;
+  user-select: none;
+}
+
+.shapeCircle {
+  border-radius: 100%;
+}
+
+.shapeSquare {
+  border-radius: var(--ds-radius-3);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fallback {
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.sizeXSmall {
+  --ds-avatar-size: 24px;
+  font-size: 10px;
+}
+.sizeSmall {
+  --ds-avatar-size: 32px;
+  font-size: 12px;
+}
+.sizeMedium {
+  --ds-avatar-size: 40px;
+  font-size: 14px;
+}
+.sizeLarge {
+  --ds-avatar-size: 56px;
+  font-size: 18px;
+}
+.sizeXLarge {
+  --ds-avatar-size: 72px;
+  font-size: 24px;
+}

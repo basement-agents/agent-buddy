@@ -1,13 +1,17 @@
-import * as React from "react";
+import { forwardRef, type LabelHTMLAttributes } from "react";
 import { cn } from "~/lib/utils";
 
-function Label({ className, ...props }: React.ComponentProps<"label">) {
-  return (
-    <label
-      className={cn("mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300", className)}
-      {...props}
-    />
-  );
-}
-
-export { Label };
+export const Label = forwardRef<HTMLLabelElement, LabelHTMLAttributes<HTMLLabelElement>>(
+  function Label({ className, ...props }, ref) {
+    return (
+      <label
+        className={cn(
+          "mb-1 inline-block text-[14px] font-medium text-[var(--ds-color-text-primary)]",
+          className,
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  },
+);

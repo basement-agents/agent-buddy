@@ -219,12 +219,12 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{repoId}</h1>
-          <p className="text-sm text-zinc-500">Repository configuration and management</p>
+          <h1 className="text-2xl font-bold text-[var(--ds-color-text-primary)]">{repoId}</h1>
+          <p className="text-sm text-[var(--ds-color-text-primary)]">Repository configuration and management</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setEditConfigOpen(true)}>Edit Config</Button>
-          <Button variant="outline" className="text-red-500 hover:text-red-700" onClick={() => setDeleteRepoOpen(true)}>Remove</Button>
+          <Button variant="outline" className="text-[var(--ds-color-feedback-danger)] hover:text-[var(--ds-color-feedback-danger-text)]" onClick={() => setDeleteRepoOpen(true)}>Remove</Button>
         </div>
       </div>
 
@@ -235,15 +235,15 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
         <CardContent>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <p className="text-xs font-medium uppercase text-zinc-500">Buddies</p>
+              <p className="text-xs font-medium uppercase text-[var(--ds-color-text-primary)]">Buddies</p>
               <p className="mt-1 text-sm">
                 {(() => {
                   const ids = repoConfig.buddies?.length ? repoConfig.buddies : repoConfig.buddyId ? [repoConfig.buddyId] : [];
-                  if (ids.length === 0) return <span className="text-zinc-400">None assigned</span>;
+                  if (ids.length === 0) return <span className="text-[var(--ds-color-text-tertiary)]">None assigned</span>;
                   return (
                     <span className="flex flex-wrap gap-1">
                       {ids.map((id) => (
-                        <a key={id} href={`/buddies/${id}`} className="text-blue-600 hover:underline">
+                        <a key={id} href={`/buddies/${id}`} className="text-[var(--ds-color-feedback-info-text)] hover:underline">
                           <Badge variant="info">{id}</Badge>
                         </a>
                       ))}
@@ -253,7 +253,7 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
               </p>
             </div>
             <div>
-              <p className="text-xs font-medium uppercase text-zinc-500">Auto-Review</p>
+              <p className="text-xs font-medium uppercase text-[var(--ds-color-text-primary)]">Auto-Review</p>
               <p className="mt-1 text-sm">
                 {repoConfig.autoReview ? (
                   <Badge variant="success">Enabled</Badge>
@@ -263,8 +263,8 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
               </p>
             </div>
             <div>
-              <p className="text-xs font-medium uppercase text-zinc-500">Trigger Mode</p>
-              <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{repoConfig.triggerMode}</p>
+              <p className="text-xs font-medium uppercase text-[var(--ds-color-text-primary)]">Trigger Mode</p>
+              <p className="mt-1 text-sm text-[var(--ds-color-text-secondary)]">{repoConfig.triggerMode}</p>
             </div>
           </div>
         </CardContent>
@@ -287,7 +287,7 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
           ) : schedule ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div>
-                <p className="text-xs font-medium uppercase text-zinc-500">Status</p>
+                <p className="text-xs font-medium uppercase text-[var(--ds-color-text-primary)]">Status</p>
                 <p className="mt-1 text-sm">
                   {schedule.enabled ? (
                     <Badge variant="success">Active</Badge>
@@ -297,18 +297,18 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-zinc-500">Interval</p>
-                <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{schedule.interval || 60} minutes</p>
+                <p className="text-xs font-medium uppercase text-[var(--ds-color-text-primary)]">Interval</p>
+                <p className="mt-1 text-sm text-[var(--ds-color-text-secondary)]">{schedule.interval || 60} minutes</p>
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-zinc-500">Last Run</p>
-                <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">
+                <p className="text-xs font-medium uppercase text-[var(--ds-color-text-primary)]">Last Run</p>
+                <p className="mt-1 text-sm text-[var(--ds-color-text-secondary)]">
                   {schedule.lastRun ? new Date(schedule.lastRun).toLocaleString() : "Never"}
                 </p>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-zinc-500">No schedule configured</p>
+            <p className="text-sm text-[var(--ds-color-text-primary)]">No schedule configured</p>
           )}
         </CardContent>
       </Card>
@@ -328,24 +328,24 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
                 ))}
               </div>
           ) : !sortedRules || sortedRules.length === 0 ? (
-            <p className="text-sm text-zinc-500">No custom rules configured</p>
+            <p className="text-sm text-[var(--ds-color-text-primary)]">No custom rules configured</p>
           ) : (
             <div className="space-y-2">
               {sortedRules.map((rule) => (
                 <div
                   key={rule.id}
-                  className={`flex items-center justify-between rounded-lg border p-3 ${rule.enabled ? "bg-white dark:bg-zinc-900" : "bg-zinc-50 dark:bg-zinc-900/50 opacity-60"}`}
+                  className={`flex items-center justify-between rounded-lg border border-[var(--ds-color-border-secondary)] p-3 ${rule.enabled ? "bg-[var(--ds-color-surface-card)]" : "bg-[var(--ds-color-surface-secondary)]/50 opacity-60"}`}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <Badge variant={rule.severity === "error" ? "error" : rule.severity === "warning" ? "warning" : rule.severity === "suggestion" ? "info" : "default"}>
                         {rule.severity}
                       </Badge>
-                      <span className="font-medium text-zinc-900 dark:text-white">{rule.name}</span>
-                      {!rule.enabled && <span className="text-xs text-zinc-400">(disabled)</span>}
+                      <span className="font-medium text-[var(--ds-color-text-primary)]">{rule.name}</span>
+                      {!rule.enabled && <span className="text-xs text-[var(--ds-color-text-tertiary)]">(disabled)</span>}
                     </div>
-                    <code className="mt-1 block text-xs text-zinc-600 dark:text-zinc-400">{rule.pattern}</code>
-                    {rule.category && <span className="mt-1 text-xs text-zinc-500">Category: {rule.category}</span>}
+                    <code className="mt-1 block text-xs text-[var(--ds-color-text-secondary)]">{rule.pattern}</code>
+                    {rule.category && <span className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Category: {rule.category}</span>}
                   </div>
                   <div className="flex gap-1">
                     <Button
@@ -358,7 +358,7 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-red-500 hover:text-red-700"
+                      className="text-[var(--ds-color-feedback-danger)] hover:text-[var(--ds-color-feedback-danger-text)]"
                       onClick={() => setDeleteRuleId(rule.id)}
                     >
                       Delete
@@ -383,21 +383,21 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
                 ))}
               </div>
           ) : !reviewsData?.reviews || reviewsData.reviews.length === 0 ? (
-            <p className="text-sm text-zinc-500">No reviews found for this repository</p>
+            <p className="text-sm text-[var(--ds-color-text-primary)]">No reviews found for this repository</p>
           ) : (
             <div className="space-y-2">
               {reviewsData.reviews.map((review) => (
                 <a
                   key={`${review.metadata.repo}-${review.metadata.prNumber}-${review.reviewedAt}`}
                   href={`/reviews/${review.metadata.repo}-${review.metadata.prNumber}`}
-                  className="block rounded-lg border p-3 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  className="block rounded-lg border p-3 hover:bg-[var(--ds-color-surface-secondary)]"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-zinc-900 dark:text-white">
+                      <p className="font-medium text-[var(--ds-color-text-primary)]">
                         PR #{review.metadata.prNumber}
                       </p>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs text-[var(--ds-color-text-primary)]">
                         {review.reviewedAt ? new Date(review.reviewedAt).toLocaleString() : "In progress"}
                       </p>
                     </div>
@@ -406,7 +406,7 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
                     </Badge>
                   </div>
                   {review.summary && (
-                    <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">{review.summary}</p>
+                    <p className="mt-2 line-clamp-2 text-sm text-[var(--ds-color-text-secondary)]">{review.summary}</p>
                   )}
                 </a>
               ))}
@@ -427,7 +427,7 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
               ))}
             </div>
           ) : !openPRs || openPRs.length === 0 ? (
-            <p className="text-sm text-zinc-500">No open pull requests</p>
+            <p className="text-sm text-[var(--ds-color-text-primary)]">No open pull requests</p>
           ) : (
             <div className="space-y-2">
               {openPRs.map((pr) => (
@@ -436,22 +436,22 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
                   href={pr.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-[var(--ds-color-surface-secondary)]"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-medium text-blue-600 dark:text-blue-400">
+                      <span className="font-mono text-sm font-medium text-[var(--ds-color-feedback-info-text)]">
                         #{pr.number}
                       </span>
-                      <span className="truncate text-sm font-medium text-zinc-900 dark:text-white">
+                      <span className="truncate text-sm font-medium text-[var(--ds-color-text-primary)]">
                         {pr.title}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-zinc-500">
+                    <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">
                       by {pr.author} &middot; {new Date(pr.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <ExternalLink className="h-4 w-4 flex-shrink-0 text-zinc-400" />
+                  <ExternalLink className="h-4 w-4 flex-shrink-0 text-[var(--ds-color-text-tertiary)]" />
                 </a>
               ))}
             </div>
@@ -478,10 +478,10 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
                 </NativeSelect>
               </div>
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Auto-Review</label>
+                <label className="text-sm font-medium text-[var(--ds-color-text-secondary)]">Auto-Review</label>
                 <Checkbox
                   checked={formAutoReview}
-                  onChange={(e) => setFormAutoReview(e.target.checked)}
+                  onChange={(s) => setFormAutoReview(s === "on")}
                 />
               </div>
               <div>
@@ -510,7 +510,7 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
             <div className="mt-4 space-y-4">
               <div>
                 <Label>
-                  Rule Name <span className="text-red-500">*</span>
+                  Rule Name <span className="text-[var(--ds-color-feedback-danger)]">*</span>
                 </Label>
                 <Input
                   placeholder="e.g., No console.log"
@@ -520,14 +520,14 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
               </div>
               <div>
                 <Label>
-                  Pattern <span className="text-red-500">*</span>
+                  Pattern <span className="text-[var(--ds-color-feedback-danger)]">*</span>
                 </Label>
                 <Input
                   placeholder="e.g., console\\.(log|debug)"
                   value={newRulePattern}
                   onChange={(e) => setNewRulePattern(e.target.value)}
                 />
-                <p className="mt-1 text-xs text-zinc-500">Regular expression pattern to match</p>
+                <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Regular expression pattern to match</p>
               </div>
               <div>
                 <Label>
@@ -566,7 +566,7 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
             <div className="mt-4 space-y-4">
               <div>
                 <Label>
-                  Rule Name <span className="text-red-500">*</span>
+                  Rule Name <span className="text-[var(--ds-color-feedback-danger)]">*</span>
                 </Label>
                 <Input
                   value={editRuleName}
@@ -575,13 +575,13 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
               </div>
               <div>
                 <Label>
-                  Pattern <span className="text-red-500">*</span>
+                  Pattern <span className="text-[var(--ds-color-feedback-danger)]">*</span>
                 </Label>
                 <Input
                   value={editRulePattern}
                   onChange={(e) => setEditRulePattern(e.target.value)}
                 />
-                <p className="mt-1 text-xs text-zinc-500">Regular expression pattern to match</p>
+                <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Regular expression pattern to match</p>
               </div>
               <div>
                 <Label>
@@ -598,10 +598,10 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
                 </NativeSelect>
               </div>
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Enabled</label>
+                <label className="text-sm font-medium text-[var(--ds-color-text-secondary)]">Enabled</label>
                 <Checkbox
                   checked={editRuleEnabled}
-                  onChange={(e) => setEditRuleEnabled(e.target.checked)}
+                  onChange={(s) => setEditRuleEnabled(s === "on")}
                 />
               </div>
             </div>
@@ -616,10 +616,10 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
       <ModalDialog open={editScheduleOpen} onOpenChange={setEditScheduleOpen} title="Schedule Configuration" description={`Configure automated review schedule for ${repoId}`}>
             <div className="mt-4 space-y-4">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Enable Schedule</label>
+                <label className="text-sm font-medium text-[var(--ds-color-text-secondary)]">Enable Schedule</label>
                 <Checkbox
                   checked={scheduleEnabled}
-                  onChange={(e) => setScheduleEnabled(e.target.checked)}
+                  onChange={(s) => setScheduleEnabled(s === "on")}
                 />
               </div>
               <div>
@@ -634,12 +634,12 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
                 />
               </div>
               {schedule?.lastRun && (
-                <div className="text-sm text-zinc-500">
+                <div className="text-sm text-[var(--ds-color-text-primary)]">
                   Last run: {new Date(schedule.lastRun).toLocaleString()}
                 </div>
               )}
               {schedule?.nextRun && (
-                <div className="text-sm text-zinc-500">
+                <div className="text-sm text-[var(--ds-color-text-primary)]">
                   Next run: {new Date(schedule.nextRun).toLocaleString()}
                 </div>
               )}

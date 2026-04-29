@@ -7,7 +7,8 @@ import { ErrorState } from "~/components/system/error-state";
 import { EmptyState } from "~/components/system/empty-state";
 import { Input } from "~/components/system/input";
 import { Badge } from "~/components/system/badge";
-import { TableSkeleton } from "~/components/system/skeleton";
+import { Skeleton } from "~/components/system/skeleton";
+import { ReposPageSkeleton } from "~/components/common/page-skeletons";
 import { ConfirmDialog } from "~/components/system/confirm-dialog";
 import { useToast } from "~/components/system/toast";
 import { Label } from "~/components/system/label";
@@ -141,15 +142,15 @@ export function ReposPage() {
     }
   };
 
-  if (loading) return <TableSkeleton rows={5} />;
+  if (loading) return <ReposPageSkeleton />;
   if (error) return <ErrorState message={`Error: ${error}`} onRetry={refetch} />;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Repositories</h1>
-          <p className="text-sm text-zinc-500">Manage monitored repositories</p>
+          <h1 className="text-2xl font-bold text-[var(--ds-color-text-primary)]">Repositories</h1>
+          <p className="text-sm text-[var(--ds-color-text-primary)]">Manage monitored repositories</p>
         </div>
         <Button onClick={() => setAddOpen(true)}>Add Repo</Button>
       </div>
@@ -157,32 +158,32 @@ export function ReposPage() {
       {repos?.length === 0 ? (
         <EmptyState title="No repositories configured" action={<Button variant="outline" onClick={() => setAddOpen(true)}>Add your first repository</Button>} />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+        <div className="overflow-x-auto rounded-lg border border-[var(--ds-color-border-primary)]">
           <table className="w-full min-w-[600px] text-sm">
-            <thead className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+            <thead className="border-b border-[var(--ds-color-border-primary)] bg-[var(--ds-color-surface-secondary)]">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-zinc-500">Repository</th>
-                <th className="px-4 py-3 text-left font-medium text-zinc-500">Buddy</th>
-                <th className="px-4 py-3 text-left font-medium text-zinc-500">Auto-Review</th>
-                <th className="px-4 py-3 text-left font-medium text-zinc-500">Trigger</th>
-                <th className="px-4 py-3 text-left font-medium text-zinc-500">Schedule</th>
-                <th className="px-4 py-3 text-left font-medium text-zinc-500">Manual Review</th>
-                <th className="px-4 py-3 text-right font-medium text-zinc-500">Actions</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--ds-color-text-primary)]">Repository</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--ds-color-text-primary)]">Buddy</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--ds-color-text-primary)]">Auto-Review</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--ds-color-text-primary)]">Trigger</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--ds-color-text-primary)]">Schedule</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--ds-color-text-primary)]">Manual Review</th>
+                <th className="px-4 py-3 text-right font-medium text-[var(--ds-color-text-primary)]">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            <tbody className="divide-y divide-[var(--ds-color-border-secondary)]">
               {repos?.map((r) => {
                 const [owner, repo] = r.id.split("/");
                 return (
-                  <tr key={r.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                  <tr key={r.id} className="hover:bg-[var(--ds-color-surface-secondary)]">
                     <td className="px-4 py-3 font-medium">
-                      <a href={`/repos/${owner}/${repo}`} className="text-blue-600 hover:underline">
+                      <a href={`/repos/${owner}/${repo}`} className="text-[var(--ds-color-feedback-info-text)] hover:underline">
                         {r.id}
                       </a>
                     </td>
-                    <td className="px-4 py-3">{r.buddyId ? <Badge variant="info">{r.buddyId}</Badge> : <span className="text-zinc-400">none</span>}</td>
+                    <td className="px-4 py-3">{r.buddyId ? <Badge variant="info">{r.buddyId}</Badge> : <span className="text-[var(--ds-color-text-tertiary)]">none</span>}</td>
                     <td className="px-4 py-3">{r.autoReview ? <Badge variant="success">On</Badge> : <Badge variant="default">Off</Badge>}</td>
-                    <td className="px-4 py-3 text-zinc-500">{r.triggerMode}</td>
+                    <td className="px-4 py-3 text-[var(--ds-color-text-primary)]">{r.triggerMode}</td>
                   <td className="px-4 py-3">
                     <Button
                       variant="ghost"
@@ -205,7 +206,7 @@ export function ReposPage() {
                     </Button>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700" onClick={() => setDeleteId(r.id)}>
+                    <Button variant="ghost" size="sm" className="text-[var(--ds-color-feedback-danger)] hover:text-[var(--ds-color-feedback-danger-text)]" onClick={() => setDeleteId(r.id)}>
                       Remove
                     </Button>
                   </td>
@@ -223,7 +224,7 @@ export function ReposPage() {
         <div className="mt-4 space-y-3">
           <div className="flex gap-2">
             <Input placeholder="owner" value={formOwner} onChange={(e) => setFormOwner(e.target.value)} />
-            <span className="flex items-center text-zinc-400">/</span>
+            <span className="flex items-center text-[var(--ds-color-text-tertiary)]">/</span>
             <Input placeholder="repo" value={formRepo} onChange={(e) => setFormRepo(e.target.value)} />
           </div>
           <Input placeholder="Buddy ID (optional)" value={formBuddy} onChange={(e) => setFormBuddy(e.target.value)} />
@@ -248,16 +249,18 @@ export function ReposPage() {
 
       <ModalDialog open={!!scheduleRepoId} onOpenChange={(open) => !open && setScheduleRepoId(null)} title="Schedule Configuration" description={`Configure automated review schedule for ${scheduleRepoId}`}>
             {scheduleLoading ? (
-              <div className="mt-4 flex items-center justify-center py-8">
-                <div className="text-sm text-zinc-500">Loading schedule...</div>
+              <div className="mt-4 space-y-3">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-full" />
               </div>
             ) : scheduleConfig ? (
               <div className="mt-4 space-y-4">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Enable Schedule</label>
+                  <label className="text-sm font-medium text-[var(--ds-color-text-secondary)]">Enable Schedule</label>
                   <Checkbox
                     checked={scheduleEnabled}
-                    onChange={(e) => setScheduleEnabled(e.target.checked)}
+                    onChange={(s) => setScheduleEnabled(s === "on")}
                   />
                 </div>
                 <div>
@@ -272,12 +275,12 @@ export function ReposPage() {
                   />
                 </div>
                 {scheduleConfig.lastRun && (
-                  <div className="text-sm text-zinc-500">
+                  <div className="text-sm text-[var(--ds-color-text-primary)]">
                     Last run: {new Date(scheduleConfig.lastRun).toLocaleString()}
                   </div>
                 )}
                 {scheduleConfig.nextRun && (
-                  <div className="text-sm text-zinc-500">
+                  <div className="text-sm text-[var(--ds-color-text-primary)]">
                     Next run: {new Date(scheduleConfig.nextRun).toLocaleString()}
                   </div>
                 )}
@@ -297,7 +300,7 @@ export function ReposPage() {
             <div className="mt-4 space-y-4">
               <div>
                 <Label>
-                  PR Number <span className="text-red-500">*</span>
+                  PR Number <span className="text-[var(--ds-color-feedback-danger)]">*</span>
                 </Label>
                 <Input
                   type="number"
@@ -332,18 +335,16 @@ export function ReposPage() {
                 <div className="flex gap-2">
                   {REVIEW_TYPES.map((type) => (
                     <div key={type.value} className="flex-1">
-                      <button
+                      <Button
                         type="button"
+                        variant={triggerReviewType === type.value ? "info" : "outline"}
+                        size="small"
+                        className="w-full"
                         onClick={() => setTriggerReviewType(type.value)}
-                        className={`w-full rounded-lg border px-3 py-2 text-sm transition-colors ${
-                          triggerReviewType === type.value
-                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                            : "border-zinc-300 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
-                        }`}
                       >
                         {type.label}
-                      </button>
-                      <p className="mt-1 text-xs text-zinc-500">{type.description}</p>
+                      </Button>
+                      <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">{type.description}</p>
                     </div>
                   ))}
                 </div>

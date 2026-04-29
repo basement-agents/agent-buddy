@@ -69,7 +69,7 @@ function BuddyProfileCard({ profile }: { profile: NonNullable<ReturnType<typeof 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">{profile.username}</h3>
+        <h3 className="text-lg font-semibold text-[var(--ds-color-text-primary)]">{profile.username}</h3>
         <Badge variant="info">{profile.sourceRepos.length} repos</Badge>
       </div>
       {[
@@ -86,7 +86,7 @@ function BuddyProfileCard({ profile }: { profile: NonNullable<ReturnType<typeof 
           </CardContent>
         </Card>
       ))}
-      <p className="text-xs text-zinc-400">Source repos: {profile.sourceRepos.join(", ")}</p>
+      <p className="text-xs text-[var(--ds-color-text-tertiary)]">Source repos: {profile.sourceRepos.join(", ")}</p>
     </div>
   );
 }
@@ -99,7 +99,7 @@ export function BuddyComparison({ buddyId1, buddyId2, onClose }: BuddyComparison
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Comparing Buddies</h2>
+          <h2 className="text-xl font-bold text-[var(--ds-color-text-primary)]">Comparing Buddies</h2>
           <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
         </div>
         <div className="grid gap-6 md:grid-cols-2">
@@ -117,8 +117,8 @@ export function BuddyComparison({ buddyId1, buddyId2, onClose }: BuddyComparison
 
   if (!profile1 || !profile2) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-900/20">
-        <p className="text-red-600 dark:text-red-400">One or both buddy profiles could not be loaded.</p>
+      <div className="rounded-lg border border-[var(--ds-color-feedback-danger-border)] bg-[var(--ds-color-feedback-danger-subtle)] p-6 text-center">
+        <p className="text-[var(--ds-color-feedback-danger-text)]">One or both buddy profiles could not be loaded.</p>
         <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
       </div>
     );
@@ -130,7 +130,7 @@ export function BuddyComparison({ buddyId1, buddyId2, onClose }: BuddyComparison
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Comparing Buddies</h2>
+        <h2 className="text-xl font-bold text-[var(--ds-color-text-primary)]">Comparing Buddies</h2>
         <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
       </div>
 
@@ -138,23 +138,23 @@ export function BuddyComparison({ buddyId1, buddyId2, onClose }: BuddyComparison
         <CardHeader><CardTitle className="text-base">Similarity Score</CardTitle></CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
-            <div className="text-4xl font-bold text-zinc-900 dark:text-white">{similarityPercent}%</div>
+            <div className="text-4xl font-bold text-[var(--ds-color-text-primary)]">{similarityPercent}%</div>
             <div className="flex-1">
               <ProgressBar percentage={similarityPercent} />
             </div>
           </div>
           <div className="mt-4 text-sm">
             <div>
-              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Shared Repos:</span>
-              <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+              <span className="font-semibold text-[var(--ds-color-text-secondary)]">Shared Repos:</span>
+              <p className="mt-1 text-[var(--ds-color-text-secondary)]">
                 {similarity.sharedRepos.length > 0
                   ? similarity.sharedRepos.join(", ")
                   : "None"}
               </p>
             </div>
             <div className="mt-2">
-              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Soul Profile Overlap:</span>
-              <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+              <span className="font-semibold text-[var(--ds-color-text-secondary)]">Soul Profile Overlap:</span>
+              <p className="mt-1 text-[var(--ds-color-text-secondary)]">
                 {Math.round(similarity.soulOverlap * 100)}%
               </p>
             </div>
@@ -172,8 +172,8 @@ export function BuddyComparison({ buddyId1, buddyId2, onClose }: BuddyComparison
         <CardContent>
           <div className="space-y-3 text-sm">
             <div>
-              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Experience Sources:</span>
-              <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+              <span className="font-semibold text-[var(--ds-color-text-secondary)]">Experience Sources:</span>
+              <p className="mt-1 text-[var(--ds-color-text-secondary)]">
                 {profile1.username}: {profile1.sourceRepos.length} repositories &bull; {profile2.username}: {profile2.sourceRepos.length} repositories
               </p>
             </div>

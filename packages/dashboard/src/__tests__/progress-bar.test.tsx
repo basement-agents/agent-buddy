@@ -75,10 +75,9 @@ describe("ProgressBar", () => {
     const { container: successContainer } = render(<ProgressBar percentage={50} variant="success" />);
     const { container: errorContainer } = render(<ProgressBar percentage={50} variant="error" />);
 
-    // Check that variant classes are applied
-    expect(defaultContainer.querySelector(".bg-blue-500")).toBeInTheDocument();
-    expect(successContainer.querySelector(".bg-green-500")).toBeInTheDocument();
-    expect(errorContainer.querySelector(".bg-red-500")).toBeInTheDocument();
+    expect(defaultContainer.querySelector("[class*='feedback-info']")).toBeInTheDocument();
+    expect(successContainer.querySelector("[class*='feedback-success']")).toBeInTheDocument();
+    expect(errorContainer.querySelector("[class*='feedback-danger']")).toBeInTheDocument();
   });
 
   it("applies custom className", () => {

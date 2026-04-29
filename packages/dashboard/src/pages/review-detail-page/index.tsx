@@ -57,41 +57,33 @@ export function ReviewDetailPage({ reviewIndex }: { reviewIndex: string }) {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-[var(--ds-color-text-primary)]">
             {review.metadata.owner}/{review.metadata.repo} #{review.metadata.prNumber}
           </h1>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-[var(--ds-color-text-primary)]">
             {review.buddyId ? `by ${review.buddyId}` : "No buddy assigned"} &middot;{" "}
             {new Date(review.reviewedAt).toLocaleString()}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {review.buddyId && (
-            <div className="flex items-center gap-1 rounded-md border border-zinc-200 p-1 dark:border-zinc-700">
-              <button
-                onClick={() => handleFeedback(true)}
+            <div className="flex items-center gap-1 rounded-md border border-[var(--ds-color-border-primary)] p-1">
+              <Button
                 disabled={!!feedback || submittingFeedback}
-                className={cn(
-                  "rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50",
-                  feedback === "helpful"
-                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800",
-                )}
+                onClick={() => handleFeedback(true)}
+                size="x-small"
+                variant={feedback === "helpful" ? "success" : "ghost"}
               >
                 Helpful
-              </button>
-              <button
-                onClick={() => handleFeedback(false)}
+              </Button>
+              <Button
                 disabled={!!feedback || submittingFeedback}
-                className={cn(
-                  "rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50",
-                  feedback === "not-helpful"
-                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800",
-                )}
+                onClick={() => handleFeedback(false)}
+                size="x-small"
+                variant={feedback === "not-helpful" ? "error" : "ghost"}
               >
                 Not Helpful
-              </button>
+              </Button>
             </div>
           )}
           <Button variant="outline" size="sm" onClick={() => navigate("/reviews")}>

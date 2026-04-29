@@ -1,0 +1,81 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ds-badge-padding-y) var(--ds-badge-padding-x);
+  background-color: var(--ds-badge-bg);
+  color: var(--ds-badge-color);
+  border: var(--ds-badge-border, 1px solid transparent);
+  border-radius: var(--ds-badge-radius);
+  white-space: nowrap;
+}
+
+.inner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-spacing-3);
+}
+
+/* Sizes */
+.sizeSmall {
+  --ds-badge-padding-x: 6px;
+  --ds-badge-padding-y: 3px;
+  --ds-badge-radius: var(--ds-radius-2);
+}
+.sizeMedium {
+  --ds-badge-padding-x: 8px;
+  --ds-badge-padding-y: 4px;
+  --ds-badge-radius: var(--ds-radius-3);
+}
+.sizeLarge {
+  --ds-badge-padding-x: 10px;
+  --ds-badge-padding-y: 5px;
+  --ds-badge-radius: var(--ds-radius-3);
+}
+
+/* Shapes */
+.shapeCircle {
+  --ds-badge-radius: 100%;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+}
+.shapeRounded {
+  --ds-badge-radius: var(--ds-radius-full);
+}
+
+/* Variants */
+.variantPrimary {
+  --ds-badge-bg: var(--ds-color-interactive-primary);
+  --ds-badge-color: var(--ds-color-text-on-primary);
+  --ds-badge-border: 1px solid transparent;
+}
+.variantSecondary {
+  --ds-badge-bg: var(--ds-color-surface-secondary);
+  --ds-badge-color: var(--ds-color-text-secondary);
+  --ds-badge-border: 1px solid var(--ds-color-border-secondary);
+}
+.variantSuccess {
+  --ds-badge-bg: var(--ds-color-feedback-success-subtle);
+  --ds-badge-color: var(--ds-color-feedback-success-text);
+  --ds-badge-border: 1px solid var(--ds-color-feedback-success-border);
+}
+.variantError {
+  --ds-badge-bg: var(--ds-color-feedback-danger-subtle);
+  --ds-badge-color: var(--ds-color-feedback-danger-text);
+  --ds-badge-border: 1px solid var(--ds-color-feedback-danger-border);
+}
+.variantWarning {
+  --ds-badge-bg: var(--ds-color-feedback-warning-subtle);
+  --ds-badge-color: var(--ds-color-feedback-warning-text);
+  --ds-badge-border: 1px solid var(--ds-color-feedback-warning-border);
+}
+.variantInfo {
+  --ds-badge-bg: var(--ds-color-feedback-info-subtle);
+  --ds-badge-color: var(--ds-color-feedback-info-text);
+  --ds-badge-border: 1px solid var(--ds-color-feedback-info-border);
+}
+.variantOutline {
+  --ds-badge-bg: var(--ds-color-transparent);
+  --ds-badge-color: var(--ds-color-text-primary);
+  --ds-badge-border: 1px solid var(--ds-color-border-primary);
+}

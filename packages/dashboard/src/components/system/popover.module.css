@@ -1,0 +1,44 @@
+.popup {
+  background-color: var(--ds-color-surface-primary);
+  border: 1px solid var(--ds-color-border-secondary);
+  border-radius: var(--ds-radius-4);
+  box-shadow: var(--ds-shadow-popover);
+  padding: var(--ds-spacing-8);
+  outline: none;
+  z-index: var(--ds-z-index-overlay);
+  animation: ds-pop-in var(--ds-duration-fast) var(--ds-easing-entrance);
+}
+
+.popup[data-ending-style] {
+  animation: ds-pop-out var(--ds-duration-fast) var(--ds-easing-entrance);
+}
+
+@keyframes ds-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ds-pop-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.arrow {
+  fill: var(--ds-color-surface-primary);
+}
+
+.arrowOutline {
+  fill: var(--ds-color-border-secondary);
+}

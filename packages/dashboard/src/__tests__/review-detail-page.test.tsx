@@ -318,8 +318,8 @@ describe("ReviewDetailPage", () => {
     await user.click(screen.getByText("Helpful"));
 
     await waitFor(() => {
-      expect(screen.getByText("Helpful")).toBeDisabled();
-      expect(screen.getByText("Not Helpful")).toBeDisabled();
+      expect(screen.getByText("Helpful").closest("button")).toBeDisabled();
+      expect(screen.getByText("Not Helpful").closest("button")).toBeDisabled();
     });
   });
 });

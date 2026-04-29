@@ -10,15 +10,15 @@ interface ProgressBarProps {
 }
 
 const variantStyles = {
-  default: "bg-blue-500 dark:bg-blue-400",
-  success: "bg-green-500 dark:bg-green-400",
-  error: "bg-red-500 dark:bg-red-400",
+  default: "bg-[var(--ds-color-feedback-info)]",
+  success: "bg-[var(--ds-color-feedback-success)]",
+  error: "bg-[var(--ds-color-feedback-danger)]",
 };
 
 const trackStyles = {
-  default: "bg-blue-100 dark:bg-blue-900/30",
-  success: "bg-green-100 dark:bg-green-900/30",
-  error: "bg-red-100 dark:bg-red-900/30",
+  default: "bg-[var(--ds-color-feedback-info-subtle)]",
+  success: "bg-[var(--ds-color-feedback-success-subtle)]",
+  error: "bg-[var(--ds-color-feedback-danger-subtle)]",
 };
 
 export function ProgressBar({
@@ -35,9 +35,9 @@ export function ProgressBar({
     <div className={cn("space-y-1.5", className)}>
       {(label || (pct != null && !indeterminate)) && (
         <div className="flex items-center justify-between text-xs">
-          {label && <span className="font-medium text-zinc-700 dark:text-zinc-300">{label}</span>}
+          {label && <span className="font-medium text-[var(--ds-color-text-secondary)]">{label}</span>}
           {pct != null && !indeterminate && (
-            <span className="text-zinc-500">{Math.round(pct)}%</span>
+            <span className="text-[var(--ds-color-text-primary)]">{Math.round(pct)}%</span>
           )}
         </div>
       )}
@@ -52,7 +52,7 @@ export function ProgressBar({
         )}
       </div>
       {statusText && (
-        <p className="text-xs text-zinc-500">{statusText}</p>
+        <p className="text-xs text-[var(--ds-color-text-primary)]">{statusText}</p>
       )}
     </div>
   );

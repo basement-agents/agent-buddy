@@ -1,7 +1,14 @@
 import { Layout } from "~/components/layout/layout";
 import { ToastProvider } from "~/components/system/toast";
 import { ErrorBoundary } from "~/components/shared/error-boundary";
-import { Skeleton } from "~/components/system/skeleton";
+import {
+  HomePageSkeleton,
+  SettingsPageSkeleton,
+  ReposPageSkeleton,
+  BuddyDetailPageSkeleton,
+  BuddyComparePageSkeleton,
+  GenericPageSkeleton,
+} from "~/components/common/page-skeletons";
 import * as React from "react";
 import { useState, useEffect } from "react";
 
@@ -18,16 +25,13 @@ const SettingsPage = React.lazy(() => import("~/pages/settings/index").then(m =>
 const NotFoundPage = React.lazy(() => import("~/pages/not-found/index").then(m => ({ default: m.NotFoundPage })));
 
 function LoadingFallback() {
-  return (
-    <div className="space-y-4 p-6">
-      <Skeleton className="h-6 w-48" />
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-4 w-1/2" />
-      </div>
-    </div>
-  );
+  const path = window.location.pathname;
+  if (path === "/" || path === "") return <HomePageSkeleton />;
+  if (path === "/settings") return <SettingsPageSkeleton />;
+  if (path === "/repos") return <ReposPageSkeleton />;
+  if (path === "/buddies/compare") return <BuddyComparePageSkeleton />;
+  if (/^\/buddies\/[^/]+$/.test(path)) return <BuddyDetailPageSkeleton />;
+  return <GenericPageSkeleton />;
 }
 
 function Page({ children }: { children: React.ReactNode }) {

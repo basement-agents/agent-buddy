@@ -1,58 +1,233 @@
-import { Button as ButtonPrimitive } from "@base-ui/react/button"
-import { cva, type VariantProps } from "class-variance-authority"
+import {
+  cloneElement,
+  forwardRef,
+  isValidElement,
+  type ButtonHTMLAttributes,
+  type CSSProperties,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import { cn } from "~/lib/utils";
+import styles from "./button.module.css";
+import { Spinner, type SpinnerVariant } from "./spinner";
 
-import { cn } from "~/lib/utils"
+export type ButtonSize = "large" | "medium" | "small" | "x-small";
 
-const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
-        ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
-        destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default:
-          "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        icon: "size-8",
-        "icon-xs":
-          "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm":
-          "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-9",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-)
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "outline"
+  | "ghost"
+  | "success"
+  | "error"
+  | "warning"
+  | "info"
+  /** legacy aliases (existing callers) */
+  | "default"
+  | "destructive"
+  | "link";
 
-function Button({
-  className,
-  variant = "default",
-  size = "default",
-  ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
-  return (
-    <ButtonPrimitive
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  )
+export type ButtonShape = "square" | "circle" | "rounded";
+
+export type ButtonWeight =
+  | "thin"
+  | "extralight"
+  | "light"
+  | "regular"
+  | "medium"
+  | "semibold"
+  | "bold"
+  | "extrabold"
+  | "black";
+
+const FONT_WEIGHT_MAP: Record<ButtonWeight, number> = {
+  thin: 100,
+  extralight: 200,
+  light: 300,
+  regular: 400,
+  medium: 500,
+  semibold: 600,
+  bold: 700,
+  extrabold: 800,
+  black: 900,
+};
+
+const VARIANT_CLASS: Record<ButtonVariant, string | undefined> = {
+  primary: styles.variantPrimary,
+  secondary: styles.variantSecondary,
+  outline: styles.variantOutline,
+  ghost: styles.variantGhost,
+  success: styles.variantSuccess,
+  error: styles.variantError,
+  warning: styles.variantWarning,
+  info: styles.variantInfo,
+  default: styles.variantPrimary,
+  destructive: styles.variantError,
+  link: styles.variantGhost,
+};
+
+const SIZE_CLASS: Record<ButtonSize, string> = {
+  large: styles.sizeLarge,
+  medium: styles.sizeMedium,
+  small: styles.sizeSmall,
+  "x-small": styles.sizeXSmall,
+};
+
+const SHAPE_CLASS: Record<ButtonShape, string> = {
+  square: styles.shapeSquare,
+  circle: styles.shapeCircle,
+  rounded: styles.shapeRounded,
+};
+
+/** Legacy size aliases used by existing callers (`sm`, `lg`, etc.). */
+const LEGACY_SIZE: Record<string, ButtonSize> = {
+  sm: "small",
+  md: "medium",
+  lg: "large",
+  xs: "x-small",
+  default: "medium",
+  icon: "medium",
+  "icon-sm": "small",
+  "icon-xs": "x-small",
+  "icon-lg": "large",
+};
+
+function normaliseSize(input: string | undefined): ButtonSize {
+  if (!input) return "medium";
+  if (input in LEGACY_SIZE) return LEGACY_SIZE[input];
+  return input as ButtonSize;
 }
 
-export { Button, buttonVariants }
+function getSpinnerVariant(variant: ButtonVariant): SpinnerVariant {
+  if (
+    variant === "primary" ||
+    variant === "default" ||
+    variant === "success" ||
+    variant === "error" ||
+    variant === "destructive" ||
+    variant === "info"
+  ) {
+    return "white";
+  }
+  return "secondary";
+}
+
+export interface ButtonProps
+  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "prefix"> {
+  variant?: ButtonVariant;
+  size?: ButtonSize | "sm" | "md" | "lg" | "xs" | "default" | "icon" | "icon-sm" | "icon-xs" | "icon-lg";
+  shape?: ButtonShape;
+  weight?: ButtonWeight;
+  prefix?: ReactNode;
+  suffix?: ReactNode;
+  loading?: boolean;
+  svgOnly?: boolean;
+  spinnerVariant?: SpinnerVariant;
+  /** Polymorphic render — when provided, the button is rendered as that element. */
+  render?: ReactElement;
+  /** shadcn-compat alias for `render` (renders children as a different element). */
+  asChild?: boolean;
+}
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  {
+    variant = "primary",
+    size,
+    shape = "square",
+    weight = "medium",
+    prefix,
+    suffix,
+    loading = false,
+    svgOnly = false,
+    spinnerVariant,
+    render,
+    asChild,
+    disabled,
+    className,
+    style,
+    children,
+    type = "button",
+    ...props
+  },
+  ref,
+) {
+  const resolvedSize = normaliseSize(size as string | undefined);
+  const isDisabled = disabled || loading;
+
+  const mergedClassName = cn(
+    styles.button,
+    VARIANT_CLASS[variant],
+    SIZE_CLASS[resolvedSize],
+    SHAPE_CLASS[shape],
+    svgOnly && styles.svgOnly,
+    className,
+  );
+
+  const mergedStyle: CSSProperties = {
+    "--ds-button-font-weight": FONT_WEIGHT_MAP[weight],
+    ...style,
+  } as CSSProperties;
+
+  const content = (
+    <>
+      {loading && (
+        <span className={styles.spinnerOverlay}>
+          <Spinner
+            size="medium"
+            variant={spinnerVariant ?? getSpinnerVariant(variant)}
+          />
+        </span>
+      )}
+      <span className={cn(styles.buttonInner, loading && styles.invisible)}>
+        {prefix && <span className={styles.prefix}>{prefix}</span>}
+        <span className={styles.content}>{children}</span>
+        {suffix && <span className={styles.suffix}>{suffix}</span>}
+      </span>
+    </>
+  );
+
+  if (asChild && isValidElement(children)) {
+    const childProps = (children.props ?? {}) as {
+      className?: string;
+      style?: CSSProperties;
+    };
+    return cloneElement(children, {
+      ...childProps,
+      ...props,
+      className: cn(mergedClassName, childProps.className),
+      style: { ...mergedStyle, ...(childProps.style ?? {}) },
+      "aria-busy": loading || undefined,
+      "aria-disabled": isDisabled || undefined,
+    } as Record<string, unknown>);
+  }
+
+  if (render && isValidElement(render)) {
+    const renderProps = (render.props ?? {}) as {
+      className?: string;
+      style?: CSSProperties;
+    };
+    return cloneElement(render, {
+      ...renderProps,
+      ...props,
+      className: cn(mergedClassName, renderProps.className),
+      style: { ...mergedStyle, ...(renderProps.style ?? {}) },
+      "aria-busy": loading || undefined,
+      "aria-disabled": isDisabled || undefined,
+      children: content,
+    } as Record<string, unknown>);
+  }
+
+  return (
+    <button
+      aria-busy={loading || undefined}
+      className={mergedClassName}
+      disabled={isDisabled}
+      ref={ref}
+      style={mergedStyle}
+      type={type}
+      {...props}
+    >
+      {content}
+    </button>
+  );
+});

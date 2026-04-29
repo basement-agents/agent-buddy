@@ -1,5 +1,6 @@
 import { Component, type ReactNode, type ErrorInfo } from "react";
 import { Button } from "~/components/system/button";
+import { Card, CardContent } from "~/components/system/card";
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -45,16 +46,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
 
       return (
-        <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-          <div className="max-w-md rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <h2 className="mb-2 text-xl font-semibold text-zinc-900 dark:text-white">Something went wrong</h2>
-            <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
-              {this.state.error?.message || "An unexpected error occurred"}
-            </p>
-            <Button variant="default" size="sm" onClick={this.handleReset}>
-              Try Again
-            </Button>
-          </div>
+        <div className="flex h-screen items-center justify-center bg-[var(--ds-color-surface-secondary)]">
+          <Card className="max-w-md">
+            <CardContent className="p-6">
+              <h2 className="mb-2 text-xl font-semibold text-[var(--ds-color-text-primary)]">Something went wrong</h2>
+              <p className="mb-4 text-sm text-[var(--ds-color-text-secondary)]">
+                {this.state.error?.message || "An unexpected error occurred"}
+              </p>
+              <Button size="small" onClick={this.handleReset}>
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       );
     }
