@@ -1,5 +1,5 @@
-import { ModalDialog } from "./modal-dialog";
 import { Button } from "./button";
+import { ModalDialog } from "./modal-dialog";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -23,17 +23,22 @@ export function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   return (
-    <ModalDialog open={open} onOpenChange={onOpenChange} title={title} description={description}>
+    <ModalDialog
+      description={description}
+      onOpenChange={onOpenChange}
+      open={open}
+      title={title}
+    >
       <div className="mt-4 flex justify-end gap-3">
-        <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <Button onClick={() => onOpenChange(false)} variant="outline">
           {cancelLabel}
         </Button>
         <Button
-          variant={destructive ? "destructive" : "default"}
           onClick={() => {
             onConfirm();
             onOpenChange(false);
           }}
+          variant={destructive ? "error" : "primary"}
         >
           {confirmLabel}
         </Button>

@@ -9,7 +9,7 @@ import { Breadcrumb } from "~/components/system/breadcrumb";
 import { ConfirmDialog } from "~/components/system/confirm-dialog";
 import { useToast } from "~/components/system/toast";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/system/card";
-import { Skeleton } from "~/components/system/skeleton";
+import { BuddyDetailPageSkeleton } from "~/components/common/page-skeletons";
 import { ModalDialog } from "~/components/system/modal-dialog";
 import ReactMarkdown from "react-markdown";
 import { FeedbackSection } from "../buddies/_components/feedback-section";
@@ -173,15 +173,7 @@ export function BuddyDetailPage({ buddyId }: { buddyId: string }) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
+  if (loading) return <BuddyDetailPageSkeleton />;
 
   if (error || !profile) {
     return (
@@ -195,8 +187,8 @@ export function BuddyDetailPage({ buddyId }: { buddyId: string }) {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{profile.username}</h1>
-          <p className="text-sm text-zinc-500">Source repos: {profile.sourceRepos.join(", ")}</p>
+          <h1 className="text-2xl font-bold text-[var(--ds-color-text-primary)]">{profile.username}</h1>
+          <p className="text-sm text-[var(--ds-color-text-primary)]">Source repos: {profile.sourceRepos.join(", ")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleExport}>Export</Button>
@@ -205,7 +197,7 @@ export function BuddyDetailPage({ buddyId }: { buddyId: string }) {
         </div>
       </div>
 
-      <div className="border-b border-zinc-200 dark:border-zinc-800">
+      <div className="border-b border-[var(--ds-color-border-primary)]">
         <nav className="flex gap-4 overflow-x-auto sm:gap-6">
           {TABS.map((tab) => (
             <button
@@ -214,8 +206,8 @@ export function BuddyDetailPage({ buddyId }: { buddyId: string }) {
               className={cn(
                 "whitespace-nowrap border-b-2 pb-3 text-sm font-medium transition-colors",
                 activeTab === tab
-                  ? "border-zinc-900 text-zinc-900 dark:border-white dark:text-white"
-                  : "border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-300",
+                  ? "border-[var(--ds-color-border-primary)] text-[var(--ds-color-text-primary)]"
+                  : "border-transparent text-[var(--ds-color-text-primary)] hover:border-[var(--ds-color-border-primary)] hover:text-[var(--ds-color-text-secondary)]",
               )}
             >
               {tab}
@@ -245,20 +237,20 @@ export function BuddyDetailPage({ buddyId }: { buddyId: string }) {
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
                 <div>
-                  <p className="text-sm text-zinc-500">Total Reviews</p>
-                  <p className="text-2xl font-semibold text-zinc-900 dark:text-white">{totalReviews}</p>
+                  <p className="text-sm text-[var(--ds-color-text-primary)]">Total Reviews</p>
+                  <p className="text-2xl font-semibold text-[var(--ds-color-text-primary)]">{totalReviews}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-zinc-500">Success Rate</p>
-                  <p className="text-2xl font-semibold text-zinc-900 dark:text-white">{successRate}%</p>
+                  <p className="text-sm text-[var(--ds-color-text-primary)]">Success Rate</p>
+                  <p className="text-2xl font-semibold text-[var(--ds-color-text-primary)]">{successRate}%</p>
                 </div>
                 <div>
-                  <p className="text-sm text-zinc-500">Avg Comments</p>
-                  <p className="text-2xl font-semibold text-zinc-900 dark:text-white">{avgComments}</p>
+                  <p className="text-sm text-[var(--ds-color-text-primary)]">Avg Comments</p>
+                  <p className="text-2xl font-semibold text-[var(--ds-color-text-primary)]">{avgComments}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-zinc-500">Assigned Repos</p>
-                  <p className="text-2xl font-semibold text-zinc-900 dark:text-white">{assignedRepos.length}</p>
+                  <p className="text-sm text-[var(--ds-color-text-primary)]">Assigned Repos</p>
+                  <p className="text-2xl font-semibold text-[var(--ds-color-text-primary)]">{assignedRepos.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -270,14 +262,14 @@ export function BuddyDetailPage({ buddyId }: { buddyId: string }) {
             </CardHeader>
             <CardContent>
               {assignedRepos.length === 0 ? (
-                <p className="text-sm text-zinc-500">This buddy is not assigned to any repositories.</p>
+                <p className="text-sm text-[var(--ds-color-text-primary)]">This buddy is not assigned to any repositories.</p>
               ) : (
                 <div className="space-y-2">
                   {assignedRepos.map((repo) => (
-                    <div key={repo.id} className="flex items-center justify-between rounded-md border border-zinc-200 px-3 py-2 dark:border-zinc-800">
+                    <div key={repo.id} className="flex items-center justify-between rounded-md border border-[var(--ds-color-border-primary)] px-3 py-2">
                       <div>
-                        <span className="font-medium text-zinc-900 dark:text-white">{repo.id}</span>
-                        <div className="flex gap-2 text-xs text-zinc-500">
+                        <span className="font-medium text-[var(--ds-color-text-primary)]">{repo.id}</span>
+                        <div className="flex gap-2 text-xs text-[var(--ds-color-text-primary)]">
                           <span>Auto-review: {repo.autoReview ? "On" : "Off"}</span>
                           <span>Trigger: {repo.triggerMode}</span>
                         </div>
@@ -298,25 +290,25 @@ export function BuddyDetailPage({ buddyId }: { buddyId: string }) {
             </CardHeader>
             <CardContent>
               {!reviews || reviews.reviews.length === 0 ? (
-                <p className="text-sm text-zinc-500">No reviews performed by this buddy yet.</p>
+                <p className="text-sm text-[var(--ds-color-text-primary)]">No reviews performed by this buddy yet.</p>
               ) : (
                 <div className="space-y-2">
                   {reviews.reviews.slice(0, 5).map((review, i) => {
                     return (
                       <div
                         key={i}
-                        className="flex cursor-pointer items-center justify-between rounded-md border border-zinc-200 px-3 py-2 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                        className="flex cursor-pointer items-center justify-between rounded-md border border-[var(--ds-color-border-primary)] px-3 py-2 hover:bg-[var(--ds-color-surface-secondary)]"
                         onClick={() => navigate(`/reviews/${review.metadata.owner}-${review.metadata.repo}-${review.metadata.prNumber}`)}
                       >
                         <div className="flex items-center gap-3">
                           <Badge variant={STATE_VARIANT[review.state] || "default"}>
                             {review.state.replace("_", " ")}
                           </Badge>
-                          <span className="text-sm font-medium text-zinc-900 dark:text-white">
+                          <span className="text-sm font-medium text-[var(--ds-color-text-primary)]">
                             {review.metadata.owner}/{review.metadata.repo} #{review.metadata.prNumber}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-zinc-500">
+                        <div className="flex items-center gap-3 text-xs text-[var(--ds-color-text-primary)]">
                           <span>{review.comments.length} comments</span>
                           <span>{new Date(review.reviewedAt).toLocaleDateString()}</span>
                         </div>
@@ -340,19 +332,19 @@ export function BuddyDetailPage({ buddyId }: { buddyId: string }) {
       )}
 
       {activeTab === "Soul" && (
-        <div className="prose prose-sm dark:prose-invert max-w-none rounded-md border border-zinc-100 p-6 dark:border-zinc-800">
+        <div className="prose prose-sm dark:prose-invert max-w-none rounded-md border border-[var(--ds-color-border-secondary)] p-6">
           <ReactMarkdown>{profile.soul}</ReactMarkdown>
         </div>
       )}
 
       {activeTab === "User" && (
-        <div className="prose prose-sm dark:prose-invert max-w-none rounded-md border border-zinc-100 p-6 dark:border-zinc-800">
+        <div className="prose prose-sm dark:prose-invert max-w-none rounded-md border border-[var(--ds-color-border-secondary)] p-6">
           <ReactMarkdown>{profile.user}</ReactMarkdown>
         </div>
       )}
 
       {activeTab === "Memory" && (
-        <div className="prose prose-sm dark:prose-invert max-w-none rounded-md border border-zinc-100 p-6 dark:border-zinc-800">
+        <div className="prose prose-sm dark:prose-invert max-w-none rounded-md border border-[var(--ds-color-border-secondary)] p-6">
           <ReactMarkdown>{profile.memory}</ReactMarkdown>
         </div>
       )}
@@ -402,7 +394,7 @@ export function BuddyDetailPage({ buddyId }: { buddyId: string }) {
               </div>
               <div>
                 <Label>
-                  PR Number <span className="text-red-500">*</span>
+                  PR Number <span className="text-[var(--ds-color-feedback-danger)]">*</span>
                 </Label>
                 <Input
                   type="number"
@@ -430,11 +422,11 @@ export function BuddyDetailPage({ buddyId }: { buddyId: string }) {
                   value={updateRepo}
                   onChange={(e) => setUpdateRepo(e.target.value)}
                 />
-                <p className="mt-1 text-xs text-zinc-500">Leave empty to use source repos from profile</p>
+                <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Leave empty to use source repos from profile</p>
               </div>
               {updateStatus && (
-                <div className="rounded-md bg-blue-50 p-3 dark:bg-blue-900/20">
-                  <p className="text-sm text-blue-700 dark:text-blue-300">{updateStatus}</p>
+                <div className="rounded-md bg-[var(--ds-color-feedback-info-subtle)] p-3">
+                  <p className="text-sm text-[var(--ds-color-feedback-info-text)]">{updateStatus}</p>
                 </div>
               )}
             </div>

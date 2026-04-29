@@ -169,9 +169,6 @@ export const api = {
   getMetrics: (params?: { since?: string; until?: string }, signal?: AbortSignal) =>
     request<MetricsData>(`/metrics${buildQuery(params)}`, { signal }),
 
-  search: (query: string, signal?: AbortSignal) =>
-    request<{ repos: { id: string; owner: string; repo: string }[]; buddies: { id: string; username: string }[]; reviews: { owner: string; repo: string; prNumber: number; summary: string }[] }>(`/search?q=${encodeURIComponent(query)}`, { signal }),
-
   listJobs: (params?: { page?: number; limit?: number; status?: string; repoId?: string }, signal?: AbortSignal) =>
     request<PaginatedResponse<JobListItem>>(`/jobs${buildQuery(params)}`, { signal }),
 

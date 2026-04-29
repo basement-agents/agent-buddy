@@ -1,0 +1,30 @@
+.link {
+  color: var(--ds-link-color);
+  text-decoration: var(--ds-link-decoration);
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color var(--ds-duration-fast) var(--ds-easing-default);
+}
+
+.link:hover {
+  color: var(--ds-link-color-hover);
+  text-decoration: underline;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--ds-color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--ds-radius-2);
+}
+
+.variantInline {
+  --ds-link-color: var(--ds-color-interactive-info);
+  --ds-link-color-hover: var(--ds-color-interactive-info-hover);
+  --ds-link-decoration: underline;
+}
+
+.variantStandalone {
+  --ds-link-color: var(--ds-color-text-primary);
+  --ds-link-color-hover: var(--ds-color-interactive-primary);
+  --ds-link-decoration: none;
+}

@@ -111,13 +111,13 @@ export function CreateBuddyDialog({ open, onOpenChange, onSuccess }: CreateBuddy
                 <div
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium ${
                     i + 1 <= step
-                      ? "bg-blue-600 text-white"
-                      : "bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                      ? "bg-[var(--ds-color-interactive-info)] text-white"
+                      : "bg-[var(--ds-color-surface-neutral)] text-[var(--ds-color-text-primary)]"
                   }`}
                 >
                   {i + 1 < step ? "\u2713" : i + 1}
                 </div>
-                <span className="mt-1 text-[10px] text-zinc-500">{label}</span>
+                <span className="mt-1 text-[10px] text-[var(--ds-color-text-primary)]">{label}</span>
               </div>
             ))}
           </div>
@@ -126,7 +126,7 @@ export function CreateBuddyDialog({ open, onOpenChange, onSuccess }: CreateBuddy
             {step === 1 && (
               <div className="space-y-3">
                 <Label>
-                  Repository <span className="text-red-500">*</span>
+                  Repository <span className="text-[var(--ds-color-feedback-danger)]">*</span>
                 </Label>
                 <Input
                   placeholder="owner/repo"
@@ -135,26 +135,23 @@ export function CreateBuddyDialog({ open, onOpenChange, onSuccess }: CreateBuddy
                 />
                 {repos && repos.data.length > 0 && (
                   <div>
-                    <p className="mb-1 text-xs text-zinc-500">Or select a configured repo:</p>
+                    <p className="mb-1 text-xs text-[var(--ds-color-text-primary)]">Or select a configured repo:</p>
                     <div className="flex flex-wrap gap-1">
                       {repos.data.map((r) => (
-                        <button
+                        <Button
                           key={r.id}
+                          variant={repo === r.id ? "info" : "outline"}
+                          size="x-small"
                           onClick={() => setRepo(r.id)}
-                          className={`rounded-md border px-2 py-1 text-xs transition-colors ${
-                            repo === r.id
-                              ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
-                              : "border-zinc-300 text-zinc-600 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-400"
-                          }`}
                         >
                           {r.id}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
                 )}
                 {!repo.includes("/") && repo.length > 0 && (
-                  <p className="text-xs text-red-500">Format: owner/repo</p>
+                  <p className="text-xs text-[var(--ds-color-feedback-danger)]">Format: owner/repo</p>
                 )}
               </div>
             )}
@@ -162,14 +159,14 @@ export function CreateBuddyDialog({ open, onOpenChange, onSuccess }: CreateBuddy
             {step === 2 && (
               <div className="space-y-3">
                 <Label>
-                  GitHub Username <span className="text-red-500">*</span>
+                  GitHub Username <span className="text-[var(--ds-color-feedback-danger)]">*</span>
                 </Label>
                 <Input
                   placeholder="reviewer-username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-[var(--ds-color-text-primary)]">
                   The GitHub user whose review style will be learned
                 </p>
               </div>
@@ -187,15 +184,15 @@ export function CreateBuddyDialog({ open, onOpenChange, onSuccess }: CreateBuddy
                   value={maxPrs}
                   onChange={(e) => setMaxPrs(e.target.value)}
                 />
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-[var(--ds-color-text-primary)]">
                   More PRs = better persona, but slower analysis
                 </p>
-                <div className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
-                  <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Summary</p>
-                  <p className="mt-1 text-sm text-zinc-800 dark:text-zinc-200">
+                <div className="rounded-md border border-[var(--ds-color-border-primary)] p-3">
+                  <p className="text-xs font-medium text-[var(--ds-color-text-secondary)]">Summary</p>
+                  <p className="mt-1 text-sm text-[var(--ds-color-text-primary)]">
                     Analyze <strong>{username}</strong> on <strong>{repo}</strong>
                   </p>
-                  <p className="text-xs text-zinc-500">Up to {maxPrs} pull requests</p>
+                  <p className="text-xs text-[var(--ds-color-text-primary)]">Up to {maxPrs} pull requests</p>
                 </div>
               </div>
             )}
@@ -203,7 +200,7 @@ export function CreateBuddyDialog({ open, onOpenChange, onSuccess }: CreateBuddy
             {step === 4 && (
               <div className="space-y-3">
                 {status && status !== "completed" && (
-                  <div className="rounded-md bg-blue-50 p-3 dark:bg-blue-900/20">
+                  <div className="rounded-md bg-[var(--ds-color-feedback-info-subtle)] p-3">
                     <ProgressBar
                       label="Creating buddy"
                       statusText={status}
@@ -213,19 +210,19 @@ export function CreateBuddyDialog({ open, onOpenChange, onSuccess }: CreateBuddy
                   </div>
                 )}
                 {error && (
-                  <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-400">
+                  <div className="rounded-md border border-[var(--ds-color-feedback-danger-border)] bg-[var(--ds-color-feedback-danger-subtle)] p-3 text-sm text-[var(--ds-color-feedback-danger-text)]">
                     {error}
                   </div>
                 )}
                 {status === "completed" && jobId && (
-                  <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700 dark:border-green-900/30 dark:bg-green-900/10 dark:text-green-400">
+                  <div className="rounded-md border border-[var(--ds-color-feedback-success-border)] bg-[var(--ds-color-feedback-success-subtle)] p-3 text-sm text-[var(--ds-color-feedback-success-text)]/10">
                     <p className="font-medium">Buddy created successfully!</p>
                     <p className="mt-1 text-xs">
                       Job ID: <code>{jobId}</code>
                     </p>
                     <a
                       href={`/buddies/${username}`}
-                      className="mt-2 inline-block text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                      className="mt-2 inline-block text-xs font-medium text-[var(--ds-color-feedback-info-text)] hover:underline"
                       onClick={() => { handleClose(false); onSuccess(); }}
                     >
                       View buddy profile &rarr;

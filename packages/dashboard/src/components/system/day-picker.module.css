@@ -1,0 +1,108 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-spacing-7);
+  padding: var(--ds-spacing-8);
+  background-color: var(--ds-color-surface-primary);
+  border: 1px solid var(--ds-color-border-secondary);
+  border-radius: var(--ds-radius-4);
+  width: fit-content;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ds-color-text-primary);
+}
+
+.navButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: transparent;
+  color: var(--ds-color-text-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-3);
+  cursor: pointer;
+  transition: background-color var(--ds-duration-fast) var(--ds-easing-default);
+}
+
+.navButton:hover:not(:disabled) {
+  background-color: var(--ds-color-surface-secondary);
+}
+
+.navButton:focus-visible {
+  outline: 2px solid var(--ds-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.navButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 32px);
+  gap: 2px;
+}
+
+.weekday {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-color-text-tertiary);
+}
+
+.day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+  color: var(--ds-color-text-primary);
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-3);
+  cursor: pointer;
+  transition: background-color var(--ds-duration-fast) var(--ds-easing-default);
+}
+
+.day:hover:not(:disabled) {
+  background-color: var(--ds-color-surface-secondary);
+}
+
+.day:focus-visible {
+  outline: 2px solid var(--ds-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.day[data-outside] {
+  color: var(--ds-color-text-tertiary);
+}
+
+.day[data-today] {
+  border-color: var(--ds-color-border-primary);
+}
+
+.day[data-selected] {
+  background-color: var(--ds-color-interactive-primary);
+  color: var(--ds-color-text-on-primary);
+}
+
+.day:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}

@@ -11,6 +11,8 @@ import { api } from "~/lib/api";
 import type { CustomRule, LLMTestResult } from "~/lib/api";
 import { useRepos } from "~/lib/hooks";
 import { ConfirmDialog } from "~/components/system/confirm-dialog";
+import { Skeleton } from "~/components/system/skeleton";
+import { SettingsPageSkeleton } from "~/components/common/page-skeletons";
 
 export function SettingsPage() {
   const [githubToken, setGithubToken] = useState("");
@@ -247,22 +249,20 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Settings</h1>
-        <p className="text-sm text-zinc-500">Configure agent-buddy</p>
+        <h1 className="text-2xl font-bold text-[var(--ds-color-text-primary)]">Settings</h1>
+        <p className="text-sm text-[var(--ds-color-text-primary)]">Configure agent-buddy</p>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-zinc-500">Loading settings...</div>
-        </div>
+        <SettingsPageSkeleton />
       ) : (
         <>
       {(!repos || repos.data.length === 0) && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-900/20">
-          <p className="text-sm text-blue-700 dark:text-blue-300">
+        <div className="rounded-lg border border-[var(--ds-color-feedback-info-border)] bg-[var(--ds-color-feedback-info-subtle)] p-4">
+          <p className="text-sm text-[var(--ds-color-feedback-info-text)]">
             No repositories configured yet. Add a repository to get started with automatic code reviews.
           </p>
-          <a href="/repos" className="mt-2 inline-block text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+          <a href="/repos" className="mt-2 inline-block text-sm font-medium text-[var(--ds-color-feedback-info-text)] hover:text-[var(--ds-color-feedback-info-text)]">
             Go to Repos &rarr;
           </a>
         </div>
@@ -284,7 +284,7 @@ export function SettingsPage() {
               value={githubToken}
               onChange={(e) => setGithubToken(e.target.value)}
             />
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">
               Requires repo and pull_request read permissions
             </p>
           </div>
@@ -299,8 +299,8 @@ export function SettingsPage() {
           <div className="flex items-center justify-between">
             <Label htmlFor="settings-llm-provider">Provider</Label>
             <div className="flex items-center gap-2">
-              <div className={`h-2 w-2 rounded-full ${llmApiKey ? "bg-green-500" : "bg-yellow-500"} shrink-0`} />
-              <span className="text-xs text-zinc-500">
+              <div className={`h-2 w-2 rounded-full ${llmApiKey ? "bg-[var(--ds-color-feedback-success-subtle)]" : "bg-[var(--ds-color-feedback-warning-subtle)]"} shrink-0`} />
+              <span className="text-xs text-[var(--ds-color-text-primary)]">
                 {llmApiKey ? "API key configured" : "No API key set"}
               </span>
             </div>
@@ -330,7 +330,7 @@ export function SettingsPage() {
                 setLlmTestResult(null);
               }}
             />
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">
               {llmProvider === "anthropic" && "Leave empty to use ANTHROPIC_API_KEY environment variable"}
               {llmProvider === "openrouter" && "Leave empty to use OPENROUTER_API_KEY environment variable"}
               {llmProvider === "openai" && "Leave empty to use OPENAI_API_KEY environment variable"}
@@ -349,7 +349,7 @@ export function SettingsPage() {
               value={llmDefaultModel}
               onChange={(e) => setLlmDefaultModel(e.target.value)}
             />
-            <p className="mt-1 text-xs text-zinc-500">Leave empty to use provider default</p>
+            <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Leave empty to use provider default</p>
           </div>
 
           {llmProvider === "openai" && (
@@ -361,7 +361,7 @@ export function SettingsPage() {
                 value={llmBaseUrl}
                 onChange={(e) => setLlmBaseUrl(e.target.value)}
               />
-              <p className="mt-1 text-xs text-zinc-500">Custom endpoint for OpenAI-compatible APIs (e.g., Azure, local models)</p>
+              <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Custom endpoint for OpenAI-compatible APIs (e.g., Azure, local models)</p>
             </div>
           )}
 
@@ -408,12 +408,12 @@ export function SettingsPage() {
           <div>
             <Label htmlFor="settings-server-port">Server Port</Label>
             <Input id="settings-server-port" value={serverPort} onChange={(e) => setServerPort(e.target.value)} onBlur={() => validate("port", serverPort)} />
-            {errors.port && <p className="mt-1 text-xs text-red-500">{errors.port}</p>}
+            {errors.port && <p className="mt-1 text-xs text-[var(--ds-color-feedback-danger)]">{errors.port}</p>}
           </div>
           <div>
             <Label htmlFor="settings-server-host">Server Host</Label>
             <Input id="settings-server-host" placeholder="0.0.0.0" value={serverHost} onChange={(e) => setServerHost(e.target.value)} onBlur={() => validate("host", serverHost)} />
-            {errors.host && <p className="mt-1 text-xs text-red-500">{errors.host}</p>}
+            {errors.host && <p className="mt-1 text-xs text-[var(--ds-color-feedback-danger)]">{errors.host}</p>}
           </div>
           <div>
             <Label htmlFor="settings-webhook-secret">Webhook Secret</Label>
@@ -457,7 +457,7 @@ export function SettingsPage() {
               onChange={(e) => setMaxComments(e.target.value)}
               onBlur={() => validate("maxComments", maxComments)}
             />
-            {errors.maxComments && <p className="mt-1 text-xs text-red-500">{errors.maxComments}</p>}
+            {errors.maxComments && <p className="mt-1 text-xs text-[var(--ds-color-feedback-danger)]">{errors.maxComments}</p>}
           </div>
           <div>
             <Label htmlFor="settings-default-severity">Default Severity</Label>
@@ -473,11 +473,11 @@ export function SettingsPage() {
             </NativeSelect>
           </div>
           <div className="flex items-center justify-between">
-            <label htmlFor="settings-auto-approve" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Auto-approve Low Severity</label>
+            <label htmlFor="settings-auto-approve" className="text-sm font-medium text-[var(--ds-color-text-secondary)]">Auto-approve Low Severity</label>
             <Checkbox
               id="settings-auto-approve"
               checked={autoApproveBelow}
-              onChange={(e) => setAutoApproveBelow(e.target.checked)}
+              onChange={(s) => setAutoApproveBelow(s === "on")}
             />
           </div>
           <div>
@@ -490,8 +490,8 @@ export function SettingsPage() {
               onChange={(e) => setReviewDelaySeconds(e.target.value)}
               onBlur={() => validate("reviewDelay", reviewDelaySeconds)}
             />
-            {errors.reviewDelay && <p className="mt-1 text-xs text-red-500">{errors.reviewDelay}</p>}
-            <p className="mt-1 text-xs text-zinc-500">Wait before posting review comments (0 = immediate)</p>
+            {errors.reviewDelay && <p className="mt-1 text-xs text-[var(--ds-color-feedback-danger)]">{errors.reviewDelay}</p>}
+            <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Wait before posting review comments (0 = immediate)</p>
           </div>
         </CardContent>
       </Card>
@@ -502,11 +502,11 @@ export function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <label htmlFor="settings-quiet-hours-enabled" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Enable Quiet Hours</label>
+            <label htmlFor="settings-quiet-hours-enabled" className="text-sm font-medium text-[var(--ds-color-text-secondary)]">Enable Quiet Hours</label>
             <Checkbox
               id="settings-quiet-hours-enabled"
               checked={quietHoursEnabled}
-              onChange={(e) => setQuietHoursEnabled(e.target.checked)}
+              onChange={(s) => setQuietHoursEnabled(s === "on")}
             />
           </div>
           {quietHoursEnabled && (
@@ -524,7 +524,7 @@ export function SettingsPage() {
               <div>
                 <Label htmlFor="settings-qh-tz">Timezone</Label>
                 <Input id="settings-qh-tz" placeholder="America/New_York" value={quietHoursTimezone} onChange={(e) => setQuietHoursTimezone(e.target.value)} />
-                <p className="mt-1 text-xs text-zinc-500">Reviews will not be posted during quiet hours</p>
+                <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Reviews will not be posted during quiet hours</p>
               </div>
             </div>
           )}
@@ -536,23 +536,23 @@ export function SettingsPage() {
           <CardTitle className="text-base" id="settings-github-app">GitHub App Configuration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 dark:border-zinc-800 sm:flex-row sm:items-center sm:gap-2">
-            <div className="h-2 w-2 rounded-full bg-zinc-300 shrink-0" />
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+          <div className="flex flex-col gap-2 rounded-md border border-[var(--ds-color-border-primary)] p-3 sm:flex-row sm:items-center sm:gap-2">
+            <div className="h-2 w-2 rounded-full bg-[var(--ds-color-surface-neutral)] shrink-0" />
+            <span className="text-sm text-[var(--ds-color-text-secondary)]">
               GitHub App authentication is optional. Configure via the API or CLI for advanced webhook handling.
             </span>
           </div>
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Benefits of GitHub App auth:</h4>
-            <ul className="ml-4 list-disc space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+            <h4 className="text-sm font-semibold text-[var(--ds-color-text-secondary)]">Benefits of GitHub App auth:</h4>
+            <ul className="ml-4 list-disc space-y-1 text-sm text-[var(--ds-color-text-secondary)]">
               <li>Fine-grained repository permissions</li>
               <li>Installation-based access control</li>
               <li>Dedicated webhook secret per installation</li>
               <li>Better rate limits than personal access tokens</li>
             </ul>
           </div>
-          <p className="text-xs text-zinc-500">
-            Use <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">agent-buddy config set githubAppId &lt;id&gt;</code> to configure.
+          <p className="text-xs text-[var(--ds-color-text-primary)]">
+            Use <code className="rounded bg-[var(--ds-color-surface-neutral)] px-1">agent-buddy config set githubAppId &lt;id&gt;</code> to configure.
           </p>
         </CardContent>
       </Card>
@@ -580,13 +580,16 @@ export function SettingsPage() {
           {selectedRepoId && (
             <>
               {rulesLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-sm text-zinc-500">Loading rules...</div>
+                <div className="space-y-2" role="status" aria-live="polite">
+                  <span className="sr-only">Loading rules...</span>
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
                 </div>
               ) : (
                 <>
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                    <h4 className="text-sm font-semibold text-[var(--ds-color-text-secondary)]">
                       Rules ({customRules.length})
                     </h4>
                     <Button size="sm" onClick={() => setShowAddRule(true)}>
@@ -595,7 +598,7 @@ export function SettingsPage() {
                   </div>
 
                   {customRules.length === 0 ? (
-                    <div className="rounded-md border border-dashed border-zinc-300 p-4 text-center text-sm text-zinc-500 dark:border-zinc-700">
+                    <div className="rounded-md border border-dashed border-[var(--ds-color-border-primary)] p-4 text-center text-sm text-[var(--ds-color-text-primary)]">
                       No custom rules configured
                     </div>
                   ) : (
@@ -603,11 +606,11 @@ export function SettingsPage() {
                       {customRules.map((rule) => (
                         <div
                           key={rule.id}
-                          className="flex items-center justify-between rounded-md border border-zinc-200 p-3 dark:border-zinc-800"
+                          className="flex items-center justify-between rounded-md border border-[var(--ds-color-border-primary)] p-3"
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-zinc-900 dark:text-white">{rule.name}</span>
+                              <span className="font-medium text-[var(--ds-color-text-primary)]">{rule.name}</span>
                               <Badge variant={rule.severity === "error" ? "error" : rule.severity === "warning" ? "warning" : "default"}>
                                 {rule.severity}
                               </Badge>
@@ -615,9 +618,9 @@ export function SettingsPage() {
                                 <Badge variant="default">Disabled</Badge>
                               )}
                             </div>
-                            <code className="mt-1 block text-xs text-zinc-500">{rule.pattern}</code>
+                            <code className="mt-1 block text-xs text-[var(--ds-color-text-primary)]">{rule.pattern}</code>
                             {rule.category && (
-                              <span className="mt-1 text-xs text-zinc-400">Category: {rule.category}</span>
+                              <span className="mt-1 text-xs text-[var(--ds-color-text-tertiary)]">Category: {rule.category}</span>
                             )}
                           </div>
                           <div className="flex gap-2">
@@ -631,7 +634,7 @@ export function SettingsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-red-500 hover:text-red-700"
+                              className="text-[var(--ds-color-feedback-danger)] hover:text-[var(--ds-color-feedback-danger-text)]"
                               onClick={() => setDeleteRuleId(rule.id)}
                             >
                               Delete
@@ -643,8 +646,8 @@ export function SettingsPage() {
                   )}
 
                   {showAddRule && (
-                    <div className="rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
-                      <h4 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Add New Rule</h4>
+                    <div className="rounded-md border border-[var(--ds-color-border-primary)] p-4">
+                      <h4 className="mb-3 text-sm font-semibold text-[var(--ds-color-text-secondary)]">Add New Rule</h4>
                       <div className="space-y-3">
                         <Input
                           placeholder="Rule name (e.g., 'No console.log')"
@@ -678,9 +681,9 @@ export function SettingsPage() {
                           <Checkbox
                             id="rule-enabled"
                             checked={newRuleEnabled}
-                            onChange={(e) => setNewRuleEnabled(e.target.checked)}
+                            onChange={(s) => setNewRuleEnabled(s === "on")}
                           />
-                          <label htmlFor="rule-enabled" className="text-sm text-zinc-700 dark:text-zinc-300">
+                          <label htmlFor="rule-enabled" className="text-sm text-[var(--ds-color-text-secondary)]">
                             Enabled
                           </label>
                         </div>
@@ -710,7 +713,7 @@ export function SettingsPage() {
           <div>
             <Label>Webhook URL</Label>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
-              <code className="flex-1 break-all rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+              <code className="flex-1 break-all rounded-md border border-[var(--ds-color-border-primary)] bg-[var(--ds-color-surface-secondary)] px-3 py-2 text-sm">
                 http://localhost:{serverPort}/api/webhooks/github
               </code>
               <Button
@@ -726,9 +729,9 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 dark:border-zinc-800 sm:flex-row sm:items-center sm:gap-2">
-            <div className={`h-2 w-2 rounded-full ${webhookSecret ? "bg-green-500" : "bg-yellow-500"} shrink-0`} />
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+          <div className="flex flex-col gap-2 rounded-md border border-[var(--ds-color-border-primary)] p-3 sm:flex-row sm:items-center sm:gap-2">
+            <div className={`h-2 w-2 rounded-full ${webhookSecret ? "bg-[var(--ds-color-feedback-success-subtle)]" : "bg-[var(--ds-color-feedback-warning-subtle)]"} shrink-0`} />
+            <span className="text-sm text-[var(--ds-color-text-secondary)]">
               {webhookSecret ? "Webhook secret configured" : "No webhook secret set — signatures will not be verified"}
             </span>
           </div>
@@ -740,49 +743,50 @@ export function SettingsPage() {
           <CardTitle className="text-base" id="settings-webhook-setup">GitHub Webhook Setup</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="text-sm text-[var(--ds-color-text-secondary)]">
             Configure GitHub webhooks to automatically trigger reviews when PRs are opened or when @agent-buddy is mentioned.
           </p>
 
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Setup Steps:</h4>
-            <ol className="ml-4 list-decimal space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+            <h4 className="text-sm font-semibold text-[var(--ds-color-text-secondary)]">Setup Steps:</h4>
+            <ol className="ml-4 list-decimal space-y-1 text-sm text-[var(--ds-color-text-secondary)]">
               <li>Go to your repository Settings → Webhooks → Add webhook</li>
-              <li>Set the Payload URL to: <code className="rounded bg-zinc-100 px-1 py-0.5 text-xs dark:bg-zinc-800">http://your-server:{serverPort}/api/webhooks/github</code></li>
-              <li>Content type: <code className="rounded bg-zinc-100 px-1 py-0.5 text-xs dark:bg-zinc-800">application/json</code></li>
+              <li>Set the Payload URL to: <code className="rounded bg-[var(--ds-color-surface-neutral)] px-1 py-0.5 text-xs">http://your-server:{serverPort}/api/webhooks/github</code></li>
+              <li>Content type: <code className="rounded bg-[var(--ds-color-surface-neutral)] px-1 py-0.5 text-xs">application/json</code></li>
               <li>Secret: Set the same value as Webhook Secret above (optional but recommended)</li>
               <li>Select events: <span className="font-medium">Pull requests, Pull request reviews, Issue comments</span></li>
               <li>Click "Add webhook"</li>
             </ol>
           </div>
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="small"
             onClick={() => setWebhookExpanded(!webhookExpanded)}
-            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
           >
             {webhookExpanded ? "▼ Hide" : "▶ Show"} webhook URL format and payload example
-          </button>
+          </Button>
 
           {webhookExpanded && (
-            <div className="space-y-3 rounded-md border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="space-y-3 rounded-md border border-[var(--ds-color-border-primary)] bg-[var(--ds-color-surface-secondary)] p-3">
               <div>
-                <h5 className="mb-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300">Webhook URL Format:</h5>
-                <code className="block rounded bg-zinc-100 p-2 text-xs dark:bg-zinc-800">
+                <h5 className="mb-1 text-xs font-semibold text-[var(--ds-color-text-secondary)]">Webhook URL Format:</h5>
+                <code className="block rounded bg-[var(--ds-color-surface-neutral)] p-2 text-xs">
                   POST http://your-server:{serverPort}/api/webhooks/github
                 </code>
               </div>
               <div>
-                <h5 className="mb-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300">Headers:</h5>
-                <code className="block rounded bg-zinc-100 p-2 text-xs dark:bg-zinc-800">
+                <h5 className="mb-1 text-xs font-semibold text-[var(--ds-color-text-secondary)]">Headers:</h5>
+                <code className="block rounded bg-[var(--ds-color-surface-neutral)] p-2 text-xs">
                   X-GitHub-Event: pull_request<br />
                   X-Hub-Signature-256: sha256=...<br />
                   Content-Type: application/json
                 </code>
               </div>
               <div>
-                <h5 className="mb-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300">Example Payload (pull_request):</h5>
-                <pre className="overflow-x-auto rounded bg-zinc-100 p-2 text-xs dark:bg-zinc-800">
+                <h5 className="mb-1 text-xs font-semibold text-[var(--ds-color-text-secondary)]">Example Payload (pull_request):</h5>
+                <pre className="overflow-x-auto rounded bg-[var(--ds-color-surface-neutral)] p-2 text-xs">
 {`{
   "action": "opened",
   "repository": {
@@ -798,9 +802,9 @@ export function SettingsPage() {
                 </pre>
               </div>
               <div>
-                <h5 className="mb-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300">Triggering with @agent-buddy:</h5>
-                <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                  Add a comment on a PR or review containing <code className="rounded bg-zinc-200 px-1 dark:bg-zinc-800">@agent-buddy</code> to trigger an on-demand review.
+                <h5 className="mb-1 text-xs font-semibold text-[var(--ds-color-text-secondary)]">Triggering with @agent-buddy:</h5>
+                <p className="text-xs text-[var(--ds-color-text-secondary)]">
+                  Add a comment on a PR or review containing <code className="rounded bg-[var(--ds-color-surface-neutral)] px-1">@agent-buddy</code> to trigger an on-demand review.
                 </p>
               </div>
             </div>

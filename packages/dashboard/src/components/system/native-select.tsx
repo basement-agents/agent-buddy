@@ -1,16 +1,10 @@
-import * as React from "react";
-import { cn } from "~/lib/utils";
+import { forwardRef, type SelectHTMLAttributes } from "react";
+import { Select, type SelectProps } from "./select";
 
-function NativeSelect({ className, ...props }: React.ComponentProps<"select">) {
-  return (
-    <select
-      className={cn(
-        "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900",
-        className
-      )}
-      {...props}
-    />
-  );
-}
-
-export { NativeSelect };
+/** Backwards-compatible alias — see `./select.tsx` for the canonical component. */
+export const NativeSelect = forwardRef<
+  HTMLSelectElement,
+  SelectHTMLAttributes<HTMLSelectElement> & Pick<SelectProps, "size" | "error" | "stretch">
+>(function NativeSelect({ stretch = true, ...props }, ref) {
+  return <Select ref={ref} stretch={stretch} {...props} />;
+});

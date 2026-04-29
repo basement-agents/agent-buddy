@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Typography } from "./typography";
 
 interface EmptyStateProps {
   icon?: ReactNode;
@@ -9,11 +10,30 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
-    <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">
-      {icon && <div className="mb-3">{icon}</div>}
-      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{title}</p>
-      {description && <p className="mt-1 text-xs text-zinc-500">{description}</p>}
-      {action && <div className="mt-4">{action}</div>}
+    <div
+      className="flex flex-col items-center gap-3 rounded-[var(--ds-radius-5)] border border-dashed border-[var(--ds-color-border-primary)] bg-[var(--ds-color-surface-primary)] p-8 text-center"
+    >
+      {icon && (
+        <div className="text-[var(--ds-color-text-tertiary)]">{icon}</div>
+      )}
+      <Typography
+        color="var(--ds-color-text-secondary)"
+        size={14}
+        type="custom"
+        weight="medium"
+      >
+        {title}
+      </Typography>
+      {description && (
+        <Typography
+          color="var(--ds-color-text-tertiary)"
+          size={12}
+          type="custom"
+        >
+          {description}
+        </Typography>
+      )}
+      {action && <div className="mt-2">{action}</div>}
     </div>
   );
 }

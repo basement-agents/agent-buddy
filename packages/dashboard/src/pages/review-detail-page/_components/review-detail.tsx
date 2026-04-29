@@ -60,16 +60,16 @@ export function ReviewDetail({ review }: ReviewDetailProps) {
           <Badge variant={stateVariant[review.state] || "default"}>
             {review.state.replace("_", " ")}
           </Badge>
-          <h4 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Summary</h4>
+          <h4 className="text-sm font-semibold text-[var(--ds-color-text-secondary)]">Summary</h4>
         </div>
-        <div className="prose prose-sm dark:prose-invert max-w-none rounded-md border border-zinc-100 p-4 dark:border-zinc-800">
+        <div className="prose prose-sm dark:prose-invert max-w-none rounded-md border border-[var(--ds-color-border-secondary)] p-4">
           <ReactMarkdown>{review.summary}</ReactMarkdown>
         </div>
       </div>
 
       {allFiles.size > 0 && (
         <div>
-          <h4 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          <h4 className="mb-3 text-sm font-semibold text-[var(--ds-color-text-secondary)]">
             Changes ({allFiles.size} {allFiles.size === 1 ? "file" : "files"})
           </h4>
           <div className="space-y-4">
@@ -78,20 +78,20 @@ export function ReviewDetail({ review }: ReviewDetailProps) {
               const fileDiff = fileDiffs[filePath];
 
               return (
-                <div key={filePath} className="rounded-lg border border-zinc-200 dark:border-zinc-800">
-                  <div className="border-b border-zinc-100 bg-zinc-50 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-900">
-                    <h5 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{filePath}</h5>
-                    <p className="text-xs text-zinc-500">{comments.length} {comments.length === 1 ? "comment" : "comments"}</p>
+                <div key={filePath} className="rounded-lg border border-[var(--ds-color-border-primary)]">
+                  <div className="border-b border-[var(--ds-color-border-secondary)] bg-[var(--ds-color-surface-secondary)] px-4 py-2">
+                    <h5 className="text-sm font-medium text-[var(--ds-color-text-secondary)]">{filePath}</h5>
+                    <p className="text-xs text-[var(--ds-color-text-primary)]">{comments.length} {comments.length === 1 ? "comment" : "comments"}</p>
                   </div>
 
                   {fileDiff && (
-                    <div className="border-b border-zinc-100 dark:border-zinc-800">
+                    <div className="border-b border-[var(--ds-color-border-secondary)]">
                       <DiffViewer diff={fileDiff} comments={comments} />
                     </div>
                   )}
 
                   {!fileDiff && comments.length > 0 && (
-                    <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    <div className="divide-y divide-[var(--ds-color-border-secondary)]">
                       {comments.map((comment, index) => (
                         <div key={comment.id || index} className="p-4">
                           <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -99,15 +99,15 @@ export function ReviewDetail({ review }: ReviewDetailProps) {
                               {comment.severity}
                             </Badge>
                             {comment.line && (
-                              <span className="text-xs text-zinc-500">
+                              <span className="text-xs text-[var(--ds-color-text-primary)]">
                                 Line {comment.startLine && comment.startLine !== comment.line ? `${comment.startLine}-${comment.line}` : comment.line}
                               </span>
                             )}
                             <Badge variant="info">{comment.category}</Badge>
                           </div>
-                          <p className="mb-2 text-sm text-zinc-700 dark:text-zinc-300">{comment.body}</p>
+                          <p className="mb-2 text-sm text-[var(--ds-color-text-secondary)]">{comment.body}</p>
                           {comment.suggestion && (
-                            <pre className="mt-2 overflow-x-auto rounded-md bg-zinc-100 p-3 text-xs dark:bg-zinc-900">
+                            <pre className="mt-2 overflow-x-auto rounded-md bg-[var(--ds-color-surface-neutral)] p-3 text-xs">
                               <code>{comment.suggestion}</code>
                             </pre>
                           )}
@@ -122,7 +122,7 @@ export function ReviewDetail({ review }: ReviewDetailProps) {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-md border border-[var(--ds-color-border-primary)] bg-[var(--ds-color-surface-secondary)] px-4 py-3 text-xs text-[var(--ds-color-text-primary)]">
         <div className="flex items-center gap-2">
           <span className="font-medium">Model:</span>
           <span>{review.metadata.llmModel}</span>

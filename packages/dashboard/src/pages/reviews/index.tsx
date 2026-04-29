@@ -6,6 +6,8 @@ import { ErrorState } from "~/components/system/error-state";
 import { TableSkeleton } from "~/components/system/skeleton";
 import { ProgressBar } from "~/components/shared/progress-bar";
 import { Pagination } from "~/components/system/pagination";
+import { Input } from "~/components/system/input";
+import { Select } from "~/components/system/select";
 import { api } from "~/lib/api";
 import { stateVariant } from "~/lib/constants";
 
@@ -164,20 +166,22 @@ export function ReviewsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Reviews</h1>
-        <p className="text-sm text-zinc-500">Code review history</p>
+        <h1 className="text-2xl font-bold text-[var(--ds-color-text-primary)]">Reviews</h1>
+        <p className="text-sm text-[var(--ds-color-text-primary)]">Code review history</p>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <input
-          className="flex-1 rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        <Input
+          size="small"
+          stretch
+          className="flex-1"
           placeholder="Filter by repo..."
           value={params.repo}
           onChange={(e) => updateParam("repo", e.target.value)}
           aria-label="Filter by repository"
         />
-        <select
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        <Select
+          size="small"
           value={params.buddy}
           onChange={(e) => updateParam("buddy", e.target.value)}
           aria-label="Filter by buddy"
@@ -186,9 +190,9 @@ export function ReviewsPage() {
           {data?.reviews && [...new Set(data.reviews.map((r) => r.buddyId).filter(Boolean))].map((buddy) => (
             <option key={buddy} value={buddy}>{buddy}</option>
           ))}
-        </select>
-        <select
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        </Select>
+        <Select
+          size="small"
           value={params.status}
           onChange={(e) => updateParam("status", e.target.value)}
           aria-label="Filter by review status"
@@ -197,43 +201,44 @@ export function ReviewsPage() {
           <option value="approved">Approved</option>
           <option value="commented">Commented</option>
           <option value="changes_requested">Changes Requested</option>
-        </select>
-        <input
+        </Select>
+        <Input
           type="date"
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          size="small"
           title="From date"
           value={params.since}
           onChange={(e) => updateParam("since", e.target.value)}
           aria-label="Filter from date"
         />
-        <input
+        <Input
           type="date"
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          size="small"
           title="To date"
           value={params.until}
           onChange={(e) => updateParam("until", e.target.value)}
           aria-label="Filter to date"
         />
-        <select
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        <Select
+          size="small"
           value={params.sort}
           onChange={(e) => updateParam("sort", e.target.value)}
+          aria-label="Sort reviews"
         >
           <option value="date">Sort by Date</option>
           <option value="repo">Sort by Repo</option>
           <option value="status">Sort by Status</option>
-        </select>
+        </Select>
       </div>
 
       {sortedReviews.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">
+        <div className="rounded-lg border border-dashed border-[var(--ds-color-border-primary)] p-8 text-center">
           {params.repo || params.status ? (
-            <p className="text-zinc-500">No reviews match your filters</p>
+            <p className="text-[var(--ds-color-text-primary)]">No reviews match your filters</p>
           ) : (
             <>
-              <ClipboardList className="mx-auto mb-3 h-10 w-10 text-zinc-300 dark:text-zinc-600" />
-              <p className="mb-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">No reviews yet</p>
-              <p className="text-xs text-zinc-500">Reviews will appear here once a buddy reviews a pull request</p>
+              <ClipboardList className="mx-auto mb-3 h-10 w-10 text-[var(--ds-color-text-secondary)]" />
+              <p className="mb-1 text-sm font-medium text-[var(--ds-color-text-secondary)]">No reviews yet</p>
+              <p className="text-xs text-[var(--ds-color-text-primary)]">Reviews will appear here once a buddy reviews a pull request</p>
             </>
           )}
         </div>
@@ -245,9 +250,9 @@ export function ReviewsPage() {
             const jobStatus = jobId ? jobStatuses[jobId] : undefined;
 
             return (
-              <div key={i} className="rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <div key={i} className="rounded-lg border border-[var(--ds-color-border-primary)]">
                 <div
-                  className="flex cursor-pointer flex-col gap-3 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  className="flex cursor-pointer flex-col gap-3 p-4 hover:bg-[var(--ds-color-surface-secondary)] sm:flex-row sm:items-center sm:justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   role="button"
                   tabIndex={0}
                   onClick={() => navigate(`/reviews/${reviewId}`)}
@@ -255,11 +260,11 @@ export function ReviewsPage() {
                 >
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <Badge variant={stateVariant[review.state] || "default"}>{review.state.replace("_", " ")}</Badge>
-                    <span className="text-sm font-medium text-zinc-900 dark:text-white">
+                    <span className="text-sm font-medium text-[var(--ds-color-text-primary)]">
                       {review.metadata.owner}/{review.metadata.repo} #{review.metadata.prNumber}
                     </span>
                     {review.buddyId && (
-                      <span className="text-xs text-zinc-500">by {review.buddyId}</span>
+                      <span className="text-xs text-[var(--ds-color-text-primary)]">by {review.buddyId}</span>
                     )}
                     {jobStatus && jobStatus.status === "running" && (
                       <div className="w-24 sm:w-32 shrink-0">
@@ -275,7 +280,7 @@ export function ReviewsPage() {
                       <ProgressBar percentage={100} variant="error" statusText={jobStatus.error || "Failed"} />
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500 sm:gap-3">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ds-color-text-primary)] sm:gap-3">
                     <span>{review.comments.length} comments</span>
                     <span>{(review.metadata.durationMs / 1000).toFixed(1)}s</span>
                     <span>{new Date(review.reviewedAt).toLocaleDateString()}</span>

@@ -1,0 +1,22 @@
+.spinner {
+  position: relative;
+  display: inline-flex;
+}
+
+.blade {
+  position: absolute;
+  top: 0;
+  animation: ds-spinner-fade 0.75s linear infinite;
+  background-color: currentColor;
+}
+
+@keyframes ds-spinner-fade {
+  0%,
+  39%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
