@@ -96,8 +96,12 @@ function JobRow({ job, progress, isConnected, onCancel, onShowProgress }: { job:
           >
             <ProgressBar percentage={displayPct} label={displayStage} statusText={statusText && statusText.length > 40 ? statusText.slice(0, 40) + "..." : statusText} />
           </div>
-        ) : job.status === "failed" && job.error ? (
-          <span className="text-xs text-[var(--ds-color-feedback-danger)] truncate" title={job.error}>{job.error}</span>
+        ) : job.status === "completed" ? (
+          <span className="text-xs text-[var(--ds-color-feedback-success)]">Done</span>
+        ) : job.status === "cancelled" ? (
+          <span className="text-xs text-[var(--ds-color-text-tertiary)]">Cancelled</span>
+        ) : job.status === "failed" ? (
+          <span className="text-xs text-[var(--ds-color-feedback-danger)] truncate" title={job.error}>{job.error || "Failed"}</span>
         ) : null}
       </td>
       <td className="px-4 py-3 text-xs text-[var(--ds-color-text-tertiary)]">{formatTime(job.createdAt)}</td>
