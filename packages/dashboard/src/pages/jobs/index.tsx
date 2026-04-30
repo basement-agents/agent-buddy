@@ -9,6 +9,7 @@ import { ProgressBar } from "~/components/shared/progress-bar";
 import { useToast } from "~/components/system/toast";
 import { Select } from "~/components/system/select";
 import { Button } from "~/components/system/button";
+import { ModalDialog } from "~/components/system/modal-dialog";
 
 type JobStatus = JobListItem["status"];
 
@@ -51,7 +52,7 @@ function buildStatusText(parts: { subStep?: string; model?: string; elapsedMs?: 
   return segments.length > 0 ? segments.join(" · ") : undefined;
 }
 
-function JobRow({ job, progress, isConnected, onCancel }: { job: JobListItem; progress: ReturnType<typeof useJobProgress>["progress"]; isConnected: boolean; onCancel: (id: string) => void }) {
+function JobRow({ job, progress, isConnected, onCancel, onShowProgress }: { job: JobListItem; progress: ReturnType<typeof useJobProgress>["progress"]; isConnected: boolean; onCancel: (id: string) => void; onShowProgress: (job: JobListItem, statusText: string) => void }) {
   const liveProgress = progress?.id === job.id ? progress : null;
   const displayPct = liveProgress?.progressPercentage ?? job.progressPercentage ?? 0;
   const displayStage = liveProgress?.progressStage ?? job.progressStage;
@@ -63,7 +64,7 @@ function JobRow({ job, progress, isConnected, onCancel }: { job: JobListItem; pr
   const isActive = job.status === "running" || job.status === "queued";
 
   return (
-    <tr className="border-b border-[var(--ds-color-border-primary)] hover:bg-[var(--ds-color-surface-secondary)]/50">
+    <tr className="border-b border-[var(--ds-color-border-primary)] hover-hover:bg-[var(--ds-color-surface-secondary)]">
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <Badge className="text-xs border border-[var(--ds-color-border-primary)] bg-transparent">
@@ -86,7 +87,15 @@ function JobRow({ job, progress, isConnected, onCancel }: { job: JobListItem; pr
       </td>
       <td className="px-4 py-3 w-48">
         {isActive ? (
-          <ProgressBar percentage={displayPct} label={displayStage} statusText={statusText} />
+          <div
+            className="cursor-pointer"
+            role="button"
+            tabIndex={0}
+            onClick={() => statusText && onShowProgress(job, statusText)}
+            onKeyDown={(e) => { if (e.key === "Enter" && statusText) onShowProgress(job, statusText); }}
+          >
+            <ProgressBar percentage={displayPct} label={displayStage} statusText={statusText ? (statusText.length > 40 ? statusText.slice(0, 40) + "..." : statusText) : undefined} />
+          </div>
         ) : job.status === "failed" && job.error ? (
           <span className="text-xs text-[var(--ds-color-feedback-danger)] truncate" title={job.error}>{job.error}</span>
         ) : null}
@@ -113,6 +122,7 @@ export function JobsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<JobStatus | "all">("all");
   const [repoFilter, setRepoFilter] = useState<string>("all");
+  const [progressDetail, setProgressDetail] = useState<{ job: JobListItem; statusText: string } | null>(null);
   const { showToast } = useToast();
 
   const fetchJobs = useCallback(async () => {
@@ -225,7 +235,7 @@ export function JobsPage() {
               </thead>
               <tbody>
                 {jobs.map((job) => (
-                  <JobRow key={job.id} job={job} progress={progress} isConnected={isConnected} onCancel={cancelJob} />
+                  <JobRow key={job.id} job={job} progress={progress} isConnected={isConnected} onCancel={cancelJob} onShowProgress={(j, st) => setProgressDetail({ job: j, statusText: st })} />
                 ))}
               </tbody>
             </table>
@@ -235,6 +245,27 @@ export function JobsPage() {
       </Card>
 
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+
+      <ModalDialog
+        open={!!progressDetail}
+        onOpenChange={(open) => !open && setProgressDetail(null)}
+        title="Progress Detail"
+        description={progressDetail?.job.id}
+      >
+        {progressDetail && (
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge className="text-xs border border-[var(--ds-color-border-primary)] bg-transparent">{progressDetail.job.type}</Badge>
+              <span className="text-[var(--ds-color-text-secondary)]">{progressDetail.job.repoId}</span>
+              {progressDetail.job.prNumber && <span className="text-[var(--ds-color-text-tertiary)]">#{progressDetail.job.prNumber}</span>}
+            </div>
+            <p className="text-sm text-[var(--ds-color-text-primary)] break-all">{progressDetail.statusText}</p>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setProgressDetail(null)}>Close</Button>
+            </div>
+          </div>
+        )}
+      </ModalDialog>
     </div>
   );
 }
