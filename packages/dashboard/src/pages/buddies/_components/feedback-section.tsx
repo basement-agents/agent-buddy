@@ -1,19 +1,12 @@
 import { Badge } from "~/components/system/badge";
-import { Skeleton } from "~/components/system/skeleton";
+import { Spinner } from "~/components/system/spinner";
 import type { BuddyFeedback } from "~/lib/api";
 
 export function FeedbackSection({ feedback, loading, limit }: { feedback: BuddyFeedback | null; loading: boolean; limit: number }) {
   if (loading) {
     return (
-      <div className="space-y-3">
-        <div className="flex gap-6">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-16" />
-        </div>
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+      <div className="flex items-center justify-center py-8">
+        <Spinner size="medium" />
       </div>
     );
   }

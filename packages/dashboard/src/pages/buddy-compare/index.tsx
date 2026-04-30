@@ -53,7 +53,7 @@ export function BuddyComparePage() {
       {data && (
         <div className="space-y-4">
           <Card>
-            <CardContent className="p-4">
+            <CardContent>
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-[var(--ds-color-text-primary)]">Overall Similarity</span>
                 <Badge variant={scoreVariant}>{scorePercent}%</Badge>
@@ -64,19 +64,19 @@ export function BuddyComparePage() {
 
           <div className="grid gap-4 sm:grid-cols-3">
             <Card>
-              <CardContent className="p-4">
+              <CardContent>
                 <p className="text-xs font-medium text-[var(--ds-color-text-primary)]">Soul Overlap</p>
                 <p className="mt-1 text-lg font-bold text-[var(--ds-color-text-primary)]">{Math.round(data.soulOverlap * 100)}%</p>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4">
+              <CardContent>
                 <p className="text-xs font-medium text-[var(--ds-color-text-primary)]">Philosophy</p>
                 <p className="mt-1 text-lg font-bold text-[var(--ds-color-text-primary)]">{Math.round(data.analysis.philosophySimilarity * 100)}%</p>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4">
+              <CardContent>
                 <p className="text-xs font-medium text-[var(--ds-color-text-primary)]">Expertise Overlap</p>
                 <p className="mt-1 text-lg font-bold text-[var(--ds-color-text-primary)]">{Math.round(data.analysis.expertiseOverlap * 100)}%</p>
               </CardContent>
@@ -85,7 +85,7 @@ export function BuddyComparePage() {
 
           {data.sharedKeywords.length > 0 && (
             <Card>
-              <CardContent className="p-4">
+              <CardContent>
                 <p className="mb-2 text-sm font-medium text-[var(--ds-color-text-primary)]">Shared Keywords</p>
                 <div className="flex flex-wrap gap-1">
                   {data.sharedKeywords.map((kw) => (
@@ -98,7 +98,7 @@ export function BuddyComparePage() {
 
           {data.sharedRepos.length > 0 && (
             <Card>
-              <CardContent className="p-4">
+              <CardContent>
                 <p className="mb-2 text-sm font-medium text-[var(--ds-color-text-primary)]">Shared Repos</p>
                 <div className="flex flex-wrap gap-1">
                   {data.sharedRepos.map((repo) => (
@@ -111,7 +111,7 @@ export function BuddyComparePage() {
 
           {data.analysis.commonPatterns.length > 0 && (
             <Card>
-              <CardContent className="p-4">
+              <CardContent>
                 <p className="mb-2 text-sm font-medium text-[var(--ds-color-text-primary)]">Common Patterns</p>
                 <ul className="space-y-1 text-sm text-[var(--ds-color-text-secondary)]">
                   {data.analysis.commonPatterns.map((p, i) => (

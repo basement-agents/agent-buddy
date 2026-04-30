@@ -2,7 +2,7 @@ import { useBuddy } from "~/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/system/card";
 import { Badge } from "~/components/system/badge";
 import { Button } from "~/components/system/button";
-import { Skeleton } from "~/components/system/skeleton";
+import { Spinner } from "~/components/system/spinner";
 import { ProgressBar } from "~/components/shared/progress-bar";
 import ReactMarkdown from "react-markdown";
 
@@ -102,14 +102,8 @@ export function BuddyComparison({ buddyId1, buddyId2, onClose }: BuddyComparison
           <h2 className="text-xl font-bold text-[var(--ds-color-text-primary)]">Comparing Buddies</h2>
           <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
         </div>
-        <div className="grid gap-6 md:grid-cols-2">
-          {[0, 1].map((i) => (
-            <div key={i} className="space-y-4">
-              <Skeleton className="h-6 w-1/3" />
-              <Skeleton className="h-40 w-full" />
-              <Skeleton className="h-40 w-full" />
-            </div>
-          ))}
+        <div className="flex items-center justify-center py-8">
+          <Spinner size="medium" />
         </div>
       </div>
     );

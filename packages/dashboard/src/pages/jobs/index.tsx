@@ -3,7 +3,7 @@ import { api, type JobListItem } from "~/lib/api";
 import { useJobProgress, usePageParam } from "~/lib/hooks";
 import { Card, CardContent } from "~/components/system/card";
 import { Badge } from "~/components/system/badge";
-import { TableSkeleton } from "~/components/system/skeleton";
+import { Spinner } from "~/components/system/spinner";
 import { Pagination } from "~/components/system/pagination";
 import { ProgressBar } from "~/components/shared/progress-bar";
 import { useToast } from "~/components/system/toast";
@@ -204,7 +204,7 @@ export function JobsPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <TableSkeleton rows={5} />
+            <div className="flex items-center justify-center py-8" role="status" aria-live="polite"><span className="sr-only">Loading jobs...</span><Spinner size="medium" /></div>
           ) : error ? (
             <div role="alert" className="p-8 text-center text-[var(--ds-color-feedback-danger)]">{error}</div>
           ) : jobs.length === 0 ? (

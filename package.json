@@ -1,5 +1,7 @@
 {
   "devDependencies": {
+    "@capsizecss/metrics": "^3.7.0",
+    "@capsizecss/unpack": "^4.0.0",
     "@testing-library/user-event": "^14.6.1",
     "oxfmt": "^0.47.0",
     "oxlint": "^1.62.0",

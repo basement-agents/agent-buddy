@@ -11,7 +11,7 @@ interface EmptyStateProps {
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
     <div
-      className="flex flex-col items-center gap-3 rounded-[var(--ds-radius-5)] border border-dashed border-[var(--ds-color-border-primary)] bg-[var(--ds-color-surface-primary)] p-8 text-center"
+      className="flex flex-col items-center gap-3 rounded-[var(--ds-radius-3)] border border-dashed border-[var(--ds-color-border-primary)] bg-[var(--ds-color-surface-primary)] p-8 text-center"
     >
       {icon && (
         <div className="text-[var(--ds-color-text-tertiary)]">{icon}</div>

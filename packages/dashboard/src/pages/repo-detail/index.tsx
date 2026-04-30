@@ -7,7 +7,7 @@ import { Input } from "~/components/system/input";
 import { Badge } from "~/components/system/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/system/card";
 import { Breadcrumb } from "~/components/system/breadcrumb";
-import { Skeleton } from "~/components/system/skeleton";
+import { Spinner } from "~/components/system/spinner";
 import { ConfirmDialog } from "~/components/system/confirm-dialog";
 import { useToast } from "~/components/system/toast";
 import { ModalDialog } from "~/components/system/modal-dialog";
@@ -192,10 +192,9 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-64 w-full" />
+      <div className="flex items-center justify-center py-8" role="status" aria-live="polite">
+        <span className="sr-only">Loading repository...</span>
+        <Spinner size="medium" />
       </div>
     );
   }
@@ -279,11 +278,9 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
         </CardHeader>
         <CardContent>
           {scheduleLoading ? (
-            <div className="space-y-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-24" />
-              </div>
+            <div className="flex items-center justify-center py-4">
+              <Spinner size="medium" />
+            </div>
           ) : schedule ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div>
@@ -322,11 +319,9 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
         </CardHeader>
         <CardContent>
           {rulesLoading ? (
-            <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
+            <div className="flex items-center justify-center py-4">
+              <Spinner size="medium" />
+            </div>
           ) : !sortedRules || sortedRules.length === 0 ? (
             <p className="text-sm text-[var(--ds-color-text-primary)]">No custom rules configured</p>
           ) : (
@@ -377,11 +372,9 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
         </CardHeader>
         <CardContent>
           {reviewsLoading ? (
-            <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
+            <div className="flex items-center justify-center py-4">
+              <Spinner size="medium" />
+            </div>
           ) : !reviewsData?.reviews || reviewsData.reviews.length === 0 ? (
             <p className="text-sm text-[var(--ds-color-text-primary)]">No reviews found for this repository</p>
           ) : (
@@ -390,7 +383,7 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
                 <a
                   key={`${review.metadata.repo}-${review.metadata.prNumber}-${review.reviewedAt}`}
                   href={`/reviews/${review.metadata.repo}-${review.metadata.prNumber}`}
-                  className="block rounded-lg border p-3 hover:bg-[var(--ds-color-surface-secondary)]"
+                  className="block rounded-lg border p-3 hover-hover:bg-[var(--ds-color-surface-secondary)]"
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -421,10 +414,8 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
         </CardHeader>
         <CardContent>
           {prsLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-14 w-full" />
-              ))}
+            <div className="flex items-center justify-center py-4">
+              <Spinner size="medium" />
             </div>
           ) : !openPRs || openPRs.length === 0 ? (
             <p className="text-sm text-[var(--ds-color-text-primary)]">No open pull requests</p>
@@ -436,7 +427,7 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
                   href={pr.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-[var(--ds-color-surface-secondary)]"
+                  className="flex items-center justify-between rounded-lg border p-3 hover-hover:bg-[var(--ds-color-surface-secondary)]"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -507,6 +498,7 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
       </ModalDialog>
 
       <ModalDialog open={addRuleOpen} onOpenChange={setAddRuleOpen} title="Add Custom Rule" description={`Create a new custom review rule for ${repoId}`}>
+        <form onSubmit={(e) => { e.preventDefault(); handleAddRule(); }}>
             <div className="mt-4 space-y-4">
               <div>
                 <Label>
@@ -555,14 +547,16 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setAddRuleOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddRule} disabled={addRule.loading}>
+              <Button variant="outline" type="button" onClick={() => setAddRuleOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={addRule.loading}>
                 {addRule.loading ? "Adding..." : "Add"}
               </Button>
             </div>
+        </form>
       </ModalDialog>
 
       <ModalDialog open={!!editRuleId} onOpenChange={(open) => !open && setEditRuleId(null)} title="Edit Custom Rule" description={`Update rule for ${repoId}`}>
+        <form onSubmit={(e) => { e.preventDefault(); handleEditRule(); }}>
             <div className="mt-4 space-y-4">
               <div>
                 <Label>
@@ -606,11 +600,12 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setEditRuleId(null)}>Cancel</Button>
-              <Button onClick={handleEditRule} disabled={editRule.loading}>
+              <Button variant="outline" type="button" onClick={() => setEditRuleId(null)}>Cancel</Button>
+              <Button type="submit" disabled={editRule.loading}>
                 {editRule.loading ? "Saving..." : "Save"}
               </Button>
             </div>
+        </form>
       </ModalDialog>
 
       <ModalDialog open={editScheduleOpen} onOpenChange={setEditScheduleOpen} title="Schedule Configuration" description={`Configure automated review schedule for ${repoId}`}>

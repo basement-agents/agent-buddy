@@ -3,8 +3,9 @@
   flex-direction: column;
   background-color: var(--ds-color-surface-primary);
   border: 1px solid var(--ds-color-border-secondary);
-  border-radius: var(--ds-radius-5);
+  border-radius: var(--ds-radius-3);
   overflow: hidden;
+  padding: var(--ds-spacing-8) var(--ds-spacing-10);
 }
 
 .header {
@@ -12,7 +13,7 @@
   grid-template-columns: 1fr auto;
   align-items: start;
   gap: var(--ds-spacing-3);
-  padding: var(--ds-spacing-4) var(--ds-spacing-7);
+  margin-bottom: var(--ds-spacing-5);
 }
 
 .title {
@@ -31,27 +32,25 @@
   justify-self: end;
 }
 
-.content {
-  padding: var(--ds-spacing-7);
-}
-
 .footer {
   display: flex;
   align-items: center;
   gap: var(--ds-spacing-7);
-  padding: var(--ds-spacing-4) var(--ds-spacing-7);
+  margin-top: var(--ds-spacing-5);
+  padding-top: var(--ds-spacing-5);
   border-top: 1px solid var(--ds-color-border-secondary);
   background-color: var(--ds-color-surface-secondary);
 }
 
-.sizeSm .header {
-  padding: var(--ds-spacing-3) var(--ds-spacing-5);
+.sizeSm {
+  padding: var(--ds-spacing-7) var(--ds-spacing-9);
 }
 
-.sizeSm .content {
-  padding: var(--ds-spacing-5);
+.sizeSm .header {
+  margin-bottom: var(--ds-spacing-3);
 }
 
 .sizeSm .footer {
-  padding: var(--ds-spacing-3) var(--ds-spacing-5);
+  margin-top: var(--ds-spacing-3);
+  padding-top: var(--ds-spacing-3);
 }

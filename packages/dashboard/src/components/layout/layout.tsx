@@ -58,10 +58,10 @@ function NavLink({ item, currentPath, onNavigate }: NavLinkProps) {
         onNavigate();
       }}
       className={cn(
-        "flex h-9 items-center gap-2.5 rounded-[6px] px-2.5 text-[13px] text-[var(--ds-color-text-primary)] transition-colors",
+        "flex h-9 items-center gap-2.5 rounded-[6px] px-2.5 text-[13px] transition-colors",
         active
-          ? "bg-[var(--ds-color-surface-card)] shadow-[var(--ds-shadow-active)]"
-          : "hover:bg-[var(--ds-color-surface-card)]/60"
+          ? "bg-[var(--ds-color-surface-card)] dark:bg-[var(--ds-color-neutral-800)] shadow-[var(--ds-shadow-active)] text-[var(--ds-color-text-primary)]"
+          : "text-[var(--ds-color-text-secondary)] hover-hover:text-[var(--ds-color-text-primary)]"
       )}
     >
       <span className="text-[var(--ds-color-text-secondary)]">{item.icon}</span>
@@ -91,7 +91,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <aside
           aria-label="Primary"
           className={cn(
-            "fixed inset-y-0 left-0 z-40 flex w-[208px] shrink-0 flex-col bg-[var(--ds-color-surface-app)] px-3 py-4 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0",
+            "fixed inset-y-0 left-0 z-40 flex w-[208px] shrink-0 flex-col bg-[var(--ds-color-surface-app)] px-3 py-4 transition-transform duration-300 ease-out lg:static lg:translate-x-0",
             sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           )}
         >
@@ -120,7 +120,7 @@ export function Layout({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               aria-label="Toggle theme"
-              className="flex h-9 items-center gap-2.5 rounded-[6px] px-2.5 text-[13px] text-[var(--ds-color-text-primary)] transition-colors hover:bg-[var(--ds-color-surface-card)]/60"
+              className="flex h-9 items-center gap-2.5 rounded-[6px] px-2.5 text-[13px] text-[var(--ds-color-text-secondary)] transition-colors hover-hover:text-[var(--ds-color-text-primary)]"
             >
               <span className="text-[var(--ds-color-text-secondary)]">
                 {resolvedTheme === "dark" ? (
@@ -161,8 +161,8 @@ export function Layout({ children }: { children: ReactNode }) {
           </Button>
         </div>
 
-        <section className="mt-4 mr-3 mb-4 ml-3 min-h-0 flex-1 overflow-y-auto overflow-x-hidden rounded-xl border border-[var(--ds-color-border-secondary)] bg-[var(--ds-color-surface-card)] shadow-[var(--ds-shadow-card)] lg:ml-0">
-          <main className="p-4 sm:p-6">{children}</main>
+        <section className="mt-2 mr-2 mb-2 ml-2 min-h-0 flex-1 overflow-y-auto overflow-x-hidden rounded-lg border border-[var(--ds-color-border-secondary)] bg-[var(--ds-color-surface-card)] shadow-[var(--ds-shadow-card)] lg:ml-0">
+          <main className="p-3 sm:p-4">{children}</main>
         </section>
       </div>
       <StatusBar />

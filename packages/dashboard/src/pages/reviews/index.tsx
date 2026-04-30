@@ -3,7 +3,7 @@ import { useReviews, useNavigate, useDebouncedValue } from "~/lib/hooks";
 import { Badge } from "~/components/system/badge";
 import { ClipboardList } from "lucide-react";
 import { ErrorState } from "~/components/system/error-state";
-import { TableSkeleton } from "~/components/system/skeleton";
+import { Spinner } from "~/components/system/spinner";
 import { ProgressBar } from "~/components/shared/progress-bar";
 import { Pagination } from "~/components/system/pagination";
 import { Input } from "~/components/system/input";
@@ -160,7 +160,7 @@ export function ReviewsPage() {
     };
   }, []);
 
-  if (loading) return <TableSkeleton rows={8} />;
+  if (loading) return <div className="flex items-center justify-center py-8" role="status" aria-live="polite"><span className="sr-only">Loading reviews...</span><Spinner size="medium" /></div>;
   if (error) return <ErrorState message={`Error: ${error}`} onRetry={() => { updateParam("page", 1); refetch(); }} />;
 
   return (
@@ -252,7 +252,7 @@ export function ReviewsPage() {
             return (
               <div key={i} className="rounded-lg border border-[var(--ds-color-border-primary)]">
                 <div
-                  className="flex cursor-pointer flex-col gap-3 p-4 hover:bg-[var(--ds-color-surface-secondary)] sm:flex-row sm:items-center sm:justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  className="flex cursor-pointer flex-col gap-3 p-4 hover-hover:bg-[var(--ds-color-surface-secondary)] sm:flex-row sm:items-center sm:justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   role="button"
                   tabIndex={0}
                   onClick={() => navigate(`/reviews/${reviewId}`)}

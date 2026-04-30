@@ -11,7 +11,7 @@ import { api } from "~/lib/api";
 import type { CustomRule, LLMTestResult } from "~/lib/api";
 import { useRepos } from "~/lib/hooks";
 import { ConfirmDialog } from "~/components/system/confirm-dialog";
-import { Skeleton } from "~/components/system/skeleton";
+import { Spinner } from "~/components/system/spinner";
 import { SettingsPageSkeleton } from "~/components/common/page-skeletons";
 
 export function SettingsPage() {
@@ -256,13 +256,13 @@ export function SettingsPage() {
       {loading ? (
         <SettingsPageSkeleton />
       ) : (
-        <>
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
       {(!repos || repos.data.length === 0) && (
         <div className="rounded-lg border border-[var(--ds-color-feedback-info-border)] bg-[var(--ds-color-feedback-info-subtle)] p-4">
           <p className="text-sm text-[var(--ds-color-feedback-info-text)]">
             No repositories configured yet. Add a repository to get started with automatic code reviews.
           </p>
-          <a href="/repos" className="mt-2 inline-block text-sm font-medium text-[var(--ds-color-feedback-info-text)] hover:text-[var(--ds-color-feedback-info-text)]">
+          <a href="/repos" className="mt-2 inline-block text-sm font-medium text-[var(--ds-color-feedback-info-text)] hover-hover:underline">
             Go to Repos &rarr;
           </a>
         </div>
@@ -580,11 +580,9 @@ export function SettingsPage() {
           {selectedRepoId && (
             <>
               {rulesLoading ? (
-                <div className="space-y-2" role="status" aria-live="polite">
+                <div className="flex items-center justify-center py-4" role="status" aria-live="polite">
                   <span className="sr-only">Loading rules...</span>
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
+                  <Spinner size="medium" />
                 </div>
               ) : (
                 <>
@@ -812,7 +810,7 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} disabled={saving || loading || Object.values(errors).some(Boolean)}>
+      <Button type="submit" disabled={saving || loading || Object.values(errors).some(Boolean)}>
         {saving ? "Saving..." : "Save Settings"}
       </Button>
 
@@ -825,7 +823,7 @@ export function SettingsPage() {
         destructive
         onConfirm={handleDeleteRule}
       />
-        </>
+        </form>
       )}
     </div>
   );
