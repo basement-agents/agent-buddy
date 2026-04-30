@@ -195,7 +195,7 @@ describe("RepoDetailPage", () => {
       refetch: vi.fn(),
     });
     render(<RepoDetailPage owner="owner" repo="repo" />);
-    expect(document.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('[role="status"]').length).toBeGreaterThan(0);
   });
 
   it("shows error state when repo fails to load", () => {

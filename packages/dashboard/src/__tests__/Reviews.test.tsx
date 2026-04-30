@@ -132,8 +132,7 @@ describe("ReviewsPage", () => {
     render(<ReviewsPage />);
 
     // Check for skeleton loading
-    const skeletonRows = document.querySelectorAll(".animate-pulse");
-    expect(skeletonRows.length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('[role="status"]').length).toBeGreaterThan(0);
   });
 
   it("empty state when no reviews exist", async () => {

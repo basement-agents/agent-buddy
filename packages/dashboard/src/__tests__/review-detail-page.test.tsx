@@ -132,8 +132,7 @@ describe("ReviewDetailPage", () => {
 
     render(<ReviewDetailPage reviewIndex="testowner-testrepo-42" />);
 
-    const skeletonElements = document.querySelectorAll(".animate-pulse");
-    expect(skeletonElements.length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('[role="status"]').length).toBeGreaterThan(0);
   });
 
   it("shows error state when review fails to load", async () => {
