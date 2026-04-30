@@ -91,10 +91,10 @@ function JobRow({ job, progress, isConnected, onCancel, onShowProgress }: { job:
             className="cursor-pointer"
             role="button"
             tabIndex={0}
-            onClick={() => statusText && onShowProgress(job, statusText)}
-            onKeyDown={(e) => { if (e.key === "Enter" && statusText) onShowProgress(job, statusText); }}
+            onClick={() => onShowProgress(job, statusText ?? `${displayStage ?? job.status} · ${displayPct}%`)}
+            onKeyDown={(e) => { if (e.key === "Enter") onShowProgress(job, statusText ?? `${displayStage ?? job.status} · ${displayPct}%`); }}
           >
-            <ProgressBar percentage={displayPct} label={displayStage} statusText={statusText ? (statusText.length > 40 ? statusText.slice(0, 40) + "..." : statusText) : undefined} />
+            <ProgressBar percentage={displayPct} label={displayStage} statusText={statusText && statusText.length > 40 ? statusText.slice(0, 40) + "..." : statusText} />
           </div>
         ) : job.status === "failed" && job.error ? (
           <span className="text-xs text-[var(--ds-color-feedback-danger)] truncate" title={job.error}>{job.error}</span>
@@ -259,7 +259,9 @@ export function JobsPage() {
               <span className="text-[var(--ds-color-text-secondary)]">{progressDetail.job.repoId}</span>
               {progressDetail.job.prNumber && <span className="text-[var(--ds-color-text-tertiary)]">#{progressDetail.job.prNumber}</span>}
             </div>
-            <p className="text-sm text-[var(--ds-color-text-primary)] break-all">{progressDetail.statusText}</p>
+            <div className="rounded-md border border-[var(--ds-color-border-secondary)] p-3 text-sm text-[var(--ds-color-text-primary)] break-all">
+              {progressDetail.statusText}
+            </div>
             <div className="flex justify-end">
               <Button variant="outline" onClick={() => setProgressDetail(null)}>Close</Button>
             </div>
