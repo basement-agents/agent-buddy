@@ -125,8 +125,8 @@ export function JobsPage() {
   const [progressDetail, setProgressDetail] = useState<{ job: JobListItem; statusText: string } | null>(null);
   const { showToast } = useToast();
 
-  const fetchJobs = useCallback(async () => {
-    setLoading(true);
+  const fetchJobs = useCallback(async (opts?: { initial?: boolean }) => {
+    if (opts?.initial) setLoading(true);
     setError(null);
     try {
       const data = await api.listJobs({
@@ -156,8 +156,8 @@ export function JobsPage() {
   }, [fetchJobs, showToast]);
 
   useEffect(() => {
-    fetchJobs();
-    const interval = setInterval(fetchJobs, 5000);
+    fetchJobs({ initial: true });
+    const interval = setInterval(() => fetchJobs(), 5000);
     return () => clearInterval(interval);
   }, [fetchJobs]);
 
@@ -221,7 +221,7 @@ export function JobsPage() {
             <div className="p-8 text-center text-[var(--ds-color-text-primary)]">No jobs found</div>
           ) : (
             <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
+            <table className="w-full min-w-[700px]" style={{ tableLayout: "fixed" }}>
               <thead>
                 <tr className="border-b border-[var(--ds-color-border-primary)] text-left text-xs text-[var(--ds-color-text-primary)] uppercase tracking-wider">
                   <th className="px-4 py-3">Job</th>
