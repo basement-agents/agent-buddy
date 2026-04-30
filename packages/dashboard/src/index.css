@@ -155,5 +155,7 @@
     }
   html {
     @apply font-sans;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ds-color-border-primary) transparent;
     }
 }
