@@ -27,6 +27,7 @@ export type {
   TriggerConfig,
   LLMProviderConfig,
   LLMProviderType,
+  CliParseFormat,
 } from "./config/types.js";
 
 export { configSchema, llmProviderConfigSchema } from "./config/schema.js";
@@ -75,6 +76,8 @@ export type {
 export { BuddyFileSystemStorage } from "./buddy/storage.js";
 export { loadConfig, saveConfig, resetConfig, addRepo, removeRepo, listRepos, assignBuddy } from "./config/config.js";
 export { GitHubClient, GitHubError } from "./github/client.js";
+export { githubCache } from "./github/cache.js";
+export type { CacheStats } from "./github/cache.js";
 export { AnalysisPipeline } from "./analysis/pipeline.js";
 export { ReviewEngine } from "./review/engine.js";
 export { evaluateCustomRules } from "./review/rules.js";
@@ -82,6 +85,8 @@ export { AnthropicClaudeProvider } from "./llm/provider.js";
 export { OpenRouterProvider } from "./llm/openrouter-provider.js";
 export { OpenAIProvider } from "./llm/openai-provider.js";
 export { OpenAICompatibleProvider } from "./llm/openai-compatible-provider.js";
+export { CliProvider } from "./llm/cli-provider.js";
+export type { CliProviderOptions } from "./llm/cli-provider.js";
 export { createLLMProvider } from "./llm/factory.js";
 export type { LLMProvider, LLMMessage, LLMOptions, LLMResponse } from "./llm/types.js";
 export { Logger, ConfigError, getErrorMessage, retryWithBackoff, calculateBackoffDelay, sleep, DEFAULT_BASE_DELAY_MS, noopReporter, withHeartbeat, bandReporter } from "./utils/index.js";

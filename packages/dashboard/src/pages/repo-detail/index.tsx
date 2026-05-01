@@ -1,33 +1,56 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "~/lib/api";
-import { useQuery, useMutation, useNavigate } from "~/lib/hooks";
+import { useMutation, useNavigate, useBuddies, useReviews, useRepoRules, useRepoSchedule, useRepoOpenPRs, queryKeys } from "~/lib/hooks";
 import { Button } from "~/components/system/button";
+import { Spinner } from "~/components/system/spinner";
+import { ErrorBoundary } from "~/components/shared/error-boundary";
 import { ErrorState } from "~/components/system/error-state";
 import { Input } from "~/components/system/input";
 import { Badge } from "~/components/system/badge";
-import { Card, CardHeader, CardTitle, CardContent } from "~/components/system/card";
 import { Breadcrumb } from "~/components/system/breadcrumb";
-import { Spinner } from "~/components/system/spinner";
 import { ConfirmDialog } from "~/components/system/confirm-dialog";
 import { useToast } from "~/components/system/toast";
 import { ModalDialog } from "~/components/system/modal-dialog";
 import { Label } from "~/components/system/label";
 import { Checkbox } from "~/components/system/checkbox";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Folder } from "lucide-react";
 import { NativeSelect } from "~/components/system/native-select";
+import { PageColumn } from "~/components/common/page-column";
+import { ProfileHeader } from "~/components/common/profile-header";
+import { TabStrip } from "~/components/common/tab-strip";
+import { FeedList, FeedItem, FeedIconWrapper } from "~/components/common/feed-list";
 import type { RepoConfig, CustomRule, ScheduleConfig, BuddySummary } from "~/lib/api";
 
 const SEVERITY_ORDER = ["error", "warning", "suggestion", "info"] as const;
 
+const TABS = [
+  { id: "reviews", label: "Reviews" },
+  { id: "schedule", label: "Schedule" },
+  { id: "rules", label: "Rules" },
+  { id: "prs", label: "Open PRs" },
+] as const;
+
+type TabId = typeof TABS[number]["id"];
+
 export function RepoDetailPage({ owner, repo }: { owner: string; repo: string }) {
   const navigate = useNavigate();
   const repoId = `${owner}/${repo}`;
-  const { data: repoConfig, loading, error, refetch } = useQuery(() => api.listRepos().then(repos => repos.data?.find(r => r.id === repoId)), [repoId]);
-  const { data: buddies } = useQuery(() => api.listBuddies());
-  const { data: rules, loading: rulesLoading, refetch: refetchRules } = useQuery(() => api.getRepoRules(repoId), [repoId]);
-  const { data: schedule, loading: scheduleLoading, refetch: refetchSchedule } = useQuery(() => api.getRepoSchedule(repoId), [repoId]);
-  const { data: reviewsData, loading: reviewsLoading } = useQuery(() => api.listReviews({ repo: repoId, limit: 10 }), [repoId]);
-  const { data: openPRs, loading: prsLoading } = useQuery(() => api.listOpenPRs(owner, repo), [owner, repo]);
+  const [activeTab, setActiveTab] = useState<TabId>("reviews");
+
+  const queryClient = useQueryClient();
+  const { data: reposList } = useSuspenseQuery({
+    queryKey: ["repos-all", repoId],
+    queryFn: ({ signal }) => api.listRepos(undefined, signal),
+  });
+  const repoConfig = reposList.data?.find((r) => r.id === repoId);
+  const refetch = () => queryClient.invalidateQueries({ queryKey: ["repos-all", repoId] });
+  const { data: buddies } = useBuddies();
+  const { data: rules } = useRepoRules(repoId);
+  const refetchRules = () => queryClient.invalidateQueries({ queryKey: queryKeys.repoRules(repoId) });
+  const { data: schedule } = useRepoSchedule(repoId);
+  const refetchSchedule = () => queryClient.invalidateQueries({ queryKey: queryKeys.repoSchedule(repoId) });
+  const { data: reviewsData } = useReviews({ repo: repoId, limit: 10 });
 
   const [editConfigOpen, setEditConfigOpen] = useState(false);
   const [addRuleOpen, setAddRuleOpen] = useState(false);
@@ -163,8 +186,11 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
     }
   };
 
+  const [deleting, setDeleting] = useState(false);
+
   const handleDeleteRepo = async () => {
     if (!repoConfig) return;
+    setDeleting(true);
     try {
       await removeRepo.execute(repoConfig.id);
       showToast({ title: "Repository removed", variant: "success" });
@@ -172,14 +198,20 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
     } catch (err) {
       console.error("Failed to remove repository:", err);
       showToast({ title: "Failed to remove repository", variant: "error" });
+      setDeleting(false);
     }
   };
 
   const handleSaveSchedule = async () => {
+    const interval = parseInt(scheduleInterval, 10);
+    if (isNaN(interval) || interval < 1) {
+      showToast({ title: "Please enter a valid interval (minimum 1 minute)", variant: "warning" });
+      return;
+    }
     try {
       await updateSchedule.execute(repoId, {
         enabled: scheduleEnabled,
-        interval: parseInt(scheduleInterval, 10),
+        interval,
       });
       showToast({ title: "Schedule saved", variant: "success" });
       setEditScheduleOpen(false);
@@ -190,461 +222,350 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
     }
   };
 
-  if (loading) {
+  if (!repoConfig) {
     return (
-      <div className="flex items-center justify-center py-8" role="status" aria-live="polite">
-        <span className="sr-only">Loading repository...</span>
-        <Spinner size="medium" />
-      </div>
+      <ErrorState message={"Repository not found"} onRetry={() => navigate("/repos")} retryLabel="Back to Repositories" />
     );
   }
+  void refetch;
 
-  if (error || !repoConfig) {
-    return (
-      <ErrorState message={error || "Repository not found"} onRetry={() => navigate("/repos")} retryLabel="Back to Repositories" />
-    );
-  }
-
-  const sortedRules = rules?.sort((a, b) => {
+  const sortedRules = (Array.isArray(rules) ? rules : []).slice().sort((a, b) => {
     if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
     const aSeverity = SEVERITY_ORDER.indexOf(a.severity);
     const bSeverity = SEVERITY_ORDER.indexOf(b.severity);
     return aSeverity - bSeverity;
   });
 
+  const buddyIds = repoConfig.buddies?.length
+    ? repoConfig.buddies
+    : repoConfig.buddyId
+    ? [repoConfig.buddyId]
+    : [];
+
   return (
-    <div className="space-y-6">
+    <PageColumn variant="wide">
       <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Repos", href: "/repos" }, { label: repoId }]} />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ds-color-text-primary)]">{repoId}</h1>
-          <p className="text-sm text-[var(--ds-color-text-primary)]">Repository configuration and management</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setEditConfigOpen(true)}>Edit Config</Button>
-          <Button variant="outline" className="text-[var(--ds-color-feedback-danger)] hover:text-[var(--ds-color-feedback-danger-text)]" onClick={() => setDeleteRepoOpen(true)}>Remove</Button>
-        </div>
+      <div style={{ marginTop: "var(--ds-spacing-9)" }}>
+        <ProfileHeader
+          avatar={
+            <div style={{
+              width: 88,
+              height: 88,
+              borderRadius: "var(--ds-radius-4)",
+              background: "var(--ds-color-surface-secondary)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--ds-color-text-secondary)",
+            }}>
+              <Folder size={40} />
+            </div>
+          }
+          title={repoId}
+          subtitle="Repository configuration and management"
+          description={
+            buddyIds.length > 0
+              ? `Buddies: ${buddyIds.join(", ")}`
+              : undefined
+          }
+          actions={
+            <>
+              <Button onClick={() => setEditConfigOpen(true)}>Edit Config</Button>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteRepoOpen(true)}
+              >
+                Remove
+              </Button>
+            </>
+          }
+        />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Configuration</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <p className="text-xs font-medium uppercase text-[var(--ds-color-text-primary)]">Buddies</p>
-              <p className="mt-1 text-sm">
-                {(() => {
-                  const ids = repoConfig.buddies?.length ? repoConfig.buddies : repoConfig.buddyId ? [repoConfig.buddyId] : [];
-                  if (ids.length === 0) return <span className="text-[var(--ds-color-text-tertiary)]">None assigned</span>;
-                  return (
-                    <span className="flex flex-wrap gap-1">
-                      {ids.map((id) => (
-                        <a key={id} href={`/buddies/${id}`} className="text-[var(--ds-color-feedback-info-text)] hover:underline">
-                          <Badge variant="info">{id}</Badge>
-                        </a>
-                      ))}
-                    </span>
-                  );
-                })()}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase text-[var(--ds-color-text-primary)]">Auto-Review</p>
-              <p className="mt-1 text-sm">
-                {repoConfig.autoReview ? (
-                  <Badge variant="success">Enabled</Badge>
-                ) : (
-                  <Badge variant="default">Disabled</Badge>
-                )}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase text-[var(--ds-color-text-primary)]">Trigger Mode</p>
-              <p className="mt-1 text-sm text-[var(--ds-color-text-secondary)]">{repoConfig.triggerMode}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div style={{ marginTop: "var(--ds-spacing-9)" }}>
+        <TabStrip
+          tabs={[...TABS]}
+          active={activeTab}
+          onChange={(id) => setActiveTab(id as TabId)}
+        />
+      </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Schedule</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => setEditScheduleOpen(true)}>Configure</Button>
+      <div style={{ marginTop: "var(--ds-spacing-9)" }}>
+        {/* Configuration summary always visible */}
+        <div style={{ display: "flex", gap: "var(--ds-spacing-10)", flexWrap: "wrap", marginBottom: "var(--ds-spacing-9)", paddingBottom: "var(--ds-spacing-9)", borderBottom: "1px solid var(--ds-color-border-secondary)" }}>
+          <div>
+            <p style={{ fontSize: "var(--ds-text-xs, 12px)", fontWeight: 500, textTransform: "uppercase", color: "var(--ds-color-text-secondary)", marginBottom: 4 }}>Buddies</p>
+            {buddyIds.length === 0 ? (
+              <span style={{ fontSize: "var(--ds-text-sm)", color: "var(--ds-color-text-tertiary)" }}>None assigned</span>
+            ) : (
+              <span style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {buddyIds.map((id) => (
+                  <a key={id} href={`/buddies/${id}`}>
+                    <Badge variant="info">{id}</Badge>
+                  </a>
+                ))}
+              </span>
+            )}
           </div>
-        </CardHeader>
-        <CardContent>
-          {scheduleLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <Spinner size="medium" />
-            </div>
-          ) : schedule ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <p className="text-xs font-medium uppercase text-[var(--ds-color-text-primary)]">Status</p>
-                <p className="mt-1 text-sm">
-                  {schedule.enabled ? (
-                    <Badge variant="success">Active</Badge>
-                  ) : (
-                    <Badge variant="default">Inactive</Badge>
-                  )}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase text-[var(--ds-color-text-primary)]">Interval</p>
-                <p className="mt-1 text-sm text-[var(--ds-color-text-secondary)]">{schedule.interval || 60} minutes</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase text-[var(--ds-color-text-primary)]">Last Run</p>
-                <p className="mt-1 text-sm text-[var(--ds-color-text-secondary)]">
-                  {schedule.lastRun ? new Date(schedule.lastRun).toLocaleString() : "Never"}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-[var(--ds-color-text-primary)]">No schedule configured</p>
-          )}
-        </CardContent>
-      </Card>
+          <div>
+            <p style={{ fontSize: "var(--ds-text-xs, 12px)", fontWeight: 500, textTransform: "uppercase", color: "var(--ds-color-text-secondary)", marginBottom: 4 }}>Auto-Review</p>
+            {repoConfig.autoReview ? (
+              <Badge variant="success">Enabled</Badge>
+            ) : (
+              <Badge variant="default">Disabled</Badge>
+            )}
+          </div>
+          <div>
+            <p style={{ fontSize: "var(--ds-text-xs, 12px)", fontWeight: 500, textTransform: "uppercase", color: "var(--ds-color-text-secondary)", marginBottom: 4 }}>Trigger Mode</p>
+            <span style={{ fontSize: "var(--ds-text-sm)", color: "var(--ds-color-text-secondary)" }}>{repoConfig.triggerMode}</span>
+          </div>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Custom Rules ({rules?.length || 0})</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => setAddRuleOpen(true)}>Add Rule</Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {rulesLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <Spinner size="medium" />
-            </div>
-          ) : !sortedRules || sortedRules.length === 0 ? (
-            <p className="text-sm text-[var(--ds-color-text-primary)]">No custom rules configured</p>
-          ) : (
-            <div className="space-y-2">
-              {sortedRules.map((rule) => (
-                <div
-                  key={rule.id}
-                  className={`flex items-center justify-between rounded-lg border border-[var(--ds-color-border-secondary)] p-3 ${rule.enabled ? "bg-[var(--ds-color-surface-card)]" : "bg-[var(--ds-color-surface-secondary)]/50 opacity-60"}`}
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={rule.severity === "error" ? "error" : rule.severity === "warning" ? "warning" : rule.severity === "suggestion" ? "info" : "default"}>
-                        {rule.severity}
+        {/* Reviews tab */}
+        {activeTab === "reviews" && (
+          <section>
+            <p style={{ fontSize: "var(--ds-text-base)", fontWeight: 600, color: "var(--ds-color-text-primary)", marginBottom: "var(--ds-spacing-7)" }}>Recent Reviews</p>
+            {!reviewsData?.reviews || reviewsData.reviews.length === 0 ? (
+              <p style={{ fontSize: "var(--ds-text-sm)", color: "var(--ds-color-text-secondary)" }}>No reviews found for this repository</p>
+            ) : (
+              <FeedList>
+                {reviewsData.reviews.map((review) => (
+                  <FeedItem
+                    key={`${review.metadata.repo}-${review.metadata.prNumber}-${review.reviewedAt}`}
+                    title={`PR #${review.metadata.prNumber}`}
+                    meta={review.reviewedAt ? new Date(review.reviewedAt).toLocaleString() : "In progress"}
+                    trailing={
+                      <Badge variant={review.state === "completed" ? "success" : "default"}>
+                        {review.state}
                       </Badge>
-                      <span className="font-medium text-[var(--ds-color-text-primary)]">{rule.name}</span>
-                      {!rule.enabled && <span className="text-xs text-[var(--ds-color-text-tertiary)]">(disabled)</span>}
-                    </div>
-                    <code className="mt-1 block text-xs text-[var(--ds-color-text-secondary)]">{rule.pattern}</code>
-                    {rule.category && <span className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Category: {rule.category}</span>}
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditRule(rule.id)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-[var(--ds-color-feedback-danger)] hover:text-[var(--ds-color-feedback-danger-text)]"
-                      onClick={() => setDeleteRuleId(rule.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    }
+                    onClick={() => navigate(`/reviews/${review.metadata.repo}-${review.metadata.prNumber}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") navigate(`/reviews/${review.metadata.repo}-${review.metadata.prNumber}`);
+                    }}
+                  />
+                ))}
+              </FeedList>
+            )}
+          </section>
+        )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Reviews</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {reviewsLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <Spinner size="medium" />
+        {/* Schedule tab */}
+        {activeTab === "schedule" && (
+          <section>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--ds-spacing-7)" }}>
+              <p style={{ fontSize: "var(--ds-text-base)", fontWeight: 600, color: "var(--ds-color-text-primary)" }}>Schedule</p>
+              <Button variant="outline" size="sm" onClick={() => setEditScheduleOpen(true)}>Configure</Button>
             </div>
-          ) : !reviewsData?.reviews || reviewsData.reviews.length === 0 ? (
-            <p className="text-sm text-[var(--ds-color-text-primary)]">No reviews found for this repository</p>
-          ) : (
-            <div className="space-y-2">
-              {reviewsData.reviews.map((review) => (
-                <a
-                  key={`${review.metadata.repo}-${review.metadata.prNumber}-${review.reviewedAt}`}
-                  href={`/reviews/${review.metadata.repo}-${review.metadata.prNumber}`}
-                  className="block rounded-lg border p-3 hover-hover:bg-[var(--ds-color-surface-secondary)]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-[var(--ds-color-text-primary)]">
-                        PR #{review.metadata.prNumber}
-                      </p>
-                      <p className="text-xs text-[var(--ds-color-text-primary)]">
-                        {review.reviewedAt ? new Date(review.reviewedAt).toLocaleString() : "In progress"}
-                      </p>
-                    </div>
-                    <Badge variant={review.state === "completed" ? "success" : "default"}>
-                      {review.state}
-                    </Badge>
-                  </div>
-                  {review.summary && (
-                    <p className="mt-2 line-clamp-2 text-sm text-[var(--ds-color-text-secondary)]">{review.summary}</p>
-                  )}
-                </a>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Open Pull Requests</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {prsLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <Spinner size="medium" />
-            </div>
-          ) : !openPRs || openPRs.length === 0 ? (
-            <p className="text-sm text-[var(--ds-color-text-primary)]">No open pull requests</p>
-          ) : (
-            <div className="space-y-2">
-              {openPRs.map((pr) => (
-                <a
-                  key={pr.number}
-                  href={pr.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between rounded-lg border p-3 hover-hover:bg-[var(--ds-color-surface-secondary)]"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-medium text-[var(--ds-color-feedback-info-text)]">
-                        #{pr.number}
-                      </span>
-                      <span className="truncate text-sm font-medium text-[var(--ds-color-text-primary)]">
-                        {pr.title}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">
-                      by {pr.author} &middot; {new Date(pr.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <ExternalLink className="h-4 w-4 flex-shrink-0 text-[var(--ds-color-text-tertiary)]" />
-                </a>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <ModalDialog open={editConfigOpen} onOpenChange={setEditConfigOpen} title="Edit Configuration" description={`Update repository settings for ${repoId}`}>
-            <div className="mt-4 space-y-4">
-              <div>
-                <Label>
-                  Buddy
-                </Label>
-                <NativeSelect
-                  value={formBuddyId}
-                  onChange={(e) => setFormBuddyId(e.target.value)}
-                >
-                  <option value="">None</option>
-                  {buddies?.data?.map((buddy: BuddySummary) => (
-                    <option key={buddy.id} value={buddy.id}>
-                      {buddy.username}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </div>
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-[var(--ds-color-text-secondary)]">Auto-Review</label>
-                <Checkbox
-                  checked={formAutoReview}
-                  onChange={(s) => setFormAutoReview(s === "on")}
+            {schedule ? (
+              <FeedList>
+                <FeedItem
+                  title="Status"
+                  trailing={schedule.enabled ? <Badge variant="success">Active</Badge> : <Badge variant="default">Inactive</Badge>}
                 />
-              </div>
-              <div>
-                <Label>
-                  Trigger Mode
-                </Label>
-                <NativeSelect
-                  value={formTriggerMode}
-                  onChange={(e) => setFormTriggerMode(e.target.value)}
-                >
-                  <option value="manual">Manual</option>
-                  <option value="auto">Auto</option>
-                  <option value="schedule">Schedule</option>
-                </NativeSelect>
-              </div>
+                <FeedItem
+                  title="Interval"
+                  trailing={<span style={{ fontSize: "var(--ds-text-sm)", color: "var(--ds-color-text-secondary)" }}>{schedule.interval || 60} minutes</span>}
+                />
+                <FeedItem
+                  title="Last Run"
+                  trailing={<span style={{ fontSize: "var(--ds-text-sm)", color: "var(--ds-color-text-secondary)" }}>{schedule.lastRun ? new Date(schedule.lastRun).toLocaleString() : "Never"}</span>}
+                />
+              </FeedList>
+            ) : (
+              <p style={{ fontSize: "var(--ds-text-sm)", color: "var(--ds-color-text-secondary)" }}>No schedule configured</p>
+            )}
+          </section>
+        )}
+
+        {/* Rules tab */}
+        {activeTab === "rules" && (
+          <section>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--ds-spacing-7)" }}>
+              <p style={{ fontSize: "var(--ds-text-base)", fontWeight: 600, color: "var(--ds-color-text-primary)" }}>
+                Custom Rules ({rules?.length || 0})
+              </p>
+              <Button variant="outline" size="sm" onClick={() => setAddRuleOpen(true)}>Add Rule</Button>
             </div>
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setEditConfigOpen(false)}>Cancel</Button>
-              <Button onClick={handleSaveConfig} disabled={updateRepo.loading}>
-                {updateRepo.loading ? "Saving..." : "Save"}
-              </Button>
-            </div>
+            {!sortedRules || sortedRules.length === 0 ? (
+              <p style={{ fontSize: "var(--ds-text-sm)", color: "var(--ds-color-text-secondary)" }}>No custom rules configured</p>
+            ) : (
+              <FeedList>
+                {sortedRules.map((rule) => (
+                  <FeedItem
+                    key={rule.id}
+                    title={
+                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Badge variant={rule.severity === "error" ? "error" : rule.severity === "warning" ? "warning" : rule.severity === "suggestion" ? "info" : "default"}>
+                          {rule.severity}
+                        </Badge>
+                        <span style={{ opacity: rule.enabled ? 1 : 0.5 }}>{rule.name}</span>
+                        {!rule.enabled && <span style={{ fontSize: "var(--ds-text-xs)", color: "var(--ds-color-text-tertiary)" }}>(disabled)</span>}
+                      </span>
+                    }
+                    meta={<code style={{ fontSize: "var(--ds-text-xs)" }}>{rule.pattern}</code>}
+                    trailing={
+                      <span style={{ display: "flex", gap: 4 }}>
+                        <Button variant="ghost" size="sm" onClick={() => openEditRule(rule.id)}>Edit</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setDeleteRuleId(rule.id)}>Delete</Button>
+                      </span>
+                    }
+                  />
+                ))}
+              </FeedList>
+            )}
+          </section>
+        )}
+
+        {/* Open PRs tab */}
+        {activeTab === "prs" && (
+          <section>
+            <p style={{ fontSize: "var(--ds-text-base)", fontWeight: 600, color: "var(--ds-color-text-primary)", marginBottom: "var(--ds-spacing-7)" }}>Open Pull Requests</p>
+            <ErrorBoundary
+              fallback={
+                <ErrorState message="Could not load open pull requests" />
+              }
+            >
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center py-4" role="status" aria-live="polite">
+                    <span className="sr-only">Loading open PRs...</span>
+                    <Spinner size="medium" />
+                  </div>
+                }
+              >
+                <OpenPRsList owner={owner} repo={repo} />
+              </Suspense>
+            </ErrorBoundary>
+          </section>
+        )}
+      </div>
+
+      {/* Dialogs — unchanged logic */}
+      <ModalDialog open={editConfigOpen} onOpenChange={setEditConfigOpen} title="Edit Configuration" description={`Update repository settings for ${repoId}`}>
+        <div className="mt-4 space-y-4">
+          <div>
+            <Label>Buddy</Label>
+            <NativeSelect value={formBuddyId} onChange={(e) => setFormBuddyId(e.target.value)}>
+              <option value="">None</option>
+              {buddies?.data?.map((buddy: BuddySummary) => (
+                <option key={buddy.id} value={buddy.id}>{buddy.username}</option>
+              ))}
+            </NativeSelect>
+          </div>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-[var(--ds-color-text-secondary)]">Auto-Review</label>
+            <Checkbox checked={formAutoReview} onChange={(s) => setFormAutoReview(s === "on")} />
+          </div>
+          <div>
+            <Label>Trigger Mode</Label>
+            <NativeSelect value={formTriggerMode} onChange={(e) => setFormTriggerMode(e.target.value)}>
+              <option value="manual">Manual</option>
+              <option value="auto">Auto</option>
+              <option value="schedule">Schedule</option>
+            </NativeSelect>
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-3">
+          <Button variant="outline" onClick={() => setEditConfigOpen(false)}>Cancel</Button>
+          <Button onClick={handleSaveConfig} disabled={updateRepo.loading}>
+            {updateRepo.loading ? "Saving..." : "Save"}
+          </Button>
+        </div>
       </ModalDialog>
 
       <ModalDialog open={addRuleOpen} onOpenChange={setAddRuleOpen} title="Add Custom Rule" description={`Create a new custom review rule for ${repoId}`}>
         <form onSubmit={(e) => { e.preventDefault(); handleAddRule(); }}>
-            <div className="mt-4 space-y-4">
-              <div>
-                <Label>
-                  Rule Name <span className="text-[var(--ds-color-feedback-danger)]">*</span>
-                </Label>
-                <Input
-                  placeholder="e.g., No console.log"
-                  value={newRuleName}
-                  onChange={(e) => setNewRuleName(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>
-                  Pattern <span className="text-[var(--ds-color-feedback-danger)]">*</span>
-                </Label>
-                <Input
-                  placeholder="e.g., console\\.(log|debug)"
-                  value={newRulePattern}
-                  onChange={(e) => setNewRulePattern(e.target.value)}
-                />
-                <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Regular expression pattern to match</p>
-              </div>
-              <div>
-                <Label>
-                  Severity
-                </Label>
-                <NativeSelect
-                  value={newRuleSeverity}
-                  onChange={(e) => setNewRuleSeverity(e.target.value as "info" | "suggestion" | "warning" | "error")}
-                >
-                  <option value="info">Info</option>
-                  <option value="suggestion">Suggestion</option>
-                  <option value="warning">Warning</option>
-                  <option value="error">Error</option>
-                </NativeSelect>
-              </div>
-              <div>
-                <Label>
-                  Category (optional)
-                </Label>
-                <Input
-                  placeholder="e.g., code-quality"
-                  value={newRuleCategory}
-                  onChange={(e) => setNewRuleCategory(e.target.value)}
-                />
-              </div>
+          <div className="mt-4 space-y-4">
+            <div>
+              <Label>Rule Name <span className="text-[var(--ds-color-feedback-danger)]">*</span></Label>
+              <Input placeholder="e.g., No console.log" value={newRuleName} onChange={(e) => setNewRuleName(e.target.value)} />
             </div>
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="outline" type="button" onClick={() => setAddRuleOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={addRule.loading}>
-                {addRule.loading ? "Adding..." : "Add"}
-              </Button>
+            <div>
+              <Label>Pattern <span className="text-[var(--ds-color-feedback-danger)]">*</span></Label>
+              <Input placeholder="e.g., console\\.(log|debug)" value={newRulePattern} onChange={(e) => setNewRulePattern(e.target.value)} />
+              <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Regular expression pattern to match</p>
             </div>
+            <div>
+              <Label>Severity</Label>
+              <NativeSelect value={newRuleSeverity} onChange={(e) => setNewRuleSeverity(e.target.value as "info" | "suggestion" | "warning" | "error")}>
+                <option value="info">Info</option>
+                <option value="suggestion">Suggestion</option>
+                <option value="warning">Warning</option>
+                <option value="error">Error</option>
+              </NativeSelect>
+            </div>
+            <div>
+              <Label>Category (optional)</Label>
+              <Input placeholder="e.g., code-quality" value={newRuleCategory} onChange={(e) => setNewRuleCategory(e.target.value)} />
+            </div>
+          </div>
+          <div className="mt-6 flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => setAddRuleOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={addRule.loading}>{addRule.loading ? "Adding..." : "Add"}</Button>
+          </div>
         </form>
       </ModalDialog>
 
       <ModalDialog open={!!editRuleId} onOpenChange={(open) => !open && setEditRuleId(null)} title="Edit Custom Rule" description={`Update rule for ${repoId}`}>
         <form onSubmit={(e) => { e.preventDefault(); handleEditRule(); }}>
-            <div className="mt-4 space-y-4">
-              <div>
-                <Label>
-                  Rule Name <span className="text-[var(--ds-color-feedback-danger)]">*</span>
-                </Label>
-                <Input
-                  value={editRuleName}
-                  onChange={(e) => setEditRuleName(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>
-                  Pattern <span className="text-[var(--ds-color-feedback-danger)]">*</span>
-                </Label>
-                <Input
-                  value={editRulePattern}
-                  onChange={(e) => setEditRulePattern(e.target.value)}
-                />
-                <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Regular expression pattern to match</p>
-              </div>
-              <div>
-                <Label>
-                  Severity
-                </Label>
-                <NativeSelect
-                  value={editRuleSeverity}
-                  onChange={(e) => setEditRuleSeverity(e.target.value as "info" | "suggestion" | "warning" | "error")}
-                >
-                  <option value="info">Info</option>
-                  <option value="suggestion">Suggestion</option>
-                  <option value="warning">Warning</option>
-                  <option value="error">Error</option>
-                </NativeSelect>
-              </div>
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-[var(--ds-color-text-secondary)]">Enabled</label>
-                <Checkbox
-                  checked={editRuleEnabled}
-                  onChange={(s) => setEditRuleEnabled(s === "on")}
-                />
-              </div>
+          <div className="mt-4 space-y-4">
+            <div>
+              <Label>Rule Name <span className="text-[var(--ds-color-feedback-danger)]">*</span></Label>
+              <Input value={editRuleName} onChange={(e) => setEditRuleName(e.target.value)} />
             </div>
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="outline" type="button" onClick={() => setEditRuleId(null)}>Cancel</Button>
-              <Button type="submit" disabled={editRule.loading}>
-                {editRule.loading ? "Saving..." : "Save"}
-              </Button>
+            <div>
+              <Label>Pattern <span className="text-[var(--ds-color-feedback-danger)]">*</span></Label>
+              <Input value={editRulePattern} onChange={(e) => setEditRulePattern(e.target.value)} />
+              <p className="mt-1 text-xs text-[var(--ds-color-text-primary)]">Regular expression pattern to match</p>
             </div>
+            <div>
+              <Label>Severity</Label>
+              <NativeSelect value={editRuleSeverity} onChange={(e) => setEditRuleSeverity(e.target.value as "info" | "suggestion" | "warning" | "error")}>
+                <option value="info">Info</option>
+                <option value="suggestion">Suggestion</option>
+                <option value="warning">Warning</option>
+                <option value="error">Error</option>
+              </NativeSelect>
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-[var(--ds-color-text-secondary)]">Enabled</label>
+              <Checkbox checked={editRuleEnabled} onChange={(s) => setEditRuleEnabled(s === "on")} />
+            </div>
+          </div>
+          <div className="mt-6 flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => setEditRuleId(null)}>Cancel</Button>
+            <Button type="submit" disabled={editRule.loading}>{editRule.loading ? "Saving..." : "Save"}</Button>
+          </div>
         </form>
       </ModalDialog>
 
       <ModalDialog open={editScheduleOpen} onOpenChange={setEditScheduleOpen} title="Schedule Configuration" description={`Configure automated review schedule for ${repoId}`}>
-            <div className="mt-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-[var(--ds-color-text-secondary)]">Enable Schedule</label>
-                <Checkbox
-                  checked={scheduleEnabled}
-                  onChange={(s) => setScheduleEnabled(s === "on")}
-                />
-              </div>
-              <div>
-                <Label>
-                  Interval (minutes)
-                </Label>
-                <Input
-                  type="number"
-                  value={scheduleInterval}
-                  onChange={(e) => setScheduleInterval(e.target.value)}
-                  min="1"
-                />
-              </div>
-              {schedule?.lastRun && (
-                <div className="text-sm text-[var(--ds-color-text-primary)]">
-                  Last run: {new Date(schedule.lastRun).toLocaleString()}
-                </div>
-              )}
-              {schedule?.nextRun && (
-                <div className="text-sm text-[var(--ds-color-text-primary)]">
-                  Next run: {new Date(schedule.nextRun).toLocaleString()}
-                </div>
-              )}
-            </div>
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setEditScheduleOpen(false)}>Cancel</Button>
-              <Button onClick={handleSaveSchedule} disabled={updateSchedule.loading}>
-                {updateSchedule.loading ? "Saving..." : "Save"}
-              </Button>
-            </div>
+        <div className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-[var(--ds-color-text-secondary)]">Enable Schedule</label>
+            <Checkbox checked={scheduleEnabled} onChange={(s) => setScheduleEnabled(s === "on")} />
+          </div>
+          <div>
+            <Label>Interval (minutes)</Label>
+            <Input type="number" value={scheduleInterval} onChange={(e) => setScheduleInterval(e.target.value)} min="1" />
+          </div>
+          {schedule?.lastRun && (
+            <div className="text-sm text-[var(--ds-color-text-primary)]">Last run: {new Date(schedule.lastRun).toLocaleString()}</div>
+          )}
+          {schedule?.nextRun && (
+            <div className="text-sm text-[var(--ds-color-text-primary)]">Next run: {new Date(schedule.nextRun).toLocaleString()}</div>
+          )}
+        </div>
+        <div className="mt-6 flex justify-end gap-3">
+          <Button variant="outline" onClick={() => setEditScheduleOpen(false)}>Cancel</Button>
+          <Button onClick={handleSaveSchedule} disabled={updateSchedule.loading}>
+            {updateSchedule.loading ? "Saving..." : "Save"}
+          </Button>
+        </div>
       </ModalDialog>
 
       <ConfirmDialog
@@ -666,6 +587,34 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
         destructive
         onConfirm={handleDeleteRepo}
       />
-    </div>
+    </PageColumn>
+  );
+}
+
+function OpenPRsList({ owner, repo }: { owner: string; repo: string }) {
+  const { data: openPRs } = useRepoOpenPRs(owner, repo);
+  if (!openPRs || openPRs.length === 0) {
+    return <p style={{ fontSize: "var(--ds-text-sm)", color: "var(--ds-color-text-secondary)" }}>No open pull requests</p>;
+  }
+  return (
+    <FeedList>
+      {openPRs.map((pr) => (
+        <FeedItem
+          key={pr.number}
+          title={
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontFamily: "monospace", color: "var(--ds-color-interactive-accent)" }}>#{pr.number}</span>
+              <span>{pr.title}</span>
+            </span>
+          }
+          meta={`by ${pr.author} · ${new Date(pr.createdAt).toLocaleDateString()}`}
+          trailing={
+            <a href={pr.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--ds-color-text-tertiary)" }}>
+              <ExternalLink size={16} />
+            </a>
+          }
+        />
+      ))}
+    </FeedList>
   );
 }

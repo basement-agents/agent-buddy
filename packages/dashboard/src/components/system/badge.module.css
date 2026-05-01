@@ -5,8 +5,9 @@
   padding: var(--ds-badge-padding-y) var(--ds-badge-padding-x);
   background-color: var(--ds-badge-bg);
   color: var(--ds-badge-color);
+  font-size: 12px;
   border: var(--ds-badge-border, 1px solid transparent);
-  border-radius: var(--ds-badge-radius);
+  border-radius: var(--ds-radius-full);
   white-space: nowrap;
 }
 
@@ -16,31 +17,27 @@
   gap: var(--ds-spacing-3);
 }
 
-/* Sizes */
+/* Sizes — all pill-shaped; padding controls visual weight */
 .sizeSmall {
-  --ds-badge-padding-x: 6px;
+  --ds-badge-padding-x: 8px;
   --ds-badge-padding-y: 3px;
-  --ds-badge-radius: var(--ds-radius-2);
 }
 .sizeMedium {
-  --ds-badge-padding-x: 8px;
+  --ds-badge-padding-x: 10px;
   --ds-badge-padding-y: 4px;
-  --ds-badge-radius: var(--ds-radius-3);
 }
 .sizeLarge {
   --ds-badge-padding-x: 10px;
   --ds-badge-padding-y: 5px;
-  --ds-badge-radius: var(--ds-radius-3);
 }
 
 /* Shapes */
 .shapeCircle {
-  --ds-badge-radius: 100%;
   aspect-ratio: 1 / 1;
   padding: 0;
 }
 .shapeRounded {
-  --ds-badge-radius: var(--ds-radius-full);
+  /* already pill-shaped via base */
 }
 
 /* Variants */
@@ -50,9 +47,9 @@
   --ds-badge-border: 1px solid transparent;
 }
 .variantSecondary {
-  --ds-badge-bg: var(--ds-color-surface-secondary);
+  --ds-badge-bg: transparent;
   --ds-badge-color: var(--ds-color-text-secondary);
-  --ds-badge-border: 1px solid var(--ds-color-border-secondary);
+  --ds-badge-border: 1px solid var(--ds-color-border-primary);
 }
 .variantSuccess {
   --ds-badge-bg: var(--ds-color-feedback-success-subtle);
@@ -75,7 +72,7 @@
   --ds-badge-border: 1px solid var(--ds-color-feedback-info-border);
 }
 .variantOutline {
-  --ds-badge-bg: var(--ds-color-transparent);
+  --ds-badge-bg: transparent;
   --ds-badge-color: var(--ds-color-text-primary);
   --ds-badge-border: 1px solid var(--ds-color-border-primary);
 }

@@ -54,60 +54,96 @@ export function ReviewDetail({ review }: ReviewDetailProps) {
   const allFiles = new Set([...Object.keys(commentsByFile), ...filesWithDiff]);
 
   return (
-    <div className="space-y-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--ds-spacing-10)" }}>
+      {/* Summary */}
       <div>
-        <div className="mb-2 flex items-center gap-2">
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <Badge variant={stateVariant[review.state] || "default"}>
             {review.state.replace("_", " ")}
           </Badge>
-          <h4 className="text-sm font-semibold text-[var(--ds-color-text-secondary)]">Summary</h4>
+          <h4 style={{ fontSize: "var(--ds-text-sm)", fontWeight: 600, color: "var(--ds-color-text-secondary)", margin: 0 }}>Summary</h4>
         </div>
-        <div className="prose prose-sm dark:prose-invert max-w-none rounded-md border border-[var(--ds-color-border-secondary)] p-4">
+        <div
+          className="prose prose-sm dark:prose-invert max-w-none"
+          style={{ borderTop: "1px solid var(--ds-color-border-secondary)", borderBottom: "1px solid var(--ds-color-border-secondary)", padding: "var(--ds-spacing-8) 0" }}
+        >
           <ReactMarkdown>{review.summary}</ReactMarkdown>
         </div>
       </div>
 
+      {/* File changes */}
       {allFiles.size > 0 && (
         <div>
-          <h4 className="mb-3 text-sm font-semibold text-[var(--ds-color-text-secondary)]">
+          <h4 style={{ fontSize: "var(--ds-text-sm)", fontWeight: 600, color: "var(--ds-color-text-secondary)", marginBottom: "var(--ds-spacing-7)" }}>
             Changes ({allFiles.size} {allFiles.size === 1 ? "file" : "files"})
           </h4>
-          <div className="space-y-4">
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--ds-spacing-9)" }}>
             {Array.from(allFiles).map((filePath) => {
               const comments = commentsByFile[filePath] || [];
               const fileDiff = fileDiffs[filePath];
 
               return (
-                <div key={filePath} className="rounded-lg border border-[var(--ds-color-border-primary)]">
-                  <div className="border-b border-[var(--ds-color-border-secondary)] bg-[var(--ds-color-surface-secondary)] px-4 py-2">
-                    <h5 className="text-sm font-medium text-[var(--ds-color-text-secondary)]">{filePath}</h5>
-                    <p className="text-xs text-[var(--ds-color-text-primary)]">{comments.length} {comments.length === 1 ? "comment" : "comments"}</p>
+                <div key={filePath}>
+                  {/* File header — top hairline only */}
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    borderTop: "1px solid var(--ds-color-border-secondary)",
+                    borderBottom: "1px solid var(--ds-color-border-secondary)",
+                    background: "var(--ds-color-surface-app)",
+                    padding: "var(--ds-spacing-7) 0",
+                  }}>
+                    <h5 style={{
+                      fontSize: "var(--ds-text-sm)",
+                      fontWeight: 500,
+                      fontFamily: "monospace",
+                      color: "var(--ds-color-text-primary)",
+                      margin: 0,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}>{filePath}</h5>
+                    {comments.length > 0 && (
+                      <Badge variant="info" size="small">{comments.length} {comments.length === 1 ? "comment" : "comments"}</Badge>
+                    )}
                   </div>
 
+                  {/* Diff viewer — no card chrome, only hairlines */}
                   {fileDiff && (
-                    <div className="border-b border-[var(--ds-color-border-secondary)]">
+                    <div style={{ borderBottom: "1px solid var(--ds-color-border-secondary)" }}>
                       <DiffViewer diff={fileDiff} comments={comments} />
                     </div>
                   )}
 
+                  {/* Comments as nested thread items */}
                   {!fileDiff && comments.length > 0 && (
-                    <div className="divide-y divide-[var(--ds-color-border-secondary)]">
+                    <div>
                       {comments.map((comment, index) => (
-                        <div key={comment.id || index} className="p-4">
-                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <div
+                          key={comment.id || index}
+                          style={{
+                            borderLeft: "2px solid var(--ds-color-border-secondary)",
+                            paddingLeft: "var(--ds-spacing-9)",
+                            paddingTop: "var(--ds-spacing-8)",
+                            paddingBottom: "var(--ds-spacing-8)",
+                            borderBottom: index < comments.length - 1 ? "1px solid var(--ds-color-border-secondary)" : undefined,
+                          }}
+                        >
+                          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 8 }}>
                             <Badge variant={severityVariant[comment.severity] || "default"}>
                               {comment.severity}
                             </Badge>
                             {comment.line && (
-                              <span className="text-xs text-[var(--ds-color-text-primary)]">
+                              <span style={{ fontSize: "var(--ds-text-xs)", color: "var(--ds-color-text-secondary)" }}>
                                 Line {comment.startLine && comment.startLine !== comment.line ? `${comment.startLine}-${comment.line}` : comment.line}
                               </span>
                             )}
                             <Badge variant="info">{comment.category}</Badge>
                           </div>
-                          <p className="mb-2 text-sm text-[var(--ds-color-text-secondary)]">{comment.body}</p>
+                          <p style={{ fontSize: "var(--ds-text-sm)", color: "var(--ds-color-text-secondary)", margin: 0 }}>{comment.body}</p>
                           {comment.suggestion && (
-                            <pre className="mt-2 overflow-x-auto rounded-md bg-[var(--ds-color-surface-neutral)] p-3 text-xs">
+                            <pre style={{ marginTop: 8, overflowX: "auto", borderTop: "1px solid var(--ds-color-border-secondary)", borderBottom: "1px solid var(--ds-color-border-secondary)", padding: "var(--ds-spacing-7) 0", fontSize: "var(--ds-text-xs)", fontFamily: "monospace" }}>
                               <code>{comment.suggestion}</code>
                             </pre>
                           )}
@@ -122,26 +158,33 @@ export function ReviewDetail({ review }: ReviewDetailProps) {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-md border border-[var(--ds-color-border-primary)] bg-[var(--ds-color-surface-secondary)] px-4 py-3 text-xs text-[var(--ds-color-text-primary)]">
-        <div className="flex items-center gap-2">
-          <span className="font-medium">Model:</span>
-          <span>{review.metadata.llmModel}</span>
+      {/* Metadata — hairline-divided row */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+        gap: "var(--ds-spacing-8)",
+        borderTop: "1px solid var(--ds-color-border-secondary)",
+        paddingTop: "var(--ds-spacing-8)",
+      }}>
+        <div>
+          <p style={{ fontSize: "var(--ds-text-xs)", color: "var(--ds-color-text-tertiary)", marginBottom: 2 }}>Model</p>
+          <p style={{ fontSize: "var(--ds-text-sm)", fontWeight: 500, color: "var(--ds-color-text-primary)", margin: 0 }}>{review.metadata.llmModel}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="font-medium">Tokens:</span>
-          <span>{review.metadata.tokenUsage.totalTokens.toLocaleString()}</span>
+        <div>
+          <p style={{ fontSize: "var(--ds-text-xs)", color: "var(--ds-color-text-tertiary)", marginBottom: 2 }}>Tokens</p>
+          <p style={{ fontSize: "var(--ds-text-sm)", fontWeight: 500, color: "var(--ds-color-text-primary)", margin: 0 }}>{review.metadata.tokenUsage?.totalTokens?.toLocaleString() ?? "N/A"}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="font-medium">Type:</span>
-          <span>{review.metadata.reviewType}</span>
+        <div>
+          <p style={{ fontSize: "var(--ds-text-xs)", color: "var(--ds-color-text-tertiary)", marginBottom: 2 }}>Type</p>
+          <p style={{ fontSize: "var(--ds-text-sm)", fontWeight: 500, color: "var(--ds-color-text-primary)", margin: 0 }}>{review.metadata.reviewType}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="font-medium">Duration:</span>
-          <span>{(review.metadata.durationMs / 1000).toFixed(1)}s</span>
+        <div>
+          <p style={{ fontSize: "var(--ds-text-xs)", color: "var(--ds-color-text-tertiary)", marginBottom: 2 }}>Duration</p>
+          <p style={{ fontSize: "var(--ds-text-sm)", fontWeight: 500, color: "var(--ds-color-text-primary)", margin: 0 }}>{review.metadata.durationMs != null ? (review.metadata.durationMs / 1000).toFixed(1) + "s" : "N/A"}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="font-medium">Reviewed:</span>
-          <span>{new Date(review.reviewedAt).toLocaleString()}</span>
+        <div>
+          <p style={{ fontSize: "var(--ds-text-xs)", color: "var(--ds-color-text-tertiary)", marginBottom: 2 }}>Reviewed</p>
+          <p style={{ fontSize: "var(--ds-text-sm)", fontWeight: 500, color: "var(--ds-color-text-primary)", margin: 0 }}>{new Date(review.reviewedAt).toLocaleString()}</p>
         </div>
       </div>
     </div>

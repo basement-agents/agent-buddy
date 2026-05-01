@@ -1,13 +1,21 @@
-import { useState, useRef } from "react";
-import { useBuddies, useBuddy, useBuddyFeedback, useMutation, usePageParam, useNavigate } from "~/lib/hooks";
+import { useState, useRef, Suspense } from "react";
+import { ErrorBoundary } from "~/components/shared/error-boundary";
+import { useQueryClient } from "@tanstack/react-query";
+import { useBuddies, useBuddy, useBuddyFeedback, useMutation, usePageParam, useNavigate, queryKeys } from "~/lib/hooks";
 import { api } from "~/lib/api";
 import { Button } from "~/components/system/button";
-import { ErrorState } from "~/components/system/error-state";
 import { Input } from "~/components/system/input";
 import { Badge } from "~/components/system/badge";
 import { Label } from "~/components/system/label";
 import { NativeSelect } from "~/components/system/native-select";
 import { Users } from "lucide-react";
+import {
+  FeedList,
+  FeedItem,
+  FeedAvatar,
+  FeedHeader,
+} from "~/components/common/feed-list";
+import { PageColumn } from "~/components/common/page-column";
 import { Spinner } from "~/components/system/spinner";
 import { ConfirmDialog } from "~/components/system/confirm-dialog";
 import { Card, CardContent } from "~/components/system/card";
@@ -22,9 +30,13 @@ import { FeedbackSection } from "~/pages/buddies/_components/feedback-section";
 export function BuddiesPage() {
   const [page, setPage] = usePageParam();
   const limit = 20;
-  const { data, loading, error, refetch } = useBuddies({ page, limit });
-  const buddies = data?.data;
-  const totalPages = data?.totalPages ?? 1;
+  const queryClient = useQueryClient();
+  const { data } = useBuddies({ page, limit });
+  const buddies = data.data;
+  const totalPages = data.totalPages ?? 1;
+  const refetch = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.buddies({ page, limit }) });
+  };
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -74,36 +86,35 @@ export function BuddiesPage() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center py-8" role="status" aria-live="polite"><span className="sr-only">Loading buddies...</span><Spinner size="medium" /></div>;
-  if (error) return <ErrorState message={`Error: ${error}`} onRetry={refetch} />;
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ds-color-text-primary)]">Buddies</h1>
-          <p className="text-sm text-[var(--ds-color-text-primary)]">AI personas learned from reviewer history</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {!compareMode && (
-            <Button variant="outline" onClick={() => setCompareMode(true)}>Compare</Button>
-          )}
-          {compareMode && (
-            <>
-              <Button variant="ghost" onClick={() => { setCompareMode(false); setCompareBuddy1(""); setCompareBuddy2(""); }}>Cancel</Button>
-              <Button
-                disabled={!compareBuddy1 || !compareBuddy2 || compareBuddy1 === compareBuddy2}
-                onClick={() => setShowComparison(true)}
-              >
-                Compare Selected
-              </Button>
-            </>
-          )}
-          <Button onClick={() => setCreateOpen(true)}>Create Buddy</Button>
-          <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>Import</Button>
-        </div>
-      </div>
+    <PageColumn variant="wide">
+      <div className="space-y-6">
+      <FeedHeader
+        title="Buddies"
+        meta="AI personas learned from reviewer history"
+        action={
+          <div className="flex flex-wrap gap-2">
+            {!compareMode && (
+              <Button variant="outline" size="sm" onClick={() => setCompareMode(true)}>Compare</Button>
+            )}
+            {compareMode && (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => { setCompareMode(false); setCompareBuddy1(""); setCompareBuddy2(""); }}>Cancel</Button>
+                <Button
+                  size="sm"
+                  disabled={!compareBuddy1 || !compareBuddy2 || compareBuddy1 === compareBuddy2}
+                  onClick={() => setShowComparison(true)}
+                >
+                  Compare Selected
+                </Button>
+              </>
+            )}
+            <Button size="sm" onClick={() => setCreateOpen(true)}>Create Buddy</Button>
+            <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Import</Button>
+          </div>
+        }
+      />
 
       {compareMode && (
         <Card className="border-[var(--ds-color-feedback-info-border)] bg-[var(--ds-color-feedback-info-subtle)]">
@@ -112,10 +123,7 @@ export function BuddiesPage() {
             <div className="flex gap-4">
               <div className="flex-1">
                 <Label>First Buddy</Label>
-                <NativeSelect
-                  value={compareBuddy1}
-                  onChange={(e) => setCompareBuddy1(e.target.value)}
-                >
+                <NativeSelect value={compareBuddy1} onChange={(e) => setCompareBuddy1(e.target.value)}>
                   <option value="">Select buddy...</option>
                   {buddies?.map((b) => (
                     <option key={b.id} value={b.id}>{b.username}</option>
@@ -124,10 +132,7 @@ export function BuddiesPage() {
               </div>
               <div className="flex-1">
                 <Label>Second Buddy</Label>
-                <NativeSelect
-                  value={compareBuddy2}
-                  onChange={(e) => setCompareBuddy2(e.target.value)}
-                >
+                <NativeSelect value={compareBuddy2} onChange={(e) => setCompareBuddy2(e.target.value)}>
                   <option value="">Select buddy...</option>
                   {buddies?.filter((b) => b.id !== compareBuddy1).map((b) => (
                     <option key={b.id} value={b.id}>{b.username}</option>
@@ -142,40 +147,68 @@ export function BuddiesPage() {
       <Input placeholder="Search buddies..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
 
       {filtered?.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-[var(--ds-color-border-primary)] p-8 text-center">
+        <div
+          style={{
+            padding: "var(--ds-spacing-12) 0",
+            textAlign: "center",
+            borderTop: "1px solid var(--ds-color-border-secondary)",
+          }}
+        >
           {search ? (
-            <p className="text-[var(--ds-color-text-primary)]">No buddies match your search</p>
+            <p style={{ fontSize: "var(--ds-text-sm, 13px)", color: "var(--ds-color-text-primary)" }}>No buddies match your search</p>
           ) : (
             <>
-              <Users className="mx-auto mb-3 h-10 w-10 text-[var(--ds-color-text-secondary)]" />
-              <p className="mb-1 text-sm font-medium text-[var(--ds-color-text-secondary)]">No buddies created yet</p>
-              <p className="mb-4 text-xs text-[var(--ds-color-text-primary)]">Analyze a reviewer's history to create an AI persona</p>
+              <Users style={{ margin: "0 auto 12px", color: "var(--ds-color-text-secondary)" }} size={36} />
+              <p style={{ fontSize: "var(--ds-text-sm, 13px)", fontWeight: 500, color: "var(--ds-color-text-secondary)", marginBottom: 4 }}>
+                No buddies created yet
+              </p>
+              <p style={{ fontSize: "var(--ds-text-xs, 12px)", color: "var(--ds-color-text-primary)", marginBottom: 16 }}>
+                Analyze a reviewer's history to create an AI persona
+              </p>
               <Button onClick={() => setCreateOpen(true)}>Create Buddy</Button>
             </>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <FeedList>
           {filtered?.map((b) => (
-            <Card
+            <FeedItem
               key={b.id}
-              role="button"
-              tabIndex={0}
-              className="cursor-pointer transition-colors hover-hover:ring-1 hover-hover:ring-[var(--ds-color-border-primary)]"
+              leading={<FeedAvatar name={b.username} size="lg" />}
+              title={b.username}
+              meta={
+                <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <Badge variant="info">{b.sourceRepos.length} repos</Badge>
+                  <span>{b.sourceRepos.join(", ")}</span>
+                </span>
+              }
+              trailing={
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                  <span style={{ fontSize: "var(--ds-text-xs, 12px)", color: "var(--ds-color-text-muted)" }}>
+                    Updated {new Date(b.lastUpdated).toLocaleDateString()}
+                  </span>
+                  {compareMode ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!compareBuddy1) setCompareBuddy1(b.id);
+                        else if (!compareBuddy2 && b.id !== compareBuddy1) setCompareBuddy2(b.id);
+                      }}
+                    >
+                      {compareBuddy1 === b.id || compareBuddy2 === b.id ? "Selected" : "Select"}
+                    </Button>
+                  ) : null}
+                </div>
+              }
               onClick={() => navigate(`/buddies/${b.id}`)}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/buddies/${b.id}`); } }}
-            >
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-[var(--ds-color-text-primary)]">{b.username}</h3>
-                  <Badge variant="info">{b.sourceRepos.length} repos</Badge>
-                </div>
-                <p className="mt-2 text-sm text-[var(--ds-color-text-primary)]">{b.sourceRepos.join(", ")}</p>
-                <p className="mt-1 text-xs text-[var(--ds-color-text-tertiary)]">Updated {new Date(b.lastUpdated).toLocaleDateString()}</p>
-              </CardContent>
-            </Card>
+              role="button"
+              tabIndex={0}
+            />
           ))}
-        </div>
+        </FeedList>
       )}
 
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
@@ -184,18 +217,46 @@ export function BuddiesPage() {
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/50" />
           <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 max-h-[80vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border border-[var(--ds-color-border-primary)] bg-[var(--ds-color-surface-card)] p-4 shadow-xl sm:p-6 mx-4">
-            {selectedId && <BuddyDetailPanel id={selectedId} onClose={() => setSelectedId(null)} onDelete={() => { setSelectedId(null); setDeleteId(selectedId); }} />}
+            {selectedId && (
+              <ErrorBoundary>
+                <Suspense
+                  fallback={
+                    <div className="flex items-center justify-center py-8" role="status" aria-live="polite">
+                      <span className="sr-only">Loading buddy...</span>
+                      <Spinner size="medium" />
+                    </div>
+                  }
+                >
+                  <BuddyDetailPanel id={selectedId} onClose={() => setSelectedId(null)} onDelete={() => { setSelectedId(null); setDeleteId(selectedId); }} />
+                </Suspense>
+              </ErrorBoundary>
+            )}
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
 
       {showComparison && compareBuddy1 && compareBuddy2 && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--ds-color-surface-secondary)] p-6">
-          <BuddyComparison
-            buddyId1={compareBuddy1}
-            buddyId2={compareBuddy2}
-            onClose={() => { setShowComparison(false); setCompareMode(false); setCompareBuddy1(""); setCompareBuddy2(""); }}
-          />
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-[var(--ds-color-surface-secondary)] p-6"
+          onKeyDown={(e) => { if (e.key === "Escape") { setShowComparison(false); setCompareMode(false); setCompareBuddy1(""); setCompareBuddy2(""); } }}
+          tabIndex={-1}
+        >
+          <ErrorBoundary>
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center py-8" role="status" aria-live="polite">
+                  <span className="sr-only">Loading comparison...</span>
+                  <Spinner size="medium" />
+                </div>
+              }
+            >
+              <BuddyComparison
+                buddyId1={compareBuddy1}
+                buddyId2={compareBuddy2}
+                onClose={() => { setShowComparison(false); setCompareMode(false); setCompareBuddy1(""); setCompareBuddy2(""); }}
+              />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       )}
 
@@ -210,16 +271,16 @@ export function BuddiesPage() {
         destructive
         onConfirm={handleDelete}
       />
-    </div>
+      </div>
+    </PageColumn>
   );
 }
 
 function BuddyDetailPanel({ id, onClose, onDelete }: { id: string; onClose: () => void; onDelete: () => void }) {
-  const { data: profile, loading } = useBuddy(id);
-  const { data: feedback, loading: feedbackLoading } = useBuddyFeedback(id);
+  const { data: profile } = useBuddy(id);
+  const { data: feedback } = useBuddyFeedback(id);
   useToast();
 
-  if (loading) return <div className="flex items-center justify-center py-8" role="status" aria-live="polite"><span className="sr-only">Loading buddy...</span><Spinner size="medium" /></div>;
   if (!profile) return <div>Buddy not found</div>;
 
   return (
@@ -251,7 +312,7 @@ function BuddyDetailPanel({ id, onClose, onDelete }: { id: string; onClose: () =
           </div>
         </div>
 
-        <FeedbackSection feedback={feedback ?? null} loading={feedbackLoading} limit={5} />
+        <FeedbackSection feedback={feedback ?? null} limit={5} />
 
         <p className="text-xs text-[var(--ds-color-text-tertiary)]">
           Source repos: {profile.sourceRepos.join(", ")}

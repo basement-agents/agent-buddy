@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { ReviewJob } from "../jobs/state.js";
 import { reviewJobs, createJobBase } from "../jobs/state.js";
 import { processReviewJob } from "../jobs/review.js";
+import { enqueueJob } from "../jobs/queue.js";
 import { saveJob } from "../jobs/persistence.js";
 import { getIsShuttingDown } from "../index.js";
 import { apiError } from "../lib/api-response.js";
@@ -243,11 +244,9 @@ export function createWebhooksRoutes(): Hono {
 
         recentEvents.set(eventKey, now);
 
-        if (recentEvents.size > 1000) {
-          const cutoff = now - DUPLICATE_WINDOW_MS;
-          for (const [key, timestamp] of recentEvents) {
-            if (timestamp < cutoff) recentEvents.delete(key);
-          }
+        const cutoff = now - DUPLICATE_WINDOW_MS;
+        for (const [key, timestamp] of recentEvents) {
+          if (timestamp < cutoff) recentEvents.delete(key);
         }
       }
 
@@ -280,9 +279,15 @@ export function createWebhooksRoutes(): Hono {
           reviewJobs.set(job.id, job);
           saveJob(job).catch((err) => logger.error("Failed to persist new job", { jobId: job.id, error: getErrorMessage(err) }));
 
-          processReviewJob(job.id, repoId, prNumber, buddyId).catch((err) => {
-            logger.error("Webhook review job failed", { jobId: job.id, repoId, prNumber, buddyId, error: getErrorMessage(err) });
-          });
+          enqueueJob(
+            job.id,
+            "review",
+            () =>
+              processReviewJob(job.id, repoId, prNumber, buddyId).catch((err) => {
+                logger.error("Webhook review job failed", { jobId: job.id, repoId, prNumber, buddyId, error: getErrorMessage(err) });
+              }),
+            () => reviewJobs.get(job.id)?.status === "cancelled",
+          );
 
           jobIds.push(job.id);
         }

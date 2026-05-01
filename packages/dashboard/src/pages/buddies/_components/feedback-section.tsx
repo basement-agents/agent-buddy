@@ -1,15 +1,7 @@
 import { Badge } from "~/components/system/badge";
-import { Spinner } from "~/components/system/spinner";
 import type { BuddyFeedback } from "~/lib/api";
 
-export function FeedbackSection({ feedback, loading, limit }: { feedback: BuddyFeedback | null; loading: boolean; limit: number }) {
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Spinner size="medium" />
-      </div>
-    );
-  }
+export function FeedbackSection({ feedback, limit }: { feedback: BuddyFeedback | null; limit: number }) {
   if (!feedback) return <p className="text-sm text-[var(--ds-color-text-primary)]">No feedback data available</p>;
   return (
     <div className="space-y-4">

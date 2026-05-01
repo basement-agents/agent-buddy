@@ -1,12 +1,23 @@
 import type { BuddyId, ReviewSeverity } from "../buddy/types.js";
 
-export type LLMProviderType = "anthropic" | "openrouter" | "openai";
+export type LLMProviderType = "anthropic" | "openrouter" | "openai" | "cli";
+
+export type CliParseFormat = "single-json" | "jsonl-opencode" | "jsonl-codex";
 
 export interface LLMProviderConfig {
   provider: LLMProviderType;
   apiKey?: string;
   baseUrl?: string;
   defaultModel?: string;
+  command?: string;
+  args?: string[];
+  interactiveShell?: boolean;
+  parseFormat?: CliParseFormat;
+  responsePath?: string;
+  usageInputPath?: string;
+  usageOutputPath?: string;
+  modelPath?: string;
+  timeoutMs?: number;
 }
 
 export interface AgentBuddyConfig {

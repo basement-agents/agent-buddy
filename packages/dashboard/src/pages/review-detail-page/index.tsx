@@ -1,33 +1,26 @@
 import { useState } from "react";
-import { cn } from "~/lib/utils";
 import { useReview, useNavigate } from "~/lib/hooks";
 import { Button } from "~/components/system/button";
 import { ErrorState } from "~/components/system/error-state";
+import { Badge } from "~/components/system/badge";
 import { Breadcrumb } from "~/components/system/breadcrumb";
 import { ReviewDetail } from "./_components/review-detail";
-import { Spinner } from "~/components/system/spinner";
 import { api } from "~/lib/api";
 import { useToast } from "~/components/system/toast";
+import { PageColumn } from "~/components/common/page-column";
+import { FeedAvatar } from "~/components/common/feed-list";
+import { stateVariant } from "~/lib/constants";
 
 export function ReviewDetailPage({ reviewIndex }: { reviewIndex: string }) {
-  const { data: review, loading, error } = useReview(reviewIndex);
+  const { data: review } = useReview(reviewIndex);
   const [feedback, setFeedback] = useState<"helpful" | "not-helpful" | null>(null);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  if (loading) {
+  if (!review) {
     return (
-      <div className="flex items-center justify-center py-8" role="status" aria-live="polite">
-        <span className="sr-only">Loading review...</span>
-        <Spinner size="medium" />
-      </div>
-    );
-  }
-
-  if (error || !review) {
-    return (
-      <ErrorState message={error || "Review not found"} onRetry={() => navigate("/reviews")} retryLabel="Back to Reviews" />
+      <ErrorState message={"Review not found"} onRetry={() => navigate("/reviews")} retryLabel="Back to Reviews" />
     );
   }
 
@@ -52,22 +45,56 @@ export function ReviewDetailPage({ reviewIndex }: { reviewIndex: string }) {
   };
 
   return (
-    <div className="space-y-6">
+    <PageColumn variant="feed">
       <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Reviews", href: "/reviews" }, { label: `Review #${review.metadata.prNumber}` }]} />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ds-color-text-primary)]">
+      {/* Post-style hero */}
+      <div style={{
+        display: "flex",
+        gap: "var(--ds-spacing-8)",
+        alignItems: "flex-start",
+        paddingTop: "var(--ds-spacing-9)",
+        paddingBottom: "var(--ds-spacing-9)",
+        borderBottom: "1px solid var(--ds-color-border-secondary)",
+      }}>
+        {review.buddyId && (
+          <div style={{ flexShrink: 0 }}>
+            <FeedAvatar name={review.buddyId} size="md" />
+          </div>
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 style={{
+            fontSize: "var(--ds-text-lg, 17px)",
+            fontWeight: 700,
+            color: "var(--ds-color-text-primary)",
+            margin: 0,
+            lineHeight: "var(--ds-line-tight, 1.25)",
+          }}>
             {review.metadata.owner}/{review.metadata.repo} #{review.metadata.prNumber}
           </h1>
-          <p className="text-sm text-[var(--ds-color-text-primary)]">
-            {review.buddyId ? `by ${review.buddyId}` : "No buddy assigned"} &middot;{" "}
-            {new Date(review.reviewedAt).toLocaleString()}
-          </p>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--ds-spacing-7)",
+            marginTop: 6,
+            flexWrap: "wrap",
+          }}>
+            <span style={{ fontSize: "var(--ds-text-sm, 13px)", color: "var(--ds-color-text-secondary)" }}>
+              {review.buddyId ? `by ${review.buddyId}` : "No buddy assigned"}
+            </span>
+            <span style={{ fontSize: "var(--ds-text-sm, 13px)", color: "var(--ds-color-text-tertiary)" }}>
+              {new Date(review.reviewedAt).toLocaleString()}
+            </span>
+            <Badge variant={stateVariant[review.state] || "default"}>
+              {review.state.replace("_", " ")}
+            </Badge>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Feedback + nav actions */}
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--ds-spacing-7)", flexShrink: 0, flexWrap: "wrap" }}>
           {review.buddyId && (
-            <div className="flex items-center gap-1 rounded-md border border-[var(--ds-color-border-primary)] p-1">
+            <div style={{ display: "flex", alignItems: "center", gap: 4, border: "1px solid var(--ds-color-border-primary)", borderRadius: "var(--ds-radius-3)", padding: 4 }}>
               <Button
                 disabled={!!feedback || submittingFeedback}
                 onClick={() => handleFeedback(true)}
@@ -92,7 +119,9 @@ export function ReviewDetailPage({ reviewIndex }: { reviewIndex: string }) {
         </div>
       </div>
 
-      <ReviewDetail review={review} />
-    </div>
+      <div style={{ marginTop: "var(--ds-spacing-9)" }}>
+        <ReviewDetail review={review} />
+      </div>
+    </PageColumn>
   );
 }

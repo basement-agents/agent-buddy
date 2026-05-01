@@ -6,3 +6,4 @@ export { retryWithBackoff, calculateBackoffDelay, sleep, DEFAULT_BASE_DELAY_MS }
 export type { RetryOptions } from "./retry.js";
 export { noopReporter, withHeartbeat, bandReporter } from "./progress.js";
 export type { ProgressReporter, ProgressUpdate, HeartbeatOptions } from "./progress.js";
+export { createConcurrencyLimiter } from "./concurrency.js";

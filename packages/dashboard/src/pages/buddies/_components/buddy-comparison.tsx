@@ -92,22 +92,8 @@ function BuddyProfileCard({ profile }: { profile: NonNullable<ReturnType<typeof 
 }
 
 export function BuddyComparison({ buddyId1, buddyId2, onClose }: BuddyComparisonProps) {
-  const { data: profile1, loading: loading1 } = useBuddy(buddyId1);
-  const { data: profile2, loading: loading2 } = useBuddy(buddyId2);
-
-  if (loading1 || loading2) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-[var(--ds-color-text-primary)]">Comparing Buddies</h2>
-          <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
-        </div>
-        <div className="flex items-center justify-center py-8">
-          <Spinner size="medium" />
-        </div>
-      </div>
-    );
-  }
+  const { data: profile1 } = useBuddy(buddyId1);
+  const { data: profile2 } = useBuddy(buddyId2);
 
   if (!profile1 || !profile2) {
     return (

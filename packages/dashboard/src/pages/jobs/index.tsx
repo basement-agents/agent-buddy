@@ -1,24 +1,24 @@
 import { useState, useEffect, useCallback } from "react";
 import { api, type JobListItem } from "~/lib/api";
 import { useJobProgress, usePageParam } from "~/lib/hooks";
-import { Card, CardContent } from "~/components/system/card";
 import { Badge } from "~/components/system/badge";
-import { Spinner } from "~/components/system/spinner";
 import { Pagination } from "~/components/system/pagination";
-import { ProgressBar } from "~/components/shared/progress-bar";
+import { Spinner } from "~/components/system/spinner";
 import { useToast } from "~/components/system/toast";
 import { Select } from "~/components/system/select";
 import { Button } from "~/components/system/button";
 import { ModalDialog } from "~/components/system/modal-dialog";
+import { PageColumn } from "~/components/common/page-column";
 
 type JobStatus = JobListItem["status"];
 
-const STATUS_COLORS: Record<JobStatus, string> = {
-  queued: "bg-[var(--ds-color-feedback-warning-subtle)] text-[var(--ds-color-feedback-warning-text)]",
-  running: "bg-[var(--ds-color-feedback-info-subtle)] text-[var(--ds-color-feedback-info-text)]",
-  completed: "bg-[var(--ds-color-feedback-success-subtle)] text-[var(--ds-color-feedback-success-text)]",
-  failed: "bg-[var(--ds-color-feedback-danger-subtle)] text-[var(--ds-color-feedback-danger-text)]",
-  cancelled: "bg-[var(--ds-color-surface-neutral)] text-[var(--ds-color-text-secondary)]",
+/** Maps job status to Badge className overrides for feedback tints (outline pill base). */
+const STATUS_BADGE_CLASS: Record<JobStatus, string> = {
+  queued: "bg-[var(--ds-color-feedback-warning-subtle)] text-[var(--ds-color-feedback-warning-text)] border-[var(--ds-color-feedback-warning-subtle)]",
+  running: "bg-[var(--ds-color-feedback-info-subtle)] text-[var(--ds-color-feedback-info-text)] border-[var(--ds-color-feedback-info-subtle)]",
+  completed: "bg-[var(--ds-color-feedback-success-subtle)] text-[var(--ds-color-feedback-success-text)] border-[var(--ds-color-feedback-success-subtle)]",
+  failed: "bg-[var(--ds-color-feedback-danger-subtle)] text-[var(--ds-color-feedback-danger-text)] border-[var(--ds-color-feedback-danger-subtle)]",
+  cancelled: "bg-transparent text-[var(--ds-color-text-secondary)] border-[var(--ds-color-border-primary)]",
 };
 
 function formatTime(dateStr: string): string {
@@ -52,7 +52,79 @@ function buildStatusText(parts: { subStep?: string; model?: string; elapsedMs?: 
   return segments.length > 0 ? segments.join(" · ") : undefined;
 }
 
-function JobRow({ job, progress, isConnected, onCancel, onShowProgress }: { job: JobListItem; progress: ReturnType<typeof useJobProgress>["progress"]; isConnected: boolean; onCancel: (id: string) => void; onShowProgress: (job: JobListItem, statusText: string) => void }) {
+/** Thin 2px progress bar: track in border-secondary, fill in text-primary. */
+function InlineProgressBar({ percentage, label, statusText, onExpand }: {
+  percentage: number;
+  label?: string;
+  statusText?: string;
+  onExpand?: () => void;
+}) {
+  const pct = Math.min(100, Math.max(0, percentage));
+  return (
+    <div
+      className="w-full cursor-pointer"
+      role="button"
+      tabIndex={0}
+      onClick={onExpand}
+      onKeyDown={(e) => { if (e.key === "Enter") onExpand?.(); }}
+    >
+      {label && (
+        <span
+          className="block mb-1 text-[13px] text-[var(--ds-color-text-secondary)] truncate"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {label}
+        </span>
+      )}
+      <div className="flex items-center gap-2">
+        <div
+          className="flex-1 relative overflow-hidden"
+          style={{
+            height: "2px",
+            borderRadius: "var(--ds-radius-full)",
+            backgroundColor: "var(--ds-color-border-secondary)",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: `${pct}%`,
+              borderRadius: "var(--ds-radius-full)",
+              backgroundColor: "var(--ds-color-text-primary)",
+              transition: "width 0.3s ease-out",
+            }}
+          />
+        </div>
+        <span
+          className="text-[13px] text-[var(--ds-color-text-tertiary)] shrink-0"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {Math.round(pct)}%
+        </span>
+      </div>
+      {statusText && (
+        <span className="block mt-1 text-[13px] text-[var(--ds-color-text-tertiary)] truncate">
+          {statusText.length > 40 ? statusText.slice(0, 40) + "…" : statusText}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function JobRow({
+  job,
+  progress,
+  isConnected,
+  onCancel,
+  onShowProgress,
+}: {
+  job: JobListItem;
+  progress: ReturnType<typeof useJobProgress>["progress"];
+  isConnected: boolean;
+  onCancel: (id: string) => void;
+  onShowProgress: (job: JobListItem, statusText: string) => void;
+}) {
   const liveProgress = progress?.id === job.id ? progress : null;
   const displayPct = liveProgress?.progressPercentage ?? job.progressPercentage ?? 0;
   const displayStage = liveProgress?.progressStage ?? job.progressStage;
@@ -64,48 +136,84 @@ function JobRow({ job, progress, isConnected, onCancel, onShowProgress }: { job:
   const isActive = job.status === "running" || job.status === "queued";
 
   return (
-    <tr className="border-b border-[var(--ds-color-border-primary)] hover-hover:bg-[var(--ds-color-surface-secondary)]">
-      <td className="px-4 py-3">
+    <tr
+      className="border-b border-[var(--ds-color-border-secondary)]"
+      style={{ borderTop: "none", borderLeft: "none", borderRight: "none" }}
+    >
+      {/* Job */}
+      <td className="px-3 py-3 align-middle">
         <div className="flex items-center gap-2">
-          <Badge className="text-xs border border-[var(--ds-color-border-primary)] bg-transparent">
+          <Badge variant="outline" className="text-[13px]">
             {job.type}
           </Badge>
-          <span className="font-mono text-xs text-[var(--ds-color-text-primary)] truncate max-w-[200px]" title={job.id}>
-            {job.id.slice(0, 20)}...
+          <span
+            className="font-mono text-[13px] text-[var(--ds-color-text-primary)] truncate max-w-[180px]"
+            style={{ fontVariantNumeric: "tabular-nums" }}
+            title={job.id}
+          >
+            {job.id.slice(0, 20)}…
           </span>
+          {isConnected && liveProgress && (
+            <span className="text-[10px] text-[var(--ds-color-feedback-info)]">●</span>
+          )}
         </div>
       </td>
-      <td className="px-4 py-3">
-        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[job.status]}`}>
+
+      {/* Status */}
+      <td className="px-3 py-3 align-middle">
+        <Badge
+          variant="outline"
+          shape="rounded"
+          className={STATUS_BADGE_CLASS[job.status]}
+          style={{ fontSize: 12 }}
+        >
           {job.status}
-          {isConnected && liveProgress && <span className="ml-1">●</span>}
-        </span>
+        </Badge>
       </td>
-      <td className="px-4 py-3 text-sm">{job.repoId}</td>
-      <td className="px-4 py-3 text-sm text-[var(--ds-color-text-primary)]">
+
+      {/* Repo */}
+      <td className="px-3 py-3 align-middle text-[13px] text-[var(--ds-color-text-primary)]">
+        {job.repoId}
+      </td>
+
+      {/* Target */}
+      <td
+        className="px-3 py-3 align-middle text-[13px] text-[var(--ds-color-text-primary)]"
+        style={{ fontVariantNumeric: "tabular-nums" }}
+      >
         {job.type === "review" && job.prNumber ? `#${job.prNumber}` : job.buddyId || "—"}
       </td>
-      <td className="px-4 py-3 w-48">
+
+      {/* Progress */}
+      <td className="px-3 py-3 align-middle w-52">
         {isActive ? (
-          <div
-            className="cursor-pointer"
-            role="button"
-            tabIndex={0}
-            onClick={() => onShowProgress(job, statusText ?? `${displayStage ?? job.status} · ${displayPct}%`)}
-            onKeyDown={(e) => { if (e.key === "Enter") onShowProgress(job, statusText ?? `${displayStage ?? job.status} · ${displayPct}%`); }}
-          >
-            <ProgressBar percentage={displayPct} label={displayStage} statusText={statusText && statusText.length > 40 ? statusText.slice(0, 40) + "..." : statusText} />
-          </div>
+          <InlineProgressBar
+            percentage={displayPct}
+            label={displayStage}
+            statusText={statusText}
+            onExpand={() => onShowProgress(job, statusText ?? `${displayStage ?? job.status} · ${displayPct}%`)}
+          />
         ) : job.status === "completed" ? (
-          <span className="text-xs text-[var(--ds-color-feedback-success)]">Done</span>
+          <span className="text-[13px] text-[var(--ds-color-feedback-success)]">Done</span>
         ) : job.status === "cancelled" ? (
-          <span className="text-xs text-[var(--ds-color-text-tertiary)]">Cancelled</span>
+          <span className="text-[13px] text-[var(--ds-color-text-tertiary)]">Cancelled</span>
         ) : job.status === "failed" ? (
-          <span className="text-xs text-[var(--ds-color-feedback-danger)] truncate" title={job.error}>{job.error || "Failed"}</span>
+          <span className="text-[13px] text-[var(--ds-color-feedback-danger)] truncate" title={job.error}>
+            {job.error || "Failed"}
+          </span>
         ) : null}
       </td>
-      <td className="px-4 py-3 text-xs text-[var(--ds-color-text-tertiary)]">{formatTime(job.createdAt)}</td>
-      <td className="px-4 py-3">
+
+      {/* Created */}
+      <td
+        className="px-3 py-3 align-middle text-[13px] text-[var(--ds-color-text-tertiary)] text-right"
+        style={{ fontVariantNumeric: "tabular-nums" }}
+      >
+        {formatTime(job.createdAt)}
+      </td>
+
+      {/* Actions */}
+      <td className="px-3 py-3 align-middle text-right">
         {(job.status === "queued" || job.status === "running") && (
           <Button variant="ghost" size="x-small" onClick={() => onCancel(job.id)}>
             Cancel
@@ -176,102 +284,176 @@ export function JobsPage() {
   }, {});
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Jobs</h1>
-          <p className="text-[var(--ds-color-text-primary)] text-sm mt-1">Monitor review and analysis jobs</p>
+    <PageColumn variant="wide">
+      <div className="space-y-6">
+        {/* Page header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Jobs</h1>
+            <p className="text-[var(--ds-color-text-tertiary)] text-[13px] mt-1">
+              Monitor review and analysis jobs
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Badge variant="outline">{total} total</Badge>
+            <Badge
+              variant="outline"
+              shape="rounded"
+              className="bg-[var(--ds-color-feedback-warning-subtle)] text-[var(--ds-color-feedback-warning-text)] border-[var(--ds-color-feedback-warning-subtle)]"
+            >
+              {statusCounts["queued"] || 0} queued
+            </Badge>
+            <Badge
+              variant="outline"
+              shape="rounded"
+              className="bg-[var(--ds-color-feedback-info-subtle)] text-[var(--ds-color-feedback-info-text)] border-[var(--ds-color-feedback-info-subtle)]"
+            >
+              {statusCounts["running"] || 0} running
+            </Badge>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Badge>{total} total</Badge>
-          <Badge className="bg-[var(--ds-color-feedback-warning-subtle)] text-[var(--ds-color-feedback-warning-text)]">{statusCounts["queued"] || 0} queued</Badge>
-          <Badge className="bg-[var(--ds-color-feedback-info-subtle)] text-[var(--ds-color-feedback-info-text)]">{statusCounts["running"] || 0} running</Badge>
+
+        {/* Filters */}
+        <div className="flex gap-3">
+          <Select
+            size="small"
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value as JobStatus | "all"); setPage(1); }}
+            aria-label="Filter by job status"
+          >
+            <option value="all">All statuses</option>
+            <option value="queued">Queued</option>
+            <option value="running">Running</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+          </Select>
+          <Select
+            size="small"
+            value={repoFilter}
+            onChange={(e) => { setRepoFilter(e.target.value); setPage(1); }}
+            aria-label="Filter by repository"
+          >
+            <option value="all">All repos</option>
+            {uniqueRepos.map((repo) => (
+              <option key={repo} value={repo}>{repo}</option>
+            ))}
+          </Select>
         </div>
-      </div>
 
-      <div className="flex gap-3">
-        <Select
-          size="small"
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value as JobStatus | "all"); setPage(1); }}
-          aria-label="Filter by job status"
-        >
-          <option value="all">All statuses</option>
-          <option value="queued">Queued</option>
-          <option value="running">Running</option>
-          <option value="completed">Completed</option>
-          <option value="failed">Failed</option>
-        </Select>
-        <Select
-          size="small"
-          value={repoFilter}
-          onChange={(e) => { setRepoFilter(e.target.value); setPage(1); }}
-          aria-label="Filter by repository"
-        >
-          <option value="all">All repos</option>
-          {uniqueRepos.map((repo) => (
-            <option key={repo} value={repo}>{repo}</option>
-          ))}
-        </Select>
-      </div>
-
-      <Card>
-        <CardContent className="p-0">
+        {/* Table — no card wrapper, only horizontal hairlines */}
+        <div className="overflow-x-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-8" role="status" aria-live="polite"><span className="sr-only">Loading jobs...</span><Spinner size="medium" /></div>
+            <div className="flex items-center justify-center py-8" role="status" aria-live="polite">
+              <span className="sr-only">Loading jobs...</span>
+              <Spinner size="medium" />
+            </div>
           ) : error ? (
-            <div role="alert" className="p-8 text-center text-[var(--ds-color-feedback-danger)]">{error}</div>
+            <div role="alert" className="py-8 text-center text-[var(--ds-color-feedback-danger)]">
+              {error}
+            </div>
           ) : jobs.length === 0 ? (
-            <div className="p-8 text-center text-[var(--ds-color-text-primary)]">No jobs found</div>
+            <div className="py-8 text-center text-[var(--ds-color-text-primary)]">No jobs found</div>
           ) : (
-            <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]" style={{ tableLayout: "fixed" }}>
+            <table className="w-full min-w-[700px]" style={{ tableLayout: "fixed", borderCollapse: "collapse" }}>
               <thead>
-                <tr className="border-b border-[var(--ds-color-border-primary)] text-left text-xs text-[var(--ds-color-text-primary)] uppercase tracking-wider">
-                  <th className="px-4 py-3">Job</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Repo</th>
-                  <th className="px-4 py-3">Target</th>
-                  <th className="px-4 py-3">Progress</th>
-                  <th className="px-4 py-3">Created</th>
-                  <th className="px-4 py-3"></th>
+                {/* Header: 13px, tertiary color, no background, only bottom hairline */}
+                <tr
+                  className="text-left border-b border-[var(--ds-color-border-primary)]"
+                  style={{ borderTop: "none", borderLeft: "none", borderRight: "none" }}
+                >
+                  <th
+                    className="px-3 py-2 font-medium"
+                    style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
+                  >
+                    job
+                  </th>
+                  <th
+                    className="px-3 py-2 font-medium"
+                    style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
+                  >
+                    status
+                  </th>
+                  <th
+                    className="px-3 py-2 font-medium"
+                    style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
+                  >
+                    repo
+                  </th>
+                  <th
+                    className="px-3 py-2 font-medium"
+                    style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
+                  >
+                    target
+                  </th>
+                  <th
+                    className="px-3 py-2 font-medium"
+                    style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
+                  >
+                    progress
+                  </th>
+                  <th
+                    className="px-3 py-2 font-medium text-right"
+                    style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)", fontVariantNumeric: "tabular-nums" }}
+                  >
+                    created
+                  </th>
+                  <th
+                    className="px-3 py-2"
+                    style={{ fontSize: 13 }}
+                  />
                 </tr>
               </thead>
               <tbody>
                 {jobs.map((job) => (
-                  <JobRow key={job.id} job={job} progress={progress} isConnected={isConnected} onCancel={cancelJob} onShowProgress={(j, st) => setProgressDetail({ job: j, statusText: st })} />
+                  <JobRow
+                    key={job.id}
+                    job={job}
+                    progress={progress}
+                    isConnected={isConnected}
+                    onCancel={cancelJob}
+                    onShowProgress={(j, st) => setProgressDetail({ job: j, statusText: st })}
+                  />
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+
+        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+
+        {/* Progress detail modal — keeps existing Dialog usage; 16px radius is handled by dialog module CSS (Stream C) */}
+        <ModalDialog
+          open={!!progressDetail}
+          onOpenChange={(open) => !open && setProgressDetail(null)}
+          title="Progress Detail"
+          description={progressDetail?.job.id}
+        >
+          {progressDetail && (
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center gap-2 text-[13px]">
+                <Badge variant="outline" className="text-[13px]">{progressDetail.job.type}</Badge>
+                <span className="text-[var(--ds-color-text-secondary)]">{progressDetail.job.repoId}</span>
+                {progressDetail.job.prNumber && (
+                  <span
+                    className="text-[var(--ds-color-text-tertiary)]"
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    #{progressDetail.job.prNumber}
+                  </span>
+                )}
+              </div>
+              <div
+                className="rounded-[var(--ds-radius-4)] border border-[var(--ds-color-border-secondary)] p-3 text-[13px] text-[var(--ds-color-text-primary)] break-all"
+              >
+                {progressDetail.statusText}
+              </div>
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setProgressDetail(null)}>Close</Button>
+              </div>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-
-      <ModalDialog
-        open={!!progressDetail}
-        onOpenChange={(open) => !open && setProgressDetail(null)}
-        title="Progress Detail"
-        description={progressDetail?.job.id}
-      >
-        {progressDetail && (
-          <div className="mt-4 space-y-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Badge className="text-xs border border-[var(--ds-color-border-primary)] bg-transparent">{progressDetail.job.type}</Badge>
-              <span className="text-[var(--ds-color-text-secondary)]">{progressDetail.job.repoId}</span>
-              {progressDetail.job.prNumber && <span className="text-[var(--ds-color-text-tertiary)]">#{progressDetail.job.prNumber}</span>}
-            </div>
-            <div className="rounded-md border border-[var(--ds-color-border-secondary)] p-3 text-sm text-[var(--ds-color-text-primary)] break-all">
-              {progressDetail.statusText}
-            </div>
-            <div className="flex justify-end">
-              <Button variant="outline" onClick={() => setProgressDetail(null)}>Close</Button>
-            </div>
-          </div>
-        )}
-      </ModalDialog>
-    </div>
+        </ModalDialog>
+      </div>
+    </PageColumn>
   );
 }

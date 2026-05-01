@@ -11,6 +11,14 @@ vi.mock("../routes/webhooks.js", () => ({
   webhookValidationFailures: { event_type: 0, signature: 0, payload: 0 },
 }));
 
+vi.mock("@agent-buddy/core", async (importOriginal) => {
+  const actual = await importOriginal<object>();
+  return {
+    ...actual,
+    githubCache: { stats: () => ({ size: 0, maxSize: 100, hits: 0, misses: 0, hitRate: 0, evictions: 0 }) },
+  };
+});
+
 import { reviewHistory } from "../jobs/state.js";
 import { webhookValidationFailures } from "../routes/webhooks.js";
 import { createMetricsRoutes } from "../routes/metrics.js";

@@ -17,13 +17,13 @@
   color: var(--ds-color-text-secondary);
   background-color: transparent;
   border: 1px solid transparent;
-  border-radius: var(--ds-radius-3);
+  border-radius: var(--ds-radius-full);
   cursor: pointer;
-  transition: background-color var(--ds-duration-fast) var(--ds-easing-default);
+  transition: background-color var(--ds-duration-fast) ease-out;
 }
 
 .button:hover:not(:disabled):not([data-active]) {
-  background-color: var(--ds-color-surface-secondary);
+  background-color: var(--ds-color-interactive-secondary);
 }
 
 .button:focus-visible {
@@ -61,7 +61,7 @@
   --ds-pagination-font: 12px;
 }
 .sizeMedium {
-  --ds-pagination-size: 32px;
+  --ds-pagination-size: 36px;
   --ds-pagination-font: 14px;
 }
 .sizeLarge {

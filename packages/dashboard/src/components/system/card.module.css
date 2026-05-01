@@ -1,19 +1,15 @@
 .card {
   display: flex;
   flex-direction: column;
-  background-color: var(--ds-color-surface-primary);
-  border: 1px solid var(--ds-color-border-secondary);
-  border-radius: var(--ds-radius-3);
-  overflow: hidden;
-  padding: var(--ds-spacing-8) var(--ds-spacing-10);
+  gap: var(--ds-spacing-9);
 }
 
 .header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: start;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: var(--ds-spacing-3);
-  margin-bottom: var(--ds-spacing-5);
 }
 
 .title {
@@ -26,31 +22,22 @@
 }
 
 .action {
-  grid-column: 2;
-  grid-row: 1 / -1;
-  align-self: start;
-  justify-self: end;
+  flex-shrink: 0;
+  align-self: flex-start;
 }
 
 .footer {
   display: flex;
   align-items: center;
   gap: var(--ds-spacing-7);
-  margin-top: var(--ds-spacing-5);
-  padding-top: var(--ds-spacing-5);
   border-top: 1px solid var(--ds-color-border-secondary);
-  background-color: var(--ds-color-surface-secondary);
+  padding-top: var(--ds-spacing-9);
 }
 
 .sizeSm {
-  padding: var(--ds-spacing-7) var(--ds-spacing-9);
-}
-
-.sizeSm .header {
-  margin-bottom: var(--ds-spacing-3);
+  gap: var(--ds-spacing-7);
 }
 
 .sizeSm .footer {
-  margin-top: var(--ds-spacing-3);
-  padding-top: var(--ds-spacing-3);
+  padding-top: var(--ds-spacing-7);
 }

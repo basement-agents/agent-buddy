@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import { reviewHistory } from "../jobs/state.js";
 import { webhookValidationFailures } from "./webhooks.js";
+import { getQueueStats } from "../jobs/queue.js";
 import { apiError } from "../lib/api-response.js";
+import { githubCache } from "@agent-buddy/core";
 
 export function createMetricsRoutes(): Hono {
   const app = new Hono();
@@ -57,6 +59,9 @@ export function createMetricsRoutes(): Hono {
 
     const errorRate = totalReviews > 0 ? errorCount / totalReviews : 0;
 
+    const queueStats = getQueueStats();
+    const cacheStats = githubCache.stats();
+
     return c.json({
       totalReviews,
       completedReviews,
@@ -67,6 +72,8 @@ export function createMetricsRoutes(): Hono {
       perBuddy,
       perRepo,
       webhookValidationFailuresTotal: webhookValidationFailures.event_type + webhookValidationFailures.signature + webhookValidationFailures.payload,
+      jobQueue: queueStats,
+      githubCache: cacheStats,
       since: sinceDate?.toISOString() ?? null,
       until: untilDate?.toISOString() ?? null,
     });

@@ -1,19 +1,88 @@
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useBuddyComparison, useNavigate } from "~/lib/hooks";
 import { Badge } from "~/components/system/badge";
 import { Button } from "~/components/system/button";
 import { ErrorState } from "~/components/system/error-state";
 import { Input } from "~/components/system/input";
-import { Card, CardContent } from "~/components/system/card";
-import { BuddyComparePageSkeleton } from "~/components/common/page-skeletons";
+import { Spinner } from "~/components/system/spinner";
+import { ErrorBoundary } from "~/components/shared/error-boundary";
 import { ProgressBar } from "~/components/shared/progress-bar";
+import { PageColumn } from "~/components/common/page-column";
+import { FeedList, FeedItem } from "~/components/common/feed-list";
+
+function ComparisonResult({ id1, id2 }: { id1: string; id2: string }) {
+  const { data } = useBuddyComparison(id1, id2);
+
+  if (!data) return null;
+
+  const scorePercent = Math.round(data.score * 100);
+  const scoreVariant = scorePercent > 70 ? "success" : scorePercent > 40 ? "warning" : "error";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--ds-spacing-10)", marginTop: "var(--ds-spacing-9)" }}>
+      <section>
+        <FeedList>
+          <FeedItem
+            title="Overall Similarity"
+            trailing={<Badge variant={scoreVariant}>{scorePercent}%</Badge>}
+          />
+        </FeedList>
+        <div style={{ marginTop: "var(--ds-spacing-7)" }}>
+          <ProgressBar percentage={scorePercent} />
+        </div>
+      </section>
+
+      <section>
+        <p style={{ fontSize: "var(--ds-text-base)", fontWeight: 600, color: "var(--ds-color-text-primary)", marginBottom: "var(--ds-spacing-7)" }}>Breakdown</p>
+        <FeedList>
+          <FeedItem title="Soul Overlap" trailing={<span style={{ fontWeight: 700, color: "var(--ds-color-text-primary)" }}>{Math.round(data.soulOverlap * 100)}%</span>} />
+          <FeedItem title="Philosophy" trailing={<span style={{ fontWeight: 700, color: "var(--ds-color-text-primary)" }}>{Math.round(data.analysis.philosophySimilarity * 100)}%</span>} />
+          <FeedItem title="Expertise Overlap" trailing={<span style={{ fontWeight: 700, color: "var(--ds-color-text-primary)" }}>{Math.round(data.analysis.expertiseOverlap * 100)}%</span>} />
+        </FeedList>
+      </section>
+
+      {data.sharedKeywords.length > 0 && (
+        <section>
+          <p style={{ fontSize: "var(--ds-text-base)", fontWeight: 600, color: "var(--ds-color-text-primary)", marginBottom: "var(--ds-spacing-7)" }}>Shared Keywords</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {data.sharedKeywords.map((kw) => (
+              <Badge key={kw} variant="default">{kw}</Badge>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {data.sharedRepos.length > 0 && (
+        <section>
+          <p style={{ fontSize: "var(--ds-text-base)", fontWeight: 600, color: "var(--ds-color-text-primary)", marginBottom: "var(--ds-spacing-7)" }}>Shared Repos</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {data.sharedRepos.map((repo) => (
+              <Badge key={repo} variant="default">{repo}</Badge>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {data.analysis.commonPatterns.length > 0 && (
+        <section>
+          <p style={{ fontSize: "var(--ds-text-base)", fontWeight: 600, color: "var(--ds-color-text-primary)", marginBottom: "var(--ds-spacing-7)" }}>Common Patterns</p>
+          <FeedList>
+            {data.analysis.commonPatterns.map((p, i) => (
+              <FeedItem key={i} title={`• ${p}`} />
+            ))}
+          </FeedList>
+        </section>
+      )}
+    </div>
+  );
+}
 
 export function BuddyComparePage() {
   const navigate = useNavigate();
   const params = new URLSearchParams(window.location.search);
   const [id1, setId1] = useState(params.get("id1") || "");
   const [id2, setId2] = useState(params.get("id2") || "");
-  const { data, loading, error } = useBuddyComparison(id1, id2);
+  const ready = !!(id1 && id2 && id1 !== id2);
 
   const handleCompare = () => {
     const sp = new URLSearchParams();
@@ -22,107 +91,41 @@ export function BuddyComparePage() {
     navigate(`/buddies/compare?${sp}`);
   };
 
-  const scorePercent = data ? Math.round(data.score * 100) : 0;
-  const scoreVariant = scorePercent > 70 ? "success" : scorePercent > 40 ? "warning" : "error";
-
   return (
-    <div className="space-y-6">
+    <PageColumn variant="wide">
       <div>
-        <h1 className="text-2xl font-bold text-[var(--ds-color-text-primary)]">Compare Buddies</h1>
-        <p className="text-sm text-[var(--ds-color-text-primary)]">Analyze similarities between two buddy profiles</p>
+        <h1 style={{ fontSize: "var(--ds-text-xl, 22px)", fontWeight: 700, color: "var(--ds-color-text-primary)", margin: 0 }}>Compare Buddies</h1>
+        <p style={{ fontSize: "var(--ds-text-sm)", color: "var(--ds-color-text-secondary)", marginTop: 4 }}>Analyze similarities between two buddy profiles</p>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Input className="flex-1" placeholder="Buddy ID 1..." value={id1} onChange={(e) => setId1(e.target.value)} />
-        <Input className="flex-1" placeholder="Buddy ID 2..." value={id2} onChange={(e) => setId2(e.target.value)} />
-        <Button onClick={handleCompare} disabled={!id1 || !id2 || id1 === id2}>
-          Compare
-        </Button>
-      </div>
-
-      {id1 && id2 && id1 === id2 && (
-        <p className="text-sm text-[var(--ds-color-feedback-danger)]">Cannot compare a buddy with itself</p>
-      )}
-
-      {loading && <BuddyComparePageSkeleton />}
-
-      {error && (
-        <ErrorState message={error} className="p-4" />
-      )}
-
-      {data && (
-        <div className="space-y-4">
-          <Card>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-[var(--ds-color-text-primary)]">Overall Similarity</span>
-                <Badge variant={scoreVariant}>{scorePercent}%</Badge>
-              </div>
-              <ProgressBar percentage={scorePercent} />
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card>
-              <CardContent>
-                <p className="text-xs font-medium text-[var(--ds-color-text-primary)]">Soul Overlap</p>
-                <p className="mt-1 text-lg font-bold text-[var(--ds-color-text-primary)]">{Math.round(data.soulOverlap * 100)}%</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent>
-                <p className="text-xs font-medium text-[var(--ds-color-text-primary)]">Philosophy</p>
-                <p className="mt-1 text-lg font-bold text-[var(--ds-color-text-primary)]">{Math.round(data.analysis.philosophySimilarity * 100)}%</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent>
-                <p className="text-xs font-medium text-[var(--ds-color-text-primary)]">Expertise Overlap</p>
-                <p className="mt-1 text-lg font-bold text-[var(--ds-color-text-primary)]">{Math.round(data.analysis.expertiseOverlap * 100)}%</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {data.sharedKeywords.length > 0 && (
-            <Card>
-              <CardContent>
-                <p className="mb-2 text-sm font-medium text-[var(--ds-color-text-primary)]">Shared Keywords</p>
-                <div className="flex flex-wrap gap-1">
-                  {data.sharedKeywords.map((kw) => (
-                    <Badge key={kw} variant="default">{kw}</Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {data.sharedRepos.length > 0 && (
-            <Card>
-              <CardContent>
-                <p className="mb-2 text-sm font-medium text-[var(--ds-color-text-primary)]">Shared Repos</p>
-                <div className="flex flex-wrap gap-1">
-                  {data.sharedRepos.map((repo) => (
-                    <Badge key={repo} variant="default">{repo}</Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {data.analysis.commonPatterns.length > 0 && (
-            <Card>
-              <CardContent>
-                <p className="mb-2 text-sm font-medium text-[var(--ds-color-text-primary)]">Common Patterns</p>
-                <ul className="space-y-1 text-sm text-[var(--ds-color-text-secondary)]">
-                  {data.analysis.commonPatterns.map((p, i) => (
-                    <li key={i}>• {p}</li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--ds-spacing-7)", marginTop: "var(--ds-spacing-9)" }}>
+        <div style={{ display: "flex", gap: "var(--ds-spacing-7)", flexWrap: "wrap" }}>
+          <Input style={{ flex: 1 }} placeholder="Buddy ID 1..." value={id1} onChange={(e) => setId1(e.target.value)} />
+          <Input style={{ flex: 1 }} placeholder="Buddy ID 2..." value={id2} onChange={(e) => setId2(e.target.value)} />
+          <Button onClick={handleCompare} disabled={!id1 || !id2 || id1 === id2}>
+            Compare
+          </Button>
         </div>
+
+        {id1 && id2 && id1 === id2 && (
+          <p style={{ fontSize: "var(--ds-text-sm)", color: "var(--ds-color-feedback-danger)", margin: 0 }}>Cannot compare a buddy with itself</p>
+        )}
+      </div>
+
+      {ready && (
+        <ErrorBoundary fallback={<ErrorState message="Failed to load comparison" className="p-4" />}>
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-8" role="status" aria-live="polite">
+                <span className="sr-only">Loading comparison...</span>
+                <Spinner size="medium" />
+              </div>
+            }
+          >
+            <ComparisonResult id1={id1} id2={id2} />
+          </Suspense>
+        </ErrorBoundary>
       )}
-    </div>
+    </PageColumn>
   );
 }
