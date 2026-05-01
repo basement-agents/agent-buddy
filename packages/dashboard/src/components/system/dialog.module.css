@@ -39,7 +39,7 @@
   padding: var(--ds-spacing-10);
   background-color: var(--ds-color-surface-primary);
   border: 1px solid var(--ds-color-border-secondary);
-  border-radius: var(--ds-radius-5);
+  border-radius: var(--ds-radius-3);
   box-shadow: var(--ds-shadow-dialog);
   transform: translate(-50%, -50%);
   display: flex;
@@ -89,6 +89,21 @@
   position: absolute;
   top: var(--ds-spacing-7);
   right: var(--ds-spacing-7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation: none;
+  }
+  .overlay[data-ending-style] {
+    animation: none;
+  }
+  .panel {
+    animation: none;
+  }
+  .panel[data-ending-style] {
+    animation: none;
+  }
 }
 
 .title {

@@ -7,7 +7,7 @@ import { ErrorState } from "~/components/system/error-state";
 import { EmptyState } from "~/components/system/empty-state";
 import { Input } from "~/components/system/input";
 import { Badge } from "~/components/system/badge";
-import { Skeleton } from "~/components/system/skeleton";
+import { Spinner } from "~/components/system/spinner";
 import { ReposPageSkeleton } from "~/components/common/page-skeletons";
 import { ConfirmDialog } from "~/components/system/confirm-dialog";
 import { useToast } from "~/components/system/toast";
@@ -175,9 +175,9 @@ export function ReposPage() {
               {repos?.map((r) => {
                 const [owner, repo] = r.id.split("/");
                 return (
-                  <tr key={r.id} className="hover:bg-[var(--ds-color-surface-secondary)]">
+                  <tr key={r.id} className="hover-hover:bg-[var(--ds-color-surface-secondary)]">
                     <td className="px-4 py-3 font-medium">
-                      <a href={`/repos/${owner}/${repo}`} className="text-[var(--ds-color-feedback-info-text)] hover:underline">
+                      <a href={`/repos/${owner}/${repo}`} className="text-[var(--ds-color-feedback-info-text)] hover-hover:underline">
                         {r.id}
                       </a>
                     </td>
@@ -221,6 +221,7 @@ export function ReposPage() {
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <ModalDialog open={addOpen} onOpenChange={setAddOpen} title="Add Repository" description="Enter the repository in owner/repo format">
+        <form onSubmit={(e) => { e.preventDefault(); handleAdd(); }}>
         <div className="mt-4 space-y-3">
           <div className="flex gap-2">
             <Input placeholder="owner" value={formOwner} onChange={(e) => setFormOwner(e.target.value)} />
@@ -230,11 +231,12 @@ export function ReposPage() {
           <Input placeholder="Buddy ID (optional)" value={formBuddy} onChange={(e) => setFormBuddy(e.target.value)} />
         </div>
         <div className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-          <Button onClick={handleAdd} disabled={!formOwner || !formRepo || addRepo.loading}>
+          <Button variant="outline" type="button" onClick={() => setAddOpen(false)}>Cancel</Button>
+          <Button type="submit" disabled={!formOwner || !formRepo || addRepo.loading}>
             {addRepo.loading ? "Adding..." : "Add"}
           </Button>
         </div>
+        </form>
       </ModalDialog>
 
       <ConfirmDialog
@@ -249,10 +251,8 @@ export function ReposPage() {
 
       <ModalDialog open={!!scheduleRepoId} onOpenChange={(open) => !open && setScheduleRepoId(null)} title="Schedule Configuration" description={`Configure automated review schedule for ${scheduleRepoId}`}>
             {scheduleLoading ? (
-              <div className="mt-4 space-y-3">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-9 w-full" />
-                <Skeleton className="h-9 w-full" />
+              <div className="flex items-center justify-center py-4">
+                <Spinner size="medium" />
               </div>
             ) : scheduleConfig ? (
               <div className="mt-4 space-y-4">

@@ -8,7 +8,7 @@ import { Badge } from "~/components/system/badge";
 import { Label } from "~/components/system/label";
 import { NativeSelect } from "~/components/system/native-select";
 import { Users } from "lucide-react";
-import { TableSkeleton, Skeleton } from "~/components/system/skeleton";
+import { Spinner } from "~/components/system/spinner";
 import { ConfirmDialog } from "~/components/system/confirm-dialog";
 import { Card, CardContent } from "~/components/system/card";
 import { useToast } from "~/components/system/toast";
@@ -74,7 +74,7 @@ export function BuddiesPage() {
     }
   };
 
-  if (loading) return <TableSkeleton rows={5} />;
+  if (loading) return <div className="flex items-center justify-center py-8" role="status" aria-live="polite"><span className="sr-only">Loading buddies...</span><Spinner size="medium" /></div>;
   if (error) return <ErrorState message={`Error: ${error}`} onRetry={refetch} />;
 
   return (
@@ -107,7 +107,7 @@ export function BuddiesPage() {
 
       {compareMode && (
         <Card className="border-[var(--ds-color-feedback-info-border)] bg-[var(--ds-color-feedback-info-subtle)]">
-          <CardContent className="pt-4">
+          <CardContent>
             <p className="mb-3 text-sm text-[var(--ds-color-feedback-info-text)]">Select two buddies to compare:</p>
             <div className="flex gap-4">
               <div className="flex-1">
@@ -161,11 +161,11 @@ export function BuddiesPage() {
               key={b.id}
               role="button"
               tabIndex={0}
-              className="cursor-pointer transition-colors"
+              className="cursor-pointer transition-colors hover-hover:ring-1 hover-hover:ring-[var(--ds-color-border-primary)]"
               onClick={() => navigate(`/buddies/${b.id}`)}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/buddies/${b.id}`); } }}
             >
-              <CardContent className="p-4">
+              <CardContent>
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-[var(--ds-color-text-primary)]">{b.username}</h3>
                   <Badge variant="info">{b.sourceRepos.length} repos</Badge>
@@ -219,7 +219,7 @@ function BuddyDetailPanel({ id, onClose, onDelete }: { id: string; onClose: () =
   const { data: feedback, loading: feedbackLoading } = useBuddyFeedback(id);
   useToast();
 
-  if (loading) return <div className="space-y-4"><Skeleton className="h-6 w-1/3" /><Skeleton className="h-40 w-full" /></div>;
+  if (loading) return <div className="flex items-center justify-center py-8" role="status" aria-live="polite"><span className="sr-only">Loading buddy...</span><Spinner size="medium" /></div>;
   if (!profile) return <div>Buddy not found</div>;
 
   return (

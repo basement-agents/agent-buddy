@@ -96,7 +96,7 @@ describe("ReposPage", () => {
   it("shows loading skeleton when repos are loading", () => {
     vi.mocked(hooksModule.useRepos).mockReturnValue({ data: undefined, loading: true, error: null, refetch: vi.fn() });
     render(<ReposPage />);
-    expect(document.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('[role="status"]').length).toBeGreaterThan(0);
   });
 
   it("shows error state with retry button when repos fail to load", () => {

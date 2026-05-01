@@ -5,7 +5,7 @@ import { Button } from "~/components/system/button";
 import { ErrorState } from "~/components/system/error-state";
 import { Breadcrumb } from "~/components/system/breadcrumb";
 import { ReviewDetail } from "./_components/review-detail";
-import { Skeleton } from "~/components/system/skeleton";
+import { Spinner } from "~/components/system/spinner";
 import { api } from "~/lib/api";
 import { useToast } from "~/components/system/toast";
 
@@ -18,9 +18,9 @@ export function ReviewDetailPage({ reviewIndex }: { reviewIndex: string }) {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-64 w-full" />
+      <div className="flex items-center justify-center py-8" role="status" aria-live="polite">
+        <span className="sr-only">Loading review...</span>
+        <Spinner size="medium" />
       </div>
     );
   }

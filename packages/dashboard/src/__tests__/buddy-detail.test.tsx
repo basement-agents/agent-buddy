@@ -169,7 +169,7 @@ describe("BuddyDetailPage", () => {
   it("shows loading skeleton when buddy data is loading", () => {
     vi.mocked(hooksModule.useBuddy).mockReturnValue({ data: undefined, loading: true, error: null, refetch: vi.fn() });
     render(<BuddyDetailPage buddyId="testuser" />);
-    expect(document.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('[role="status"]').length).toBeGreaterThan(0);
   });
 
   it("shows error state when buddy fails to load", () => {

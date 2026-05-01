@@ -116,8 +116,7 @@ describe("BuddiesPage", () => {
 
     render(<BuddiesPage />);
 
-    const skeletons = document.querySelectorAll(".animate-pulse");
-    expect(skeletons.length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('[role="status"]').length).toBeGreaterThan(0);
   });
 
   it("displays error state with retry button", () => {

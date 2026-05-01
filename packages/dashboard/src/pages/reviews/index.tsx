@@ -3,7 +3,7 @@ import { useReviews, useNavigate, useDebouncedValue } from "~/lib/hooks";
 import { Badge } from "~/components/system/badge";
 import { ClipboardList } from "lucide-react";
 import { ErrorState } from "~/components/system/error-state";
-import { TableSkeleton } from "~/components/system/skeleton";
+import { Spinner } from "~/components/system/spinner";
 import { ProgressBar } from "~/components/shared/progress-bar";
 import { Pagination } from "~/components/system/pagination";
 import { Input } from "~/components/system/input";
@@ -31,6 +31,8 @@ export function ReviewsPage() {
   const [sseSupported, setSseSupported] = useState(true);
   const sseCleanups = useRef<Map<string, () => void>>(new Map());
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const jobStatusesRef = useRef(jobStatuses);
+  jobStatusesRef.current = jobStatuses;
 
   const debouncedRepo = useDebouncedValue(params.repo, 300);
   const debouncedBuddy = useDebouncedValue(params.buddy, 300);
@@ -100,7 +102,7 @@ export function ReviewsPage() {
 
     for (const review of pendingReviews) {
       const jobId = review.metadata.jobId;
-      if (!jobId || jobStatuses[jobId]?.error || jobStatuses[jobId]?.status === "completed") continue;
+      if (!jobId || jobStatusesRef.current[jobId]?.error || jobStatusesRef.current[jobId]?.status === "completed") continue;
 
       activeJobIds.add(jobId);
 
@@ -129,7 +131,7 @@ export function ReviewsPage() {
       if (pollRef.current) clearInterval(pollRef.current);
       pollRef.current = setInterval(async () => {
         for (const jobId of activeJobIds) {
-          if (jobStatuses[jobId]?.error || jobStatuses[jobId]?.status === "completed") continue;
+          if (jobStatusesRef.current[jobId]?.error || jobStatusesRef.current[jobId]?.status === "completed") continue;
           try {
             const status = await api.getJobStatus(jobId);
             updateJobStatus(jobId, status);
@@ -148,7 +150,7 @@ export function ReviewsPage() {
         pollRef.current = null;
       }
     };
-  }, [data, jobStatuses, sseSupported, updateJobStatus]);
+  }, [data, sseSupported, updateJobStatus]);
 
   useEffect(() => {
     return () => {
@@ -160,7 +162,7 @@ export function ReviewsPage() {
     };
   }, []);
 
-  if (loading) return <TableSkeleton rows={8} />;
+  if (loading) return <div className="flex items-center justify-center py-8" role="status" aria-live="polite"><span className="sr-only">Loading reviews...</span><Spinner size="medium" /></div>;
   if (error) return <ErrorState message={`Error: ${error}`} onRetry={() => { updateParam("page", 1); refetch(); }} />;
 
   return (
@@ -252,7 +254,7 @@ export function ReviewsPage() {
             return (
               <div key={i} className="rounded-lg border border-[var(--ds-color-border-primary)]">
                 <div
-                  className="flex cursor-pointer flex-col gap-3 p-4 hover:bg-[var(--ds-color-surface-secondary)] sm:flex-row sm:items-center sm:justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  className="flex cursor-pointer flex-col gap-3 p-4 hover-hover:bg-[var(--ds-color-surface-secondary)] sm:flex-row sm:items-center sm:justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   role="button"
                   tabIndex={0}
                   onClick={() => navigate(`/reviews/${reviewId}`)}

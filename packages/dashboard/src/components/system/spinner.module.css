@@ -1,22 +1,38 @@
 .spinner {
   position: relative;
-  display: inline-flex;
+  display: block;
+  flex-shrink: 0;
 }
 
 .blade {
   position: absolute;
-  top: 0;
+  bottom: 0;
   animation: ds-spinner-fade 0.75s linear infinite;
   background-color: currentColor;
 }
 
 @keyframes ds-spinner-fade {
-  0%,
-  39%,
-  100% {
-    opacity: 0.25;
-  }
-  40% {
+  0% {
     opacity: 1;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+
+@keyframes ds-spinner-reduced-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blade {
+    animation: ds-spinner-reduced-pulse 2s ease-in-out infinite;
+    animation-delay: 0s !important;
   }
 }

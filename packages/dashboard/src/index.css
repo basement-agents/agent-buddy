@@ -1,25 +1,34 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
 @import "./styles/ds-tokens.css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant hover-hover (@media (hover: hover));
 
-/* Fallback @font-face metric override: shrinks layout shift when Geist swaps in.
-   Values tuned to Geist Variable's cap-height/x-height vs Arial baseline. */
+/* LCT-Ciburial — static woff2, font-display: optional eliminates layout shift. */
 @font-face {
-  font-family: "Geist Fallback";
+  font-family: "LCT Ciburial";
+  font-style: normal;
+  font-weight: 400;
+  font-display: optional;
+  src: url("/fonts/LCT-Ciburial-Regular.woff2") format("woff2");
+}
+
+/* Fallback @font-face: metrics extracted from LCT-Ciburial via @capsizecss/unpack
+   so that the system-font placeholder matches the real font's vertical metrics. */
+@font-face {
+  font-family: "LCT Ciburial Fallback";
   src: local("Arial"), local("Helvetica Neue"), local("Helvetica");
-  size-adjust: 96.83%;
-  ascent-override: 92.4%;
-  descent-override: 21.4%;
+  size-adjust: 92.0%;
+  ascent-override: 100.0%;
+  descent-override: 20.0%;
   line-gap-override: 0%;
 }
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', 'Geist Fallback', system-ui, sans-serif;
+    --font-sans: 'LCT Ciburial', 'LCT Ciburial Fallback', system-ui, sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -146,5 +155,7 @@
     }
   html {
     @apply font-sans;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ds-color-border-primary) transparent;
     }
 }

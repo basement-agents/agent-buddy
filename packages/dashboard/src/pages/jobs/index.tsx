@@ -3,12 +3,13 @@ import { api, type JobListItem } from "~/lib/api";
 import { useJobProgress, usePageParam } from "~/lib/hooks";
 import { Card, CardContent } from "~/components/system/card";
 import { Badge } from "~/components/system/badge";
-import { TableSkeleton } from "~/components/system/skeleton";
+import { Spinner } from "~/components/system/spinner";
 import { Pagination } from "~/components/system/pagination";
 import { ProgressBar } from "~/components/shared/progress-bar";
 import { useToast } from "~/components/system/toast";
 import { Select } from "~/components/system/select";
 import { Button } from "~/components/system/button";
+import { ModalDialog } from "~/components/system/modal-dialog";
 
 type JobStatus = JobListItem["status"];
 
@@ -51,7 +52,7 @@ function buildStatusText(parts: { subStep?: string; model?: string; elapsedMs?: 
   return segments.length > 0 ? segments.join(" · ") : undefined;
 }
 
-function JobRow({ job, progress, isConnected, onCancel }: { job: JobListItem; progress: ReturnType<typeof useJobProgress>["progress"]; isConnected: boolean; onCancel: (id: string) => void }) {
+function JobRow({ job, progress, isConnected, onCancel, onShowProgress }: { job: JobListItem; progress: ReturnType<typeof useJobProgress>["progress"]; isConnected: boolean; onCancel: (id: string) => void; onShowProgress: (job: JobListItem, statusText: string) => void }) {
   const liveProgress = progress?.id === job.id ? progress : null;
   const displayPct = liveProgress?.progressPercentage ?? job.progressPercentage ?? 0;
   const displayStage = liveProgress?.progressStage ?? job.progressStage;
@@ -63,7 +64,7 @@ function JobRow({ job, progress, isConnected, onCancel }: { job: JobListItem; pr
   const isActive = job.status === "running" || job.status === "queued";
 
   return (
-    <tr className="border-b border-[var(--ds-color-border-primary)] hover:bg-[var(--ds-color-surface-secondary)]/50">
+    <tr className="border-b border-[var(--ds-color-border-primary)] hover-hover:bg-[var(--ds-color-surface-secondary)]">
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <Badge className="text-xs border border-[var(--ds-color-border-primary)] bg-transparent">
@@ -86,9 +87,21 @@ function JobRow({ job, progress, isConnected, onCancel }: { job: JobListItem; pr
       </td>
       <td className="px-4 py-3 w-48">
         {isActive ? (
-          <ProgressBar percentage={displayPct} label={displayStage} statusText={statusText} />
-        ) : job.status === "failed" && job.error ? (
-          <span className="text-xs text-[var(--ds-color-feedback-danger)] truncate" title={job.error}>{job.error}</span>
+          <div
+            className="cursor-pointer"
+            role="button"
+            tabIndex={0}
+            onClick={() => onShowProgress(job, statusText ?? `${displayStage ?? job.status} · ${displayPct}%`)}
+            onKeyDown={(e) => { if (e.key === "Enter") onShowProgress(job, statusText ?? `${displayStage ?? job.status} · ${displayPct}%`); }}
+          >
+            <ProgressBar percentage={displayPct} label={displayStage} statusText={statusText && statusText.length > 40 ? statusText.slice(0, 40) + "..." : statusText} />
+          </div>
+        ) : job.status === "completed" ? (
+          <span className="text-xs text-[var(--ds-color-feedback-success)]">Done</span>
+        ) : job.status === "cancelled" ? (
+          <span className="text-xs text-[var(--ds-color-text-tertiary)]">Cancelled</span>
+        ) : job.status === "failed" ? (
+          <span className="text-xs text-[var(--ds-color-feedback-danger)] truncate" title={job.error}>{job.error || "Failed"}</span>
         ) : null}
       </td>
       <td className="px-4 py-3 text-xs text-[var(--ds-color-text-tertiary)]">{formatTime(job.createdAt)}</td>
@@ -113,10 +126,11 @@ export function JobsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<JobStatus | "all">("all");
   const [repoFilter, setRepoFilter] = useState<string>("all");
+  const [progressDetail, setProgressDetail] = useState<{ job: JobListItem; statusText: string } | null>(null);
   const { showToast } = useToast();
 
-  const fetchJobs = useCallback(async () => {
-    setLoading(true);
+  const fetchJobs = useCallback(async (opts?: { initial?: boolean }) => {
+    if (opts?.initial) setLoading(true);
     setError(null);
     try {
       const data = await api.listJobs({
@@ -146,8 +160,8 @@ export function JobsPage() {
   }, [fetchJobs, showToast]);
 
   useEffect(() => {
-    fetchJobs();
-    const interval = setInterval(fetchJobs, 5000);
+    fetchJobs({ initial: true });
+    const interval = setInterval(() => fetchJobs(), 5000);
     return () => clearInterval(interval);
   }, [fetchJobs]);
 
@@ -204,14 +218,14 @@ export function JobsPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <TableSkeleton rows={5} />
+            <div className="flex items-center justify-center py-8" role="status" aria-live="polite"><span className="sr-only">Loading jobs...</span><Spinner size="medium" /></div>
           ) : error ? (
             <div role="alert" className="p-8 text-center text-[var(--ds-color-feedback-danger)]">{error}</div>
           ) : jobs.length === 0 ? (
             <div className="p-8 text-center text-[var(--ds-color-text-primary)]">No jobs found</div>
           ) : (
             <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
+            <table className="w-full min-w-[700px]" style={{ tableLayout: "fixed" }}>
               <thead>
                 <tr className="border-b border-[var(--ds-color-border-primary)] text-left text-xs text-[var(--ds-color-text-primary)] uppercase tracking-wider">
                   <th className="px-4 py-3">Job</th>
@@ -225,7 +239,7 @@ export function JobsPage() {
               </thead>
               <tbody>
                 {jobs.map((job) => (
-                  <JobRow key={job.id} job={job} progress={progress} isConnected={isConnected} onCancel={cancelJob} />
+                  <JobRow key={job.id} job={job} progress={progress} isConnected={isConnected} onCancel={cancelJob} onShowProgress={(j, st) => setProgressDetail({ job: j, statusText: st })} />
                 ))}
               </tbody>
             </table>
@@ -235,6 +249,29 @@ export function JobsPage() {
       </Card>
 
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+
+      <ModalDialog
+        open={!!progressDetail}
+        onOpenChange={(open) => !open && setProgressDetail(null)}
+        title="Progress Detail"
+        description={progressDetail?.job.id}
+      >
+        {progressDetail && (
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge className="text-xs border border-[var(--ds-color-border-primary)] bg-transparent">{progressDetail.job.type}</Badge>
+              <span className="text-[var(--ds-color-text-secondary)]">{progressDetail.job.repoId}</span>
+              {progressDetail.job.prNumber && <span className="text-[var(--ds-color-text-tertiary)]">#{progressDetail.job.prNumber}</span>}
+            </div>
+            <div className="rounded-md border border-[var(--ds-color-border-secondary)] p-3 text-sm text-[var(--ds-color-text-primary)] break-all">
+              {progressDetail.statusText}
+            </div>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setProgressDetail(null)}>Close</Button>
+            </div>
+          </div>
+        )}
+      </ModalDialog>
     </div>
   );
 }

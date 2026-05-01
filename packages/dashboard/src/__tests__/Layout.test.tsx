@@ -162,7 +162,7 @@ describe("Layout", () => {
 
     const section = document.querySelector("section");
     expect(section).toBeInTheDocument();
-    expect(section?.className).toMatch(/rounded-xl/);
+    expect(section?.className).toMatch(/rounded-lg/);
     expect(section?.className).toMatch(/border/);
   });
 
