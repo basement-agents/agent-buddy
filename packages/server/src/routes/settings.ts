@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { loadConfig, saveConfig, Logger, getErrorMessage, createLLMProvider } from "@agent-buddy/core";
+import { loadConfig, saveConfig, Logger, getErrorMessage, createLLMProvider, llmProviderConfigSchema } from "@agent-buddy/core";
 import type { AgentBuddyConfig, ReviewConfig, ServerConfig, LLMProviderConfig } from "@agent-buddy/core";
 import { apiError } from "../lib/api-response.js";
 
@@ -120,7 +120,15 @@ export function createSettingsRoutes(): Hono {
 
       if (body.llm) {
         const existingLlm = config.llm ?? { provider: "anthropic" as const } as LLMProviderConfig;
-        config.llm = mergeWithoutUndefined(existingLlm, body.llm);
+        const merged = mergeWithoutUndefined(existingLlm, body.llm);
+        const validated = llmProviderConfigSchema.safeParse(merged);
+        if (!validated.success) {
+          return c.json(
+            apiError(validated.error.issues.map((i) => i.message).join("; ")),
+            400,
+          );
+        }
+        config.llm = validated.data;
       }
 
       await saveConfig(config);

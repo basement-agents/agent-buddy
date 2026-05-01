@@ -52,10 +52,14 @@ export function createReviewsRoutes(): Hono {
     reviewJobs.set(job.id, job);
     saveJob(job).catch((err) => logger.error("Failed to persist new job", { jobId: job.id, error: getErrorMessage(err) }));
 
-    enqueueJob(job.id, "review", () =>
-      processReviewJob(job.id, repoId, prNumber, buddyId, reviewType).catch((err) => {
-        logger.error("Review job processing failed", { jobId: job.id, error: getErrorMessage(err) });
-      })
+    enqueueJob(
+      job.id,
+      "review",
+      () =>
+        processReviewJob(job.id, repoId, prNumber, buddyId, reviewType).catch((err) => {
+          logger.error("Review job processing failed", { jobId: job.id, error: getErrorMessage(err) });
+        }),
+      () => reviewJobs.get(job.id)?.status === "cancelled",
     );
 
     return c.json({

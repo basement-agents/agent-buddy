@@ -279,10 +279,14 @@ export function createWebhooksRoutes(): Hono {
           reviewJobs.set(job.id, job);
           saveJob(job).catch((err) => logger.error("Failed to persist new job", { jobId: job.id, error: getErrorMessage(err) }));
 
-          enqueueJob(job.id, "review", () =>
-            processReviewJob(job.id, repoId, prNumber, buddyId).catch((err) => {
-              logger.error("Webhook review job failed", { jobId: job.id, repoId, prNumber, buddyId, error: getErrorMessage(err) });
-            })
+          enqueueJob(
+            job.id,
+            "review",
+            () =>
+              processReviewJob(job.id, repoId, prNumber, buddyId).catch((err) => {
+                logger.error("Webhook review job failed", { jobId: job.id, repoId, prNumber, buddyId, error: getErrorMessage(err) });
+              }),
+            () => reviewJobs.get(job.id)?.status === "cancelled",
           );
 
           jobIds.push(job.id);

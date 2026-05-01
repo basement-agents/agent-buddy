@@ -6,6 +6,7 @@ interface QueueEntry {
   id: string;
   fn: () => Promise<void>;
   type: "review" | "analysis";
+  isCancelled?: () => boolean;
 }
 
 const MAX_CONCURRENT_REVIEWS = 3;
@@ -36,16 +37,25 @@ function processQueue(): void {
     const next = pendingQueue[0];
     if (!canRun(next.type)) break;
     pendingQueue.shift();
+    if (next.isCancelled?.()) {
+      logger.info("Skipping cancelled job", { jobId: next.id, type: next.type, queueDepth: pendingQueue.length });
+      continue;
+    }
     logger.info("Dequeuing job", { jobId: next.id, type: next.type, queueDepth: pendingQueue.length });
     startJob(next);
   }
 }
 
-export function enqueueJob(id: string, type: "review" | "analysis", fn: () => Promise<void>): void {
+export function enqueueJob(
+  id: string,
+  type: "review" | "analysis",
+  fn: () => Promise<void>,
+  isCancelled?: () => boolean,
+): void {
   if (canRun(type)) {
-    startJob({ id, fn, type });
+    startJob({ id, fn, type, isCancelled });
   } else {
-    pendingQueue.push({ id, fn, type });
+    pendingQueue.push({ id, fn, type, isCancelled });
     logger.info("Job queued", { jobId: id, type, queueDepth: pendingQueue.length });
   }
 }
