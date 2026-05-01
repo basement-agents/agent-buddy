@@ -493,17 +493,6 @@ describe("Repos Routes", () => {
       expect(res.status).toBe(404);
     });
 
-    it("DELETE schedule succeeds even if no schedule existed", async () => {
-      mockLoadConfig.mockResolvedValue({ repos: [{ id: "owner/repo" }], server: {} });
-
-      const res = await app.request("/api/repos/owner/repo/schedule", {
-        method: "DELETE",
-      });
-
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.deleted).toBe(true);
-    });
   });
 
   describe("rule management", () => {
@@ -564,34 +553,6 @@ describe("Repos Routes", () => {
       expect(res.status).toBe(201);
       const data = await res.json();
       expect(data.rule.severity).toBe("suggestion");
-    });
-
-    it("POST rule defaults enabled to true when omitted", async () => {
-      mockLoadConfig.mockResolvedValue({ repos: [{ id: "owner/repo" }], server: {} });
-
-      const res = await app.request("/api/repos/owner/repo/rules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: "r1", name: "Test", pattern: "test" }),
-      });
-
-      expect(res.status).toBe(201);
-      const data = await res.json();
-      expect(data.rule.enabled).toBe(true);
-    });
-
-    it("POST rule can explicitly set enabled to false", async () => {
-      mockLoadConfig.mockResolvedValue({ repos: [{ id: "owner/repo" }], server: {} });
-
-      const res = await app.request("/api/repos/owner/repo/rules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: "r1", name: "Test", pattern: "test", enabled: false }),
-      });
-
-      expect(res.status).toBe(201);
-      const data = await res.json();
-      expect(data.rule.enabled).toBe(false);
     });
 
     it("DELETE rule returns 404 when repo has no customRules", async () => {

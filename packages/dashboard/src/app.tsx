@@ -1,14 +1,9 @@
 import { Layout } from "~/components/layout/layout";
 import { ToastProvider } from "~/components/system/toast";
 import { ErrorBoundary } from "~/components/shared/error-boundary";
-import {
-  HomePageSkeleton,
-  SettingsPageSkeleton,
-  ReposPageSkeleton,
-  BuddyDetailPageSkeleton,
-  BuddyComparePageSkeleton,
-  GenericPageSkeleton,
-} from "~/components/common/page-skeletons";
+import { Spinner } from "~/components/system/spinner";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "~/lib/query-client";
 import * as React from "react";
 import { useState, useEffect } from "react";
 
@@ -25,17 +20,20 @@ const SettingsPage = React.lazy(() => import("~/pages/settings/index").then(m =>
 const NotFoundPage = React.lazy(() => import("~/pages/not-found/index").then(m => ({ default: m.NotFoundPage })));
 
 function LoadingFallback() {
-  const path = window.location.pathname;
-  if (path === "/" || path === "") return <HomePageSkeleton />;
-  if (path === "/settings") return <SettingsPageSkeleton />;
-  if (path === "/repos") return <ReposPageSkeleton />;
-  if (path === "/buddies/compare") return <BuddyComparePageSkeleton />;
-  if (/^\/buddies\/[^/]+$/.test(path)) return <BuddyDetailPageSkeleton />;
-  return <GenericPageSkeleton />;
+  return (
+    <div className="flex h-full min-h-[40vh] items-center justify-center" role="status" aria-live="polite">
+      <span className="sr-only">Loading...</span>
+      <Spinner size="medium" />
+    </div>
+  );
 }
 
 function Page({ children }: { children: React.ReactNode }) {
-  return <React.Suspense fallback={<LoadingFallback />}>{children}</React.Suspense>;
+  return (
+    <ErrorBoundary>
+      <React.Suspense fallback={<LoadingFallback />}>{children}</React.Suspense>
+    </ErrorBoundary>
+  );
 }
 
 interface RouteEntry {
@@ -89,13 +87,15 @@ function Router() {
 
 function App() {
   return (
-    <ToastProvider>
-      <ErrorBoundary>
-        <Layout>
-          <Router />
-        </Layout>
-      </ErrorBoundary>
-    </ToastProvider>
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <ErrorBoundary>
+          <Layout>
+            <Router />
+          </Layout>
+        </ErrorBoundary>
+      </ToastProvider>
+    </QueryClientProvider>
   );
 }
 

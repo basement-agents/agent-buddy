@@ -2,30 +2,16 @@ import { useEffect, useState } from "react";
 import { cn } from "~/lib/utils";
 import { useConnectionStatus, type ConnectionState } from "~/lib/use-connection-status";
 
-interface ToneClasses {
-  dot: string;
-  text: string;
-}
-
-const TONE: Record<ConnectionState, ToneClasses> = {
-  connected: {
-    dot: "bg-[var(--ds-color-feedback-success)]",
-    text: "text-[var(--ds-color-feedback-success-text)]",
-  },
-  polling: {
-    dot: "bg-[var(--ds-color-feedback-warning)]",
-    text: "text-[var(--ds-color-feedback-warning-text)]",
-  },
-  disconnected: {
-    dot: "bg-[var(--ds-color-feedback-danger)]",
-    text: "text-[var(--ds-color-feedback-danger-text)]",
-  },
-};
-
 const LABEL: Record<ConnectionState, string> = {
   connected: "Connected",
   polling: "Polling",
   disconnected: "Disconnected",
+};
+
+const TONE_CLASS: Record<ConnectionState, string> = {
+  connected: "text-[var(--ds-color-feedback-success-text)]",
+  polling: "text-[var(--ds-color-feedback-warning-text)]",
+  disconnected: "text-[var(--ds-color-feedback-danger-text)]",
 };
 
 function formatAgo(date: Date | null, now: number): string {
@@ -38,14 +24,13 @@ function formatAgo(date: Date | null, now: number): string {
   return `${hours}h ago`;
 }
 
-function Sep() {
-  return (
-    <span aria-hidden="true" className="text-[var(--ds-color-text-tertiary)]">
-      ·
-    </span>
-  );
-}
-
+/**
+ * StatusBar — quiet inline connection indicator.
+ *
+ * Renders as a single line of 10px monospace text with no fixed positioning,
+ * no dot animations, and no borders. Intended to be placed inline at the end
+ * of a PageColumn or omitted on pages where connection status is irrelevant.
+ */
 export function StatusBar() {
   const { state, latencyMs, lastSuccessAt } = useConnectionStatus();
   const [now, setNow] = useState(() => Date.now());
@@ -55,34 +40,23 @@ export function StatusBar() {
     return () => clearInterval(id);
   }, []);
 
-  const tone = TONE[state];
+  const latency = latencyMs == null ? "—" : `${latencyMs}ms`;
+  const snapshot = formatAgo(lastSuccessAt, now);
 
   return (
     <footer
       role="status"
       aria-label="Connection status"
-      className="flex shrink-0 items-center gap-x-3 border-t border-[var(--ds-color-border-secondary)] px-5 pt-1 pb-2 font-mono text-[10px]"
+      className={cn(
+        "font-mono text-[10px] leading-none text-[var(--ds-color-text-tertiary)]",
+        "flex items-center gap-2"
+      )}
     >
-      <span
-        aria-hidden="true"
-        className={cn("inline-block h-1.5 w-1.5 shrink-0 rounded-full", tone.dot)}
-      />
-      <span className={cn("ml-0.5", tone.text)}>{LABEL[state]}</span>
-      <Sep />
-      <span className="text-[var(--ds-color-text-secondary)]">REST</span>
-      <Sep />
-      <span className="text-[var(--ds-color-text-secondary)]">
-        Latency{" "}
-        <span className="text-[var(--ds-color-text-primary)]">
-          {latencyMs == null ? "—" : `${latencyMs}ms`}
-        </span>
-      </span>
-      <span className="ml-auto text-[var(--ds-color-text-secondary)]">
-        Snapshot{" "}
-        <span className="text-[var(--ds-color-text-primary)]">
-          {formatAgo(lastSuccessAt, now)}
-        </span>
-      </span>
+      <span className={cn(TONE_CLASS[state])}>{LABEL[state]}</span>
+      <span aria-hidden="true" className="text-[var(--ds-color-border-primary)]">·</span>
+      <span>{latency}</span>
+      <span aria-hidden="true" className="text-[var(--ds-color-border-primary)]">·</span>
+      <span>{snapshot}</span>
     </footer>
   );
 }

@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import { SignJWT, importPKCS8 } from "jose";
-import { getErrorMessage, Logger, sleep } from "../utils/index.js";
+import { createConcurrencyLimiter, getErrorMessage, Logger, sleep } from "../utils/index.js";
+import { LRUCache, githubCache } from "./cache.js";
+import type { CacheStats } from "./cache.js";
 
 const logger = new Logger("github-client");
 import type {
@@ -37,10 +39,17 @@ export class GitHubClient {
   private rateLimitRemaining = 5000;
   private rateLimitReset = 0;
   private readonly maxPages: number;
+  private readonly cache: LRUCache;
 
-  constructor(token: string, appCredentials?: { appId: string; privateKey: string; installationId: string }, maxPages = 10) {
+  constructor(
+    token: string,
+    appCredentials?: { appId: string; privateKey: string; installationId: string },
+    maxPages = 10,
+    cache?: LRUCache,
+  ) {
     this.token = token;
     this.maxPages = maxPages;
+    this.cache = cache ?? githubCache;
     if (appCredentials) {
       this.githubAppId = appCredentials.appId;
       this.githubAppPrivateKey = appCredentials.privateKey;
@@ -64,9 +73,29 @@ export class GitHubClient {
     return false;
   }
 
+  private async retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    maxRetries = 3,
+    baseDelayMs = 1000
+  ): Promise<T> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (err) {
+        lastError = err;
+        if (attempt < maxRetries) {
+          await sleep(baseDelayMs * Math.pow(2, attempt));
+        }
+      }
+    }
+    throw lastError;
+  }
+
   private async request<T>(
     path: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    retriedRateLimit = false
   ): Promise<T> {
     const url = path.startsWith("http") ? path : `${GITHUB_API}${path}`;
     const headers: Record<string, string> = {
@@ -79,8 +108,8 @@ export class GitHubClient {
     const response = await fetch(url, { ...options, headers });
     this.updateRateLimits(response);
 
-    if (this.rateLimitRemaining <= 0 && await this.waitForRateLimitReset()) {
-      return this.request<T>(path, options);
+    if (!retriedRateLimit && this.rateLimitRemaining <= 0 && await this.waitForRateLimitReset()) {
+      return this.request<T>(path, options, true);
     }
 
     if (!response.ok) {
@@ -171,6 +200,15 @@ export class GitHubClient {
     repo: string,
     opts: { state?: "open" | "closed" | "all"; perPage?: number; page?: number } = {}
   ): Promise<PullRequest[]> {
+    const state = opts.state ?? "open";
+    const cacheKey = LRUCache.keyPRs(owner, repo, state);
+
+    // Only use cache for the full (paginated) fetch, not single-page requests.
+    if (!opts.page) {
+      const cached = this.cache.get<PullRequest[]>(cacheKey);
+      if (cached) return cached;
+    }
+
     const params = new URLSearchParams();
     if (opts.state) params.set("state", opts.state);
     params.set("per_page", String(opts.perPage || 30));
@@ -180,19 +218,33 @@ export class GitHubClient {
       return this.request<PullRequest[]>(`/repos/${owner}/${repo}/pulls?${params}`);
     }
 
-    return this.paginateRequest<PullRequest>(`/repos/${owner}/${repo}/pulls?${params.toString()}`, opts.perPage || 30);
+    const result = await this.paginateRequest<PullRequest>(`/repos/${owner}/${repo}/pulls?${params.toString()}`, opts.perPage || 30);
+    this.cache.set(cacheKey, result, 30_000);
+    return result;
   }
 
   async getPR(owner: string, repo: string, prNumber: number): Promise<PullRequest> {
-    return this.request<PullRequest>(
+    const cacheKey = LRUCache.keyPR(owner, repo, prNumber);
+    const cached = this.cache.get<PullRequest>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.request<PullRequest>(
       `/repos/${owner}/${repo}/pulls/${prNumber}`
     );
+    this.cache.set(cacheKey, result, 120_000);
+    return result;
   }
 
   async getPRFiles(owner: string, repo: string, prNumber: number): Promise<PRFile[]> {
-    return this.request<PRFile[]>(
+    const cacheKey = LRUCache.keyPRFiles(owner, repo, prNumber);
+    const cached = this.cache.get<PRFile[]>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.request<PRFile[]>(
       `/repos/${owner}/${repo}/pulls/${prNumber}/files`
     );
+    this.cache.set(cacheKey, result, 120_000);
+    return result;
   }
 
   async getPRDiff(owner: string, repo: string, prNumber: number): Promise<string> {
@@ -287,7 +339,104 @@ export class GitHubClient {
   }
 
   async getRepo(owner: string, repo: string): Promise<Repository> {
-    return this.request<Repository>(`/repos/${owner}/${repo}`);
+    const cacheKey = LRUCache.keyRepo(owner, repo);
+    const cached = this.cache.get<Repository>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.request<Repository>(`/repos/${owner}/${repo}`);
+    this.cache.set(cacheKey, result, 600_000);
+    return result;
+  }
+
+  /** Invalidate all cached entries whose key contains `:{owner}:{repo}:` or `:{owner}:{repo}`. */
+  invalidateRepo(owner: string, repo: string): void {
+    const prefix = `:${owner}:${repo}`;
+    this.cache.invalidatePattern((key) => key.includes(prefix));
+  }
+
+  /** Return cache statistics for monitoring / metrics exposure. */
+  getCacheStats(): CacheStats {
+    return this.cache.stats();
+  }
+
+  /**
+   * Search for PRs reviewed by a user via GitHub Search API.
+   * Returns PullRequest objects with available fields; fields absent from
+   * search results (head, base, files, etc.) use safe defaults.
+   */
+  private async searchPRsReviewedBy(
+    owner: string,
+    repo: string,
+    username: string,
+    since?: string,
+    maxPages: number = 10
+  ): Promise<PullRequest[]> {
+    const allItems: PullRequest[] = [];
+    const perPage = 100;
+
+    let query = `is:pr reviewed-by:${username} repo:${owner}/${repo}`;
+    if (since) {
+      query += ` updated:>=${since}`;
+    }
+
+    for (let page = 1; page <= maxPages; page++) {
+      const params = new URLSearchParams({
+        q: query,
+        sort: "updated",
+        order: "desc",
+        per_page: String(perPage),
+        page: String(page),
+      });
+
+      const data = await this.request<{
+        total_count: number;
+        incomplete_results: boolean;
+        items: Array<{
+          id: number;
+          number: number;
+          title: string;
+          body: string | null;
+          state: string;
+          draft: boolean;
+          user: { login: string; id: number; avatar_url: string; html_url: string };
+          created_at: string;
+          updated_at: string;
+          html_url: string;
+          pull_request?: { url: string };
+        }>;
+      }>(`/search/issues?${params.toString()}`);
+
+      for (const item of data.items) {
+        if (!item.pull_request) continue;
+        allItems.push({
+          id: item.id,
+          number: item.number,
+          title: item.title,
+          body: item.body ?? "",
+          state: item.state === "closed" ? "closed" : "open",
+          draft: item.draft,
+          author: {
+            login: item.user.login,
+            id: item.user.id,
+            avatarUrl: item.user.avatar_url,
+            url: item.user.html_url,
+          },
+          base: { label: "", ref: "", sha: "", repo: { owner: { login: "", id: 0, avatarUrl: "", url: "" }, name: "", fullName: "" } },
+          head: { label: "", ref: "", sha: "", repo: { owner: { login: "", id: 0, avatarUrl: "", url: "" }, name: "", fullName: "" } },
+          files: [],
+          additions: 0,
+          deletions: 0,
+          changedFiles: 0,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          url: item.html_url,
+        });
+      }
+
+      if (data.items.length < perPage) break;
+    }
+
+    return allItems;
   }
 
   async getPRsReviewedBy(
@@ -297,13 +446,108 @@ export class GitHubClient {
     since?: string,
     maxResults?: number
   ): Promise<{ pr: PullRequest; reviews: PRReview[]; comments: ReviewComment[]; issueComments: IssueComment[] }[]> {
+    const TIMEOUT_MS = 60_000;
+    const MAX_CONCURRENT = 5;
+    const startTime = Date.now();
+    const results: { pr: PullRequest; reviews: PRReview[]; comments: ReviewComment[]; issueComments: IssueComment[] }[] = [];
+
+    // Phase 1: Use Search API to find PRs reviewed by the user
+    let prsToCheck: PullRequest[];
+    try {
+      prsToCheck = await this.searchPRsReviewedBy(owner, repo, username, since);
+      logger.info(`Search API found ${prsToCheck.length} PRs reviewed by ${username} in ${owner}/${repo}`);
+    } catch {
+      logger.warn(`Search API failed for ${username} in ${owner}/${repo}, falling back to full scan`);
+      return this.getPRsReviewedByFullScan(owner, repo, username, since, maxResults);
+    }
+
+    // Double-check createdAt filter (search API updated:>= is approximate)
+    const sinceDate = since ? new Date(since) : null;
+    if (sinceDate) {
+      prsToCheck = prsToCheck.filter((pr) => new Date(pr.createdAt) >= sinceDate);
+    }
+
+    // Pre-slice to limit total API calls for detail fetching
+    if (maxResults !== undefined) {
+      prsToCheck = prsToCheck.slice(0, maxResults * 2);
+    }
+
+    // Phase 2: Fetch reviews/comments concurrently with rate limiting
+    const limit = createConcurrencyLimiter(MAX_CONCURRENT);
+    let aborted = false;
+
+    const detailPromises = prsToCheck.map((pr) =>
+      limit(async () => {
+        if (aborted) return;
+        if (Date.now() - startTime > TIMEOUT_MS) {
+          aborted = true;
+          return;
+        }
+
+        try {
+          const [reviews, comments, issueComments] = await Promise.all([
+            this.getReviews(owner, repo, pr.number),
+            this.getReviewComments(owner, repo, pr.number),
+            this.getIssueComments(owner, repo, pr.number),
+          ]);
+
+          if (aborted) return;
+
+          const userReviews = reviews.filter((r) => r.author?.login === username);
+          const userComments = comments.filter((c) => c.author?.login === username);
+          const userIssueComments = issueComments.filter((c) => c.author?.login === username);
+
+          if (userReviews.length > 0 || userComments.length > 0 || userIssueComments.length > 0) {
+            results.push({ pr, reviews: userReviews, comments: userComments, issueComments: userIssueComments });
+          }
+        } catch (error) {
+          logger.warn(`Failed to fetch details for PR #${pr.number}: ${getErrorMessage(error)}`);
+        }
+      })
+    );
+
+    await Promise.allSettled(detailPromises);
+
+    if (aborted) {
+      logger.warn(`getPRsReviewedBy timed out after ${TIMEOUT_MS}ms, returning ${results.length} partial results`);
+    }
+
+    // Sort by most recently updated
+    results.sort((a, b) => new Date(b.pr.updatedAt).getTime() - new Date(a.pr.updatedAt).getTime());
+
+    if (maxResults !== undefined && results.length > maxResults) {
+      return results.slice(0, maxResults);
+    }
+
+    return results;
+  }
+
+  /**
+   * Full-scan fallback: iterates all PRs page by page.
+   * Used when Search API is unavailable (e.g., secondary rate limit).
+   */
+  private async getPRsReviewedByFullScan(
+    owner: string,
+    repo: string,
+    username: string,
+    since?: string,
+    maxResults?: number
+  ): Promise<{ pr: PullRequest; reviews: PRReview[]; comments: ReviewComment[]; issueComments: IssueComment[] }[]> {
+    const TIMEOUT_MS = 60_000;
+    const MAX_CONCURRENT = 5;
+    const startTime = Date.now();
     const sinceDate = since ? new Date(since) : null;
     const results: { pr: PullRequest; reviews: PRReview[]; comments: ReviewComment[]; issueComments: IssueComment[] }[] = [];
 
+    const limit = createConcurrencyLimiter(MAX_CONCURRENT);
     let page = 1;
     const perPage = 100;
 
     while (page <= this.maxPages) {
+      if (Date.now() - startTime > TIMEOUT_MS) {
+        logger.warn(`getPRsReviewedByFullScan timed out, returning ${results.length} partial results`);
+        break;
+      }
       if (maxResults !== undefined && results.length >= maxResults) break;
 
       const prs = await this.listPRs(owner, repo, { state: "all", perPage, page });
@@ -313,23 +557,32 @@ export class GitHubClient {
         ? prs.filter((pr) => new Date(pr.createdAt) >= sinceDate)
         : prs;
 
-      for (const pr of filteredPrs) {
-        if (maxResults !== undefined && results.length >= maxResults) break;
+      const pagePromises = filteredPrs.map((pr) =>
+        limit(async () => {
+          if (Date.now() - startTime > TIMEOUT_MS) return;
+          if (maxResults !== undefined && results.length >= maxResults) return;
 
-        const [reviews, comments, issueComments] = await Promise.all([
-          this.getReviews(owner, repo, pr.number),
-          this.getReviewComments(owner, repo, pr.number),
-          this.getIssueComments(owner, repo, pr.number),
-        ]);
+          try {
+            const [reviews, comments, issueComments] = await Promise.all([
+              this.getReviews(owner, repo, pr.number),
+              this.getReviewComments(owner, repo, pr.number),
+              this.getIssueComments(owner, repo, pr.number),
+            ]);
 
-        const userReviews = reviews.filter((r) => r.author?.login === username);
-        const userComments = comments.filter((c) => c.author?.login === username);
-        const userIssueComments = issueComments.filter((c) => c.author?.login === username);
+            const userReviews = reviews.filter((r) => r.author?.login === username);
+            const userComments = comments.filter((c) => c.author?.login === username);
+            const userIssueComments = issueComments.filter((c) => c.author?.login === username);
 
-        if (userReviews.length > 0 || userComments.length > 0 || userIssueComments.length > 0) {
-          results.push({ pr, reviews: userReviews, comments: userComments, issueComments: userIssueComments });
-        }
-      }
+            if (userReviews.length > 0 || userComments.length > 0 || userIssueComments.length > 0) {
+              results.push({ pr, reviews: userReviews, comments: userComments, issueComments: userIssueComments });
+            }
+          } catch (error) {
+            logger.warn(`Failed to fetch details for PR #${pr.number}: ${getErrorMessage(error)}`);
+          }
+        })
+      );
+
+      await Promise.allSettled(pagePromises);
 
       if (prs.length < perPage) break;
       page++;

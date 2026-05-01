@@ -1,4 +1,5 @@
-/* Design tokens — sourced from ds-ui packages/css/token.css */
+/* Design tokens — sourced from ds-ui packages/css/token.css
+   Upgraded with indigo primary, violet accent, and refined surface hierarchy. */
 :root {
   --ds-color-white: #ffffff;
   --ds-color-white-alpha-5: rgba(255, 255, 255, 0.05);
@@ -22,6 +23,8 @@
   --ds-color-black-alpha-70: rgba(0, 0, 0, 0.7);
   --ds-color-black-alpha-80: rgba(0, 0, 0, 0.8);
   --ds-color-black-alpha-90: rgba(0, 0, 0, 0.9);
+
+  /* Neutral scale — cool-toned gray */
   --ds-color-neutral-50: #f4f5f6;
   --ds-color-neutral-100: #e6e8ea;
   --ds-color-neutral-200: #cdd1d5;
@@ -33,17 +36,37 @@
   --ds-color-neutral-800: #33363d;
   --ds-color-neutral-900: #1e2124;
   --ds-color-neutral-950: #131416;
-  --ds-color-primary-50: var(--ds-color-neutral-50);
-  --ds-color-primary-100: var(--ds-color-neutral-100);
-  --ds-color-primary-200: var(--ds-color-neutral-200);
-  --ds-color-primary-300: var(--ds-color-neutral-300);
-  --ds-color-primary-400: var(--ds-color-neutral-400);
-  --ds-color-primary-500: var(--ds-color-neutral-500);
-  --ds-color-primary-600: var(--ds-color-neutral-600);
-  --ds-color-primary-700: var(--ds-color-neutral-700);
-  --ds-color-primary-800: var(--ds-color-neutral-800);
-  --ds-color-primary-900: var(--ds-color-neutral-900);
-  --ds-color-primary-950: var(--ds-color-neutral-950);
+
+  /* Primary scale — indigo/violet brand color */
+  --ds-color-primary-50: #f4f2ff;
+  --ds-color-primary-100: #ece8ff;
+  --ds-color-primary-200: #dcd4ff;
+  --ds-color-primary-300: #c4b5fd;
+  --ds-color-primary-400: #a78bfa;
+  --ds-color-primary-500: #8b5cf6;
+  --ds-color-primary-600: #7c3aed;
+  --ds-color-primary-700: #6d28d9;
+  --ds-color-primary-800: #5b21b6;
+  --ds-color-primary-900: #4c1d95;
+  --ds-color-primary-950: #2e1065;
+
+  /* Accent scale — violet/indigo for interactive highlights */
+  --ds-color-accent-50: #faf5ff;
+  --ds-color-accent-100: #f3e8ff;
+  --ds-color-accent-200: #e9d5ff;
+  --ds-color-accent-300: #d8b4fe;
+  --ds-color-accent-400: #c084fc;
+  --ds-color-accent-500: #a855f7;
+  --ds-color-accent-600: #9333ea;
+  --ds-color-accent-700: #7e22ce;
+  --ds-color-accent-800: #6b21a8;
+  --ds-color-accent-900: #581c87;
+  --ds-color-accent-950: #3b0764;
+
+  /* Brand alias — Threads CTAs are near-black on white */
+  --ds-color-brand-primary: #0a0a0a;
+
+  /* Feedback scales */
   --ds-color-info-50: #ecf2fe;
   --ds-color-info-100: #d8e5fd;
   --ds-color-info-200: #b1cefb;
@@ -89,9 +112,16 @@
   --ds-color-success-900: #122b18;
   --ds-color-success-950: #0e2012;
 
+  /* Typography — Threads system stack, 15px body */
+  --ds-font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Apple SD Gothic Neo", "Pretendard", sans-serif;
   --ds-text-xs: 12px;
-  --ds-text-sm: 14px;
-  --ds-text-base: 16px;
+  --ds-text-sm: 13px;
+  --ds-text-base: 15px;
+  --ds-text-lg: 17px;
+  --ds-text-xl: 22px;
+  --ds-text-2xl: 28px;
+  --ds-line-tight: 1.25;
+  --ds-line-body: 1.45;
   --ds-font-weight-thin: 100;
   --ds-font-weight-extralight: 200;
   --ds-font-weight-light: 300;
@@ -102,14 +132,16 @@
   --ds-font-weight-extrabold: 800;
   --ds-font-weight-black: 900;
 
-  --ds-radius-1: 2px;
-  --ds-radius-2: 4px;
-  --ds-radius-3: 6px;
-  --ds-radius-4: 8px;
-  --ds-radius-5: 12px;
-  --ds-radius-6: 16px;
-  --ds-radius-full: 1000px;
+  /* Border radius — Threads scale, pills via radius-full */
+  --ds-radius-1: 4px;
+  --ds-radius-2: 6px;
+  --ds-radius-3: 8px;
+  --ds-radius-4: 12px;
+  --ds-radius-5: 16px;
+  --ds-radius-6: 20px;
+  --ds-radius-full: 9999px;
 
+  /* Shadows */
   --ds-shadow-y-3: 8px;
   --ds-shadow-y-4: 16px;
   --ds-shadow-blur-3: 16px;
@@ -126,6 +158,7 @@
   --ds-shadow-lg: 0px 0px 2px 0px var(--ds-color-alpha-shadow2),
     0px var(--ds-shadow-y-4) var(--ds-shadow-blur-4) 0px var(--ds-color-alpha-shadow3);
 
+  /* Spacing */
   --ds-spacing-0: 0px;
   --ds-spacing-1: 1px;
   --ds-spacing-2: 2px;
@@ -137,10 +170,10 @@
   --ds-spacing-8: 16px;
   --ds-spacing-9: 20px;
   --ds-spacing-10: 24px;
-  --ds-spacing-11: 28px;
-  --ds-spacing-12: 32px;
-  --ds-spacing-13: 36px;
-  --ds-spacing-14: 40px;
+  --ds-spacing-11: 32px;
+  --ds-spacing-12: 40px;
+  --ds-spacing-13: 48px;
+  --ds-spacing-14: 56px;
   --ds-spacing-15: 44px;
   --ds-spacing-16: 48px;
   --ds-spacing-17: 56px;
@@ -150,6 +183,7 @@
   --ds-spacing-21: 96px;
   --ds-spacing-max: 1000px;
 
+  /* Z-index */
   --ds-z-index-behind: -1;
   --ds-z-index-base: 0;
   --ds-z-index-above: 1;
@@ -158,42 +192,75 @@
   --ds-z-index-dialog: 200;
   --ds-z-index-dialog-content: 250;
 
+  /* Semantic: transparent */
   --ds-color-transparent: transparent;
-  --ds-color-text-primary: var(--ds-color-neutral-950);
-  --ds-color-text-secondary: var(--ds-color-neutral-600);
-  --ds-color-text-tertiary: var(--ds-color-neutral-400);
-  --ds-color-text-disabled: var(--ds-color-neutral-400);
+
+  /* Semantic: text hierarchy — Threads near-black on white */
+  --ds-color-text-primary: #0a0a0a;
+  --ds-color-text-secondary: #777777;
+  --ds-color-text-tertiary: #999999;
+  --ds-color-text-disabled: #b8b8b8;
   --ds-color-text-on-primary: var(--ds-color-white);
-  --ds-color-text-muted: var(--ds-color-neutral-500);
-  --ds-color-surface-primary: var(--ds-color-white);
-  --ds-color-surface-secondary: var(--ds-color-neutral-50);
-  --ds-color-surface-inverse: var(--ds-color-neutral-950);
-  --ds-color-surface-neutral: var(--ds-color-neutral-100);
-  --ds-color-border-primary: var(--ds-color-neutral-200);
-  --ds-color-border-secondary: var(--ds-color-neutral-100);
-  --ds-color-interactive-primary: var(--ds-color-primary-950);
-  --ds-color-interactive-primary-hover: var(--ds-color-primary-800);
-  --ds-color-interactive-primary-active: var(--ds-color-primary-700);
-  --ds-color-interactive-primary-muted: var(--ds-color-primary-500);
-  --ds-color-interactive-secondary: var(--ds-color-neutral-100);
-  --ds-color-interactive-secondary-hover: var(--ds-color-neutral-200);
+  --ds-color-text-muted: #999999;
+
+  /* Semantic: surface hierarchy — flat white, secondary as sunken outer */
+  --ds-color-surface-primary: #ffffff;
+  --ds-color-surface-secondary: #f5f5f5;
+  --ds-color-surface-inverse: #0a0a0a;
+  --ds-color-surface-neutral: #f5f5f5;
+  --ds-color-surface-app: #ffffff;
+  --ds-color-surface-card: #ffffff;
+  --ds-color-surface-elevated: #ffffff;
+  --ds-color-surface-sunken: #f5f5f5;
+
+  /* Semantic: borders — hairlines */
+  --ds-color-border-primary: rgba(0, 0, 0, 0.10);
+  --ds-color-border-secondary: rgba(0, 0, 0, 0.06);
+
+  /* Semantic: interactive — primary (Threads black-pill CTA) */
+  --ds-color-interactive-primary: #0a0a0a;
+  --ds-color-interactive-primary-hover: #262626;
+  --ds-color-interactive-primary-active: #404040;
+  --ds-color-interactive-primary-muted: #737373;
+
+  /* Semantic: interactive — secondary */
+  --ds-color-interactive-secondary: #f5f5f5;
+  --ds-color-interactive-secondary-hover: #ebebeb;
+
+  /* Semantic: interactive — accent (only true accent: links / verified) */
+  --ds-color-interactive-accent: #0095f6;
+  --ds-color-interactive-accent-hover: #1a8de2;
+  --ds-color-interactive-accent-active: #1577c0;
+  --ds-color-interactive-accent-muted: #6ab9f0;
+
+  /* Semantic: interactive — danger */
   --ds-color-interactive-danger: var(--ds-color-danger-500);
   --ds-color-interactive-danger-hover: var(--ds-color-danger-600);
   --ds-color-interactive-danger-active: var(--ds-color-danger-700);
   --ds-color-interactive-danger-hover-subtle: var(--ds-color-danger-400);
+
+  /* Semantic: interactive — success */
   --ds-color-interactive-success: var(--ds-color-success-500);
   --ds-color-interactive-success-hover: var(--ds-color-success-600);
   --ds-color-interactive-success-active: var(--ds-color-success-700);
   --ds-color-interactive-success-hover-subtle: var(--ds-color-success-400);
+
+  /* Semantic: interactive — warning */
   --ds-color-interactive-warning: var(--ds-color-warning-300);
   --ds-color-interactive-warning-hover: var(--ds-color-warning-400);
   --ds-color-interactive-warning-active: var(--ds-color-warning-500);
   --ds-color-interactive-warning-hover-subtle: var(--ds-color-warning-400);
+
+  /* Semantic: interactive — info */
   --ds-color-interactive-info: var(--ds-color-info-500);
   --ds-color-interactive-info-hover: var(--ds-color-info-600);
   --ds-color-interactive-info-active: var(--ds-color-info-700);
   --ds-color-interactive-info-hover-subtle: var(--ds-color-info-400);
-  --ds-color-focus-ring: var(--ds-color-primary-950);
+
+  /* Semantic: focus ring */
+  --ds-color-focus-ring: rgba(0, 0, 0, 0.35);
+
+  /* Semantic: feedback */
   --ds-color-feedback-danger: var(--ds-color-danger-500);
   --ds-color-feedback-danger-subtle: var(--ds-color-danger-50);
   --ds-color-feedback-danger-text: var(--ds-color-danger-600);
@@ -212,6 +279,7 @@
   --ds-color-feedback-info-text: var(--ds-color-info-600);
   --ds-color-feedback-info-border: var(--ds-color-info-200);
 
+  /* Motion */
   --ds-duration-fast: 0.15s;
   --ds-duration-normal: 0.2s;
   --ds-duration-slow: 0.25s;
@@ -221,32 +289,62 @@
   --ds-easing-soft: ease;
   --ds-easing-entrance: cubic-bezier(0.16, 1, 0.3, 1);
   --ds-easing-accordion: cubic-bezier(0.87, 0, 0.13, 1);
-  --ds-shadow-thumb: var(--ds-shadow-xs);
-  --ds-shadow-card: var(--ds-shadow-sm);
-  --ds-shadow-dropdown: var(--ds-shadow-sm);
-  --ds-shadow-popover: var(--ds-shadow-sm);
-  --ds-shadow-dialog: var(--ds-shadow-md);
+
+  /* Shadow aliases — feed surfaces are flat; only floating dialogs have soft shadow */
+  --ds-shadow-thumb: none;
+  --ds-shadow-card: none;
+  --ds-shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --ds-shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --ds-shadow-dialog: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
+/* Dark mode — Threads true near-black */
 .dark {
-  --ds-color-text-primary: var(--ds-color-neutral-50);
-  --ds-color-text-secondary: var(--ds-color-neutral-300);
-  --ds-color-text-tertiary: var(--ds-color-neutral-500);
-  --ds-color-text-disabled: var(--ds-color-neutral-600);
-  --ds-color-text-on-primary: var(--ds-color-neutral-950);
-  --ds-color-text-muted: var(--ds-color-neutral-500);
-  --ds-color-surface-primary: var(--ds-color-neutral-950);
-  --ds-color-surface-secondary: var(--ds-color-neutral-900);
-  --ds-color-surface-inverse: var(--ds-color-white);
-  --ds-color-surface-neutral: var(--ds-color-neutral-800);
-  --ds-color-border-primary: var(--ds-color-neutral-700);
-  --ds-color-border-secondary: var(--ds-color-neutral-800);
-  --ds-color-interactive-primary: var(--ds-color-neutral-50);
-  --ds-color-interactive-primary-hover: var(--ds-color-neutral-200);
-  --ds-color-interactive-primary-active: var(--ds-color-neutral-300);
-  --ds-color-interactive-secondary: var(--ds-color-neutral-800);
-  --ds-color-interactive-secondary-hover: var(--ds-color-neutral-700);
-  --ds-color-focus-ring: var(--ds-color-neutral-50);
+  /* Text hierarchy */
+  --ds-color-text-primary: #f3f3f3;
+  --ds-color-text-secondary: #777777;
+  --ds-color-text-tertiary: #555555;
+  --ds-color-text-disabled: #3a3a3a;
+  --ds-color-text-on-primary: #0a0a0a;
+  --ds-color-text-muted: #777777;
+
+  /* Surface hierarchy: true near-black */
+  --ds-color-surface-primary: #101010;
+  --ds-color-surface-secondary: #181818;
+  --ds-color-surface-inverse: #ffffff;
+  --ds-color-surface-neutral: #181818;
+  --ds-color-surface-app: #101010;
+  --ds-color-surface-card: #101010;
+  --ds-color-surface-elevated: #181818;
+  --ds-color-surface-sunken: #0a0a0a;
+
+  /* Brand alias — invert: white CTA on dark */
+  --ds-color-brand-primary: #f3f3f3;
+
+  /* Borders — hairlines */
+  --ds-color-border-primary: rgba(255, 255, 255, 0.12);
+  --ds-color-border-secondary: rgba(255, 255, 255, 0.08);
+
+  /* Interactive: primary (white pill on dark) */
+  --ds-color-interactive-primary: #f3f3f3;
+  --ds-color-interactive-primary-hover: #e5e5e5;
+  --ds-color-interactive-primary-active: #cccccc;
+  --ds-color-interactive-primary-muted: #888888;
+
+  /* Interactive: secondary */
+  --ds-color-interactive-secondary: #181818;
+  --ds-color-interactive-secondary-hover: #232323;
+
+  /* Interactive: accent (one true accent: links / verified) */
+  --ds-color-interactive-accent: #0095f6;
+  --ds-color-interactive-accent-hover: #1a8de2;
+  --ds-color-interactive-accent-active: #1577c0;
+  --ds-color-interactive-accent-muted: #6ab9f0;
+
+  /* Focus ring */
+  --ds-color-focus-ring: rgba(255, 255, 255, 0.45);
+
+  /* Feedback: dark mode variants */
   --ds-color-feedback-danger-subtle: rgba(222, 52, 18, 0.1);
   --ds-color-feedback-danger-border: rgba(222, 52, 18, 0.3);
   --ds-color-feedback-danger-text: var(--ds-color-danger-300);
@@ -259,4 +357,9 @@
   --ds-color-feedback-info-subtle: rgba(37, 110, 244, 0.1);
   --ds-color-feedback-info-border: rgba(37, 110, 244, 0.3);
   --ds-color-feedback-info-text: var(--ds-color-info-300);
+
+  /* Shadows: deeper for dark surfaces */
+  --ds-color-alpha-shadow1: rgba(0, 0, 0, 0.15);
+  --ds-color-alpha-shadow2: rgba(0, 0, 0, 0.25);
+  --ds-color-alpha-shadow3: rgba(0, 0, 0, 0.35);
 }

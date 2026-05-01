@@ -4,6 +4,9 @@ import { z } from "zod";
 import { Logger, getErrorMessage } from "@agent-buddy/core";
 import type { ReviewJob } from "../jobs/state.js";
 import { reviewHistory, reviewJobs, analysisJobs, createJobBase } from "../jobs/state.js";
+import { processReviewJob } from "../jobs/review.js";
+import { enqueueJob } from "../jobs/queue.js";
+import { saveJob } from "../jobs/persistence.js";
 import { reviewRateLimitMiddleware } from "../middleware/rate-limit.js";
 import { parsePaginationParams, paginate, apiError } from "../lib/api-response.js";
 import { validateRepoParams } from "../lib/route-helpers.js";
@@ -47,11 +50,18 @@ export function createReviewsRoutes(): Hono {
     };
 
     reviewJobs.set(job.id, job);
+    saveJob(job).catch((err) => logger.error("Failed to persist new job", { jobId: job.id, error: getErrorMessage(err) }));
+
+    enqueueJob(job.id, "review", () =>
+      processReviewJob(job.id, repoId, prNumber, buddyId, reviewType).catch((err) => {
+        logger.error("Review job processing failed", { jobId: job.id, error: getErrorMessage(err) });
+      })
+    );
 
     return c.json({
       success: true,
       jobId: job.id,
-      message: "Review job created successfully",
+      message: "Review job queued for processing",
     });
   });
 
@@ -153,12 +163,23 @@ export function createReviewsRoutes(): Hono {
 
     const stream = new ReadableStream({
       async start(controller) {
+        let closed = false;
+        const cleanup = () => {
+          if (closed) return;
+          closed = true;
+          clearInterval(interval);
+          clearTimeout(timeout);
+          try { controller.close(); } catch { /* already closed */ }
+        };
+
         const sendEvent = (data: unknown) => {
+          if (closed) return;
           try {
             const payload = `data: ${JSON.stringify(data)}\n\n`;
             controller.enqueue(new TextEncoder().encode(payload));
           } catch (err) {
             logger.warn("Failed to send SSE event", { jobId, error: getErrorMessage(err) });
+            cleanup();
           }
         };
 
@@ -169,25 +190,16 @@ export function createReviewsRoutes(): Hono {
           if (updatedJob) {
             sendEvent(updatedJob);
             if (updatedJob.status === "completed" || updatedJob.status === "failed" || updatedJob.status === "cancelled") {
-              clearInterval(interval);
-              clearTimeout(timeout);
-              controller.close();
+              cleanup();
             }
           }
         }, 1000);
 
-        const timeout = setTimeout(() => {
-          clearInterval(interval);
-          controller.close();
-        }, 300000);
+        const timeout = setTimeout(cleanup, 300000);
 
         const signal = c.req.raw.signal;
         if (signal) {
-          signal.addEventListener("abort", () => {
-            clearInterval(interval);
-            clearTimeout(timeout);
-            try { controller.close(); } catch (err) { logger.warn("Failed to close SSE controller on client disconnect", { error: getErrorMessage(err) }); }
-          }, { once: true });
+          signal.addEventListener("abort", cleanup, { once: true });
         }
       },
     });

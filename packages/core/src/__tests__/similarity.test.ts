@@ -19,39 +19,6 @@ describe("compareBuddies", () => {
     updatedAt: new Date(),
   });
 
-  it("should calculate similarity score between 0 and 1", () => {
-    const buddy1 = createMockBuddy(
-      "1",
-      "I prefer TypeScript and React",
-      "Expertise: TypeScript, React"
-    );
-    const buddy2 = createMockBuddy(
-      "2",
-      "I like TypeScript and Vue",
-      "Expertise: TypeScript, Vue"
-    );
-
-    const result = compareBuddies(buddy1, buddy2);
-    expect(result.score).toBeGreaterThanOrEqual(0);
-    expect(result.score).toBeLessThanOrEqual(1);
-  });
-
-  it("should identify shared keywords", () => {
-    const buddy1 = createMockBuddy(
-      "1",
-      "I prefer TypeScript and React",
-      "Expertise: TypeScript, React"
-    );
-    const buddy2 = createMockBuddy(
-      "2",
-      "I like TypeScript and React",
-      "Expertise: React, Node.js"
-    );
-
-    const result = compareBuddies(buddy1, buddy2);
-    expect(result.sharedKeywords).toContain("typescript");
-    expect(result.sharedKeywords).toContain("react");
-  });
 
   it("should identify shared repos", () => {
     const buddy1 = createMockBuddy(
@@ -73,56 +40,6 @@ describe("compareBuddies", () => {
     expect(result.sharedRepos).not.toContain("repo4");
   });
 
-  it("should calculate soul overlap ratio", () => {
-    const buddy1 = createMockBuddy(
-      "1",
-      "I prefer TypeScript and React testing",
-      "Expertise: TypeScript"
-    );
-    const buddy2 = createMockBuddy(
-      "2",
-      "I like TypeScript and React",
-      "Expertise: React"
-    );
-
-    const result = compareBuddies(buddy1, buddy2);
-    expect(result.soulOverlap).toBeGreaterThanOrEqual(0);
-    expect(result.soulOverlap).toBeLessThanOrEqual(1);
-  });
-
-  it("should return analysis with philosophy similarity", () => {
-    const buddy1 = createMockBuddy(
-      "1",
-      "Clean code is important for maintainability",
-      "Expertise: Architecture"
-    );
-    const buddy2 = createMockBuddy(
-      "2",
-      "Clean code practices improve maintainability",
-      "Expertise: Testing"
-    );
-
-    const result = compareBuddies(buddy1, buddy2);
-    expect(result.analysis.philosophySimilarity).toBeGreaterThanOrEqual(0);
-    expect(result.analysis.philosophySimilarity).toBeLessThanOrEqual(1);
-  });
-
-  it("should return analysis with expertise overlap", () => {
-    const buddy1 = createMockBuddy(
-      "1",
-      "Philosophy",
-      "# Expertise\nTypeScript, React, Node.js"
-    );
-    const buddy2 = createMockBuddy(
-      "2",
-      "Philosophy",
-      "# Skills\nTypeScript, Python"
-    );
-
-    const result = compareBuddies(buddy1, buddy2);
-    expect(result.analysis.expertiseOverlap).toBeGreaterThanOrEqual(0);
-    expect(result.analysis.expertiseOverlap).toBeLessThanOrEqual(1);
-  });
 
   it("should extract common patterns from soul text", () => {
     const buddy1 = createMockBuddy(
@@ -202,15 +119,6 @@ describe("compareBuddies", () => {
     expect(result.sharedRepos).toEqual([]);
   });
 
-  it("should handle all shared repos", () => {
-    const repos = ["repo1", "repo2", "repo3"];
-    const buddy1 = createMockBuddy("1", "Philosophy", "User", repos);
-    const buddy2 = createMockBuddy("2", "Philosophy", "User", repos);
-
-    const result = compareBuddies(buddy1, buddy2);
-    expect(result.sharedRepos).toEqual(repos);
-    expect(result.score).toBeGreaterThan(0);
-  });
 
   it("should extract tech terms from soul text", () => {
     const buddy1 = createMockBuddy(

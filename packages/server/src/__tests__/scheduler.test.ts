@@ -60,56 +60,6 @@ describe("Scheduler Retry Logic", () => {
     delete process.env.GITHUB_TOKEN;
   });
 
-  describe("exponential backoff configuration", () => {
-    it("should use correct base delay of 1 second", () => {
-      const expectedBaseDelay = 1000;
-      expect(expectedBaseDelay).toBe(1000);
-    });
-
-    it("should have max retries configured to 5", () => {
-      const expectedMaxRetries = 5;
-      expect(expectedMaxRetries).toBe(5);
-    });
-
-    it("should calculate exponential delays correctly", () => {
-      const BASE_DELAY_MS = 1000;
-      const expectedDelays = [
-        BASE_DELAY_MS * Math.pow(2, 0),
-        BASE_DELAY_MS * Math.pow(2, 1),
-        BASE_DELAY_MS * Math.pow(2, 2),
-        BASE_DELAY_MS * Math.pow(2, 3),
-        BASE_DELAY_MS * Math.pow(2, 4),
-      ];
-
-      expect(expectedDelays).toEqual([1000, 2000, 4000, 8000, 16000]);
-    });
-  });
-
-  describe("retry state tracking", () => {
-    it("should initialize with zero retry count", () => {
-      const testSchedule: any = {
-        repoId: "test/repo",
-        enabled: true,
-        intervalMinutes: 60,
-      };
-
-      expect(testSchedule.retryCount).toBeUndefined();
-    });
-
-    it("should track retry count in schedule object", () => {
-      const schedule: any = {
-        repoId: "test/repo",
-        enabled: true,
-        intervalMinutes: 60,
-        retryCount: 3,
-        lastError: "Test error",
-      };
-
-      expect(schedule.retryCount).toBe(3);
-      expect(schedule.lastError).toBe("Test error");
-    });
-  });
-
   describe("retry logging", () => {
     it("should reset retry count after max retries exhausted", async () => {
       mockGitHubClient.listPRs = vi.fn().mockRejectedValue(new Error("API Error"));

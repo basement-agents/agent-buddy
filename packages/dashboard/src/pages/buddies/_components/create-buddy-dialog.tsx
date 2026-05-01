@@ -4,8 +4,9 @@ import { Button } from "~/components/system/button";
 import { Input } from "~/components/system/input";
 import { Label } from "~/components/system/label";
 import { ProgressBar } from "~/components/shared/progress-bar";
-import { useQuery, useMutation } from "~/lib/hooks";
+import { useRepos, useMutation } from "~/lib/hooks";
 import { api } from "~/lib/api";
+import type { RepoConfig } from "~/lib/api";
 
 interface CreateBuddyDialogProps {
   open: boolean;
@@ -34,7 +35,7 @@ export function CreateBuddyDialog({ open, onOpenChange, onSuccess }: CreateBuddy
     return () => clearPoll();
   }, []);
 
-  const { data: repos } = useQuery(() => api.listRepos(), []);
+  const { data: repos } = useRepos();
 
   const createBuddy = useMutation(
     (username: string, repo: string, maxPrs?: number) => api.createBuddy(username, repo, maxPrs)
@@ -137,7 +138,7 @@ export function CreateBuddyDialog({ open, onOpenChange, onSuccess }: CreateBuddy
                   <div>
                     <p className="mb-1 text-xs text-[var(--ds-color-text-primary)]">Or select a configured repo:</p>
                     <div className="flex flex-wrap gap-1">
-                      {repos.data.map((r) => (
+                      {repos.data.map((r: RepoConfig) => (
                         <Button
                           key={r.id}
                           variant={repo === r.id ? "info" : "outline"}

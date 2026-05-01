@@ -64,10 +64,19 @@ const settingsPatchSchema = z.object({
     }).optional(),
   }).optional(),
   llm: z.object({
-    provider: z.enum(["anthropic", "openrouter", "openai"]).optional(),
+    provider: z.enum(["anthropic", "openrouter", "openai", "cli"]).optional(),
     apiKey: z.string().optional(),
     baseUrl: z.string().optional(),
     defaultModel: z.string().optional(),
+    command: z.string().optional(),
+    args: z.array(z.string()).optional(),
+    interactiveShell: z.boolean().optional(),
+    parseFormat: z.enum(["single-json", "jsonl-opencode", "jsonl-codex"]).optional(),
+    responsePath: z.string().optional(),
+    usageInputPath: z.string().optional(),
+    usageOutputPath: z.string().optional(),
+    modelPath: z.string().optional(),
+    timeoutMs: z.number().int().positive().optional(),
   }).optional(),
 }).partial();
 

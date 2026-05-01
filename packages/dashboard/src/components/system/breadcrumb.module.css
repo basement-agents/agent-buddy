@@ -3,7 +3,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--ds-spacing-3);
-  font-size: 14px;
+  font-size: var(--ds-text-sm, 13px);
   color: var(--ds-color-text-tertiary);
 }
 
@@ -23,10 +23,10 @@
 }
 
 .link {
-  color: var(--ds-color-text-secondary);
+  color: var(--ds-color-text-tertiary);
   text-decoration: none;
   cursor: pointer;
-  transition: color var(--ds-duration-fast) var(--ds-easing-default);
+  transition: color var(--ds-duration-fast) ease-out;
 }
 
 .link:hover {
@@ -42,4 +42,5 @@
   display: inline-flex;
   align-items: center;
   color: var(--ds-color-text-tertiary);
+  margin-inline: var(--ds-spacing-2);
 }

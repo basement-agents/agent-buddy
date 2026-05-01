@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GitHubClient, GitHubError } from "../github/client.js";
+import { githubCache } from "../github/cache.js";
 import { importPKCS8 } from "jose";
 /* eslint-disable @typescript-eslint/no-require-imports */
 
@@ -21,6 +22,7 @@ describe("GitHubClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(global.fetch).mockReset();
+    githubCache.clear();
   });
 
   describe("constructor", () => {
@@ -600,6 +602,208 @@ describe("GitHubClient", () => {
       const client = new GitHubClient("token", undefined, undefined);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((client as any).maxPages).toBe(10);
+    });
+  });
+
+  describe("getPRsReviewedBy", () => {
+    function makeSearchResponse(items) {
+      return {
+        total_count: items.length,
+        incomplete_results: false,
+        items: items.map((item) => ({ ...item, pull_request: { url: `https://api.github.com/repos/owner/repo/pulls/${item.number}` } })),
+      };
+    }
+
+    it("should use Search API to find PRs reviewed by user", async () => {
+      const searchItems = [
+        {
+          id: 100, number: 1, title: "PR 1", body: "body", state: "closed", draft: false,
+          user: { login: "author1", id: 1, avatar_url: "", html_url: "" },
+          created_at: "2024-01-15T00:00:00Z", updated_at: "2024-01-20T00:00:00Z", html_url: "https://github.com/owner/repo/pull/1",
+        },
+      ];
+
+      vi.mocked(global.fetch).mockImplementation(async (url) => {
+        const urlStr = String(url);
+        const mockHeaders = new Headers({ "x-ratelimit-remaining": "5000" });
+
+        if (urlStr.includes("/search/issues")) {
+          return { ok: true, headers: mockHeaders, json: async () => makeSearchResponse(searchItems) };
+        }
+        return { ok: true, headers: mockHeaders, json: async () => [] };
+      });
+
+      const client = new GitHubClient("pat-token");
+      const results = await client.getPRsReviewedBy("owner", "repo", "reviewer");
+
+      const calls = vi.mocked(global.fetch).mock.calls.map((c) => String(c[0]));
+      expect(calls.some((u) => u.includes("/search/issues"))).toBe(true);
+      expect(calls.some((u) => u.includes("reviewed-by") && u.includes("reviewer"))).toBe(true);
+      expect(calls.some((u) => u.includes("/repos/owner/repo/pulls?"))).toBe(false);
+      expect(results).toEqual([]);
+    });
+
+    it("should return PRs with user reviews from search results", async () => {
+      const searchItems = [
+        {
+          id: 100, number: 5, title: "Reviewed PR", body: "body", state: "closed", draft: false,
+          user: { login: "author1", id: 1, avatar_url: "", html_url: "" },
+          created_at: "2024-01-15T00:00:00Z", updated_at: "2024-01-20T00:00:00Z", html_url: "https://github.com/owner/repo/pull/5",
+        },
+      ];
+
+      vi.mocked(global.fetch).mockImplementation(async (url) => {
+        const urlStr = String(url);
+        const mockHeaders = new Headers({ "x-ratelimit-remaining": "5000" });
+
+        if (urlStr.includes("/search/issues")) {
+          return { ok: true, headers: mockHeaders, json: async () => makeSearchResponse(searchItems) };
+        }
+        if (urlStr.includes("/pulls/5/reviews")) {
+          return {
+            ok: true, headers: mockHeaders,
+            json: async () => [{ id: 1, author: { login: "reviewer" }, body: "LGTM", state: "approved", submittedAt: "2024-01-16", comments: [] }],
+          };
+        }
+        return { ok: true, headers: mockHeaders, json: async () => [] };
+      });
+
+      const client = new GitHubClient("pat-token");
+      const results = await client.getPRsReviewedBy("owner", "repo", "reviewer");
+
+      expect(results).toHaveLength(1);
+      expect(results[0].pr.number).toBe(5);
+      expect(results[0].reviews).toHaveLength(1);
+      expect(results[0].reviews[0].author.login).toBe("reviewer");
+    });
+
+    it("should fall back to full scan when Search API fails", async () => {
+      vi.mocked(global.fetch).mockImplementation(async (url) => {
+        const urlStr = String(url);
+        const mockHeaders = new Headers({ "x-ratelimit-remaining": "5000" });
+
+        if (urlStr.includes("/search/issues")) {
+          return { ok: false, status: 403, headers: mockHeaders, text: async () => "rate limited" };
+        }
+        if (urlStr.includes("/repos/owner/repo/pulls?")) {
+          return { ok: true, headers: mockHeaders, json: async () => [] };
+        }
+        return { ok: true, headers: mockHeaders, json: async () => [] };
+      });
+
+      const client = new GitHubClient("pat-token");
+      const results = await client.getPRsReviewedBy("owner", "repo", "reviewer");
+
+      const calls = vi.mocked(global.fetch).mock.calls.map((c) => String(c[0]));
+      expect(calls.some((u) => u.includes("/search/issues"))).toBe(true);
+      expect(calls.some((u) => u.includes("/repos/owner/repo/pulls?"))).toBe(true);
+      expect(results).toEqual([]);
+    });
+
+    it("should respect maxResults", async () => {
+      const searchItems = Array.from({ length: 20 }, (_, i) => ({
+        id: 100 + i, number: i + 1, title: `PR ${i + 1}`, body: "body", state: "closed", draft: false,
+        user: { login: "author1", id: 1, avatar_url: "", html_url: "" },
+        created_at: "2024-01-15T00:00:00Z", updated_at: "2024-01-20T00:00:00Z", html_url: `https://github.com/owner/repo/pull/${i + 1}`,
+      }));
+
+      vi.mocked(global.fetch).mockImplementation(async (url) => {
+        const urlStr = String(url);
+        const mockHeaders = new Headers({ "x-ratelimit-remaining": "5000" });
+
+        if (urlStr.includes("/search/issues")) {
+          return { ok: true, headers: mockHeaders, json: async () => makeSearchResponse(searchItems) };
+        }
+        if (urlStr.includes("/reviews")) {
+          return {
+            ok: true, headers: mockHeaders,
+            json: async () => [{ id: 1, author: { login: "reviewer" }, body: "", state: "approved", submittedAt: "", comments: [] }],
+          };
+        }
+        return { ok: true, headers: mockHeaders, json: async () => [] };
+      });
+
+      const client = new GitHubClient("pat-token");
+      const results = await client.getPRsReviewedBy("owner", "repo", "reviewer", undefined, 3);
+
+      expect(results).toHaveLength(3);
+    });
+
+    it("should apply since filter", async () => {
+      const searchItems = [
+        {
+          id: 100, number: 1, title: "Recent PR", body: "", state: "closed", draft: false,
+          user: { login: "author1", id: 1, avatar_url: "", html_url: "" },
+          created_at: "2024-06-15T00:00:00Z", updated_at: "2024-06-20T00:00:00Z", html_url: "",
+        },
+        {
+          id: 101, number: 2, title: "Old PR", body: "", state: "closed", draft: false,
+          user: { login: "author1", id: 1, avatar_url: "", html_url: "" },
+          created_at: "2024-01-01T00:00:00Z", updated_at: "2024-01-05T00:00:00Z", html_url: "",
+        },
+      ];
+
+      vi.mocked(global.fetch).mockImplementation(async (url) => {
+        const urlStr = String(url);
+        const mockHeaders = new Headers({ "x-ratelimit-remaining": "5000" });
+
+        if (urlStr.includes("/search/issues")) {
+          return { ok: true, headers: mockHeaders, json: async () => makeSearchResponse(searchItems) };
+        }
+        if (urlStr.includes("/pulls/1/reviews")) {
+          return {
+            ok: true, headers: mockHeaders,
+            json: async () => [{ id: 1, author: { login: "reviewer" }, body: "", state: "approved", submittedAt: "", comments: [] }],
+          };
+        }
+        return { ok: true, headers: mockHeaders, json: async () => [] };
+      });
+
+      const client = new GitHubClient("pat-token");
+      const results = await client.getPRsReviewedBy("owner", "repo", "reviewer", "2024-03-01T00:00:00Z");
+
+      expect(results).toHaveLength(1);
+      expect(results[0].pr.number).toBe(1);
+    });
+
+    it("should handle individual PR detail fetch failures gracefully", async () => {
+      const searchItems = [
+        {
+          id: 100, number: 1, title: "PR 1", body: "", state: "closed", draft: false,
+          user: { login: "author1", id: 1, avatar_url: "", html_url: "" },
+          created_at: "2024-01-15T00:00:00Z", updated_at: "2024-01-20T00:00:00Z", html_url: "",
+        },
+        {
+          id: 101, number: 2, title: "PR 2", body: "", state: "closed", draft: false,
+          user: { login: "author1", id: 1, avatar_url: "", html_url: "" },
+          created_at: "2024-01-15T00:00:00Z", updated_at: "2024-01-20T00:00:00Z", html_url: "",
+        },
+      ];
+
+      vi.mocked(global.fetch).mockImplementation(async (url) => {
+        const urlStr = String(url);
+        const mockHeaders = new Headers({ "x-ratelimit-remaining": "5000" });
+
+        if (urlStr.includes("/search/issues")) {
+          return { ok: true, headers: mockHeaders, json: async () => makeSearchResponse(searchItems) };
+        }
+        if (urlStr.includes("/pulls/1/")) {
+          return { ok: false, status: 500, headers: mockHeaders, text: async () => "server error" };
+        }
+        if (urlStr.includes("/pulls/2/reviews")) {
+          return {
+            ok: true, headers: mockHeaders,
+            json: async () => [{ id: 1, author: { login: "reviewer" }, body: "", state: "approved", submittedAt: "", comments: [] }],
+          };
+        }
+        return { ok: true, headers: mockHeaders, json: async () => [] };
+      });
+
+      const client = new GitHubClient("pat-token");
+      const results = await client.getPRsReviewedBy("owner", "repo", "reviewer");
+
+      expect(results).toHaveLength(1);
+      expect(results[0].pr.number).toBe(2);
     });
   });
 });

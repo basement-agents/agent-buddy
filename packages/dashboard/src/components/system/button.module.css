@@ -11,8 +11,11 @@
   cursor: pointer;
   background-color: var(--ds-button-bg-color);
   border: var(--ds-button-border, 1px solid transparent);
-  border-radius: var(--ds-button-border-radius);
-  transition: background-color var(--ds-duration-fast) var(--ds-easing-default);
+  border-radius: var(--ds-radius-full);
+  transition:
+    background-color var(--ds-duration-fast) ease-out,
+    color var(--ds-duration-fast) ease-out,
+    border-color var(--ds-duration-fast) ease-out;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -96,17 +99,17 @@
 }
 
 .variantOutline {
-  --ds-button-bg-color: var(--ds-color-transparent);
+  --ds-button-bg-color: transparent;
   --ds-button-font-color: var(--ds-color-text-primary);
-  --ds-button-border: 1px solid var(--ds-color-border-secondary);
-  --ds-button-bg-color-hover: var(--ds-color-surface-secondary);
+  --ds-button-border: 1px solid var(--ds-color-border-primary);
+  --ds-button-bg-color-hover: var(--ds-color-interactive-secondary);
   --ds-button-bg-color-active: var(--ds-color-interactive-secondary);
 }
 
 .variantGhost {
-  --ds-button-bg-color: var(--ds-color-surface-primary);
+  --ds-button-bg-color: transparent;
   --ds-button-font-color: var(--ds-color-text-primary);
-  --ds-button-bg-color-hover: var(--ds-color-surface-secondary);
+  --ds-button-bg-color-hover: var(--ds-color-interactive-secondary);
   --ds-button-bg-color-active: var(--ds-color-interactive-secondary);
   --ds-button-border: 1px solid transparent;
 }
@@ -145,34 +148,34 @@
 
 /* Sizes */
 .sizeLarge {
-  --ds-button-height: 40px;
-  --ds-button-padding-inline: 14px;
+  --ds-button-height: 44px;
+  --ds-button-padding-inline: 16px;
   --ds-button-content-padding: 0 6px;
-  --ds-button-font-size: 14px;
+  --ds-button-font-size: 15px;
 }
 
 .sizeMedium {
   --ds-button-height: 36px;
-  --ds-button-padding-inline: 12px;
+  --ds-button-padding-inline: 16px;
   --ds-button-content-padding: 0 6px;
-  --ds-button-font-size: 14px;
+  --ds-button-font-size: 15px;
 }
 
 .sizeSmall {
   --ds-button-height: 32px;
-  --ds-button-padding-inline: 10px;
+  --ds-button-padding-inline: 16px;
   --ds-button-content-padding: 0 2px;
-  --ds-button-font-size: 14px;
+  --ds-button-font-size: 13px;
 }
 
 .sizeXSmall {
   --ds-button-height: 28px;
-  --ds-button-padding-inline: 8px;
+  --ds-button-padding-inline: 12px;
   --ds-button-content-padding: 0;
   --ds-button-font-size: 12px;
 }
 
-/* Shapes */
+/* Shapes — circle keeps 100%, rounded and square both use full pill */
 .shapeCircle {
   --ds-button-border-radius: 100%;
 }

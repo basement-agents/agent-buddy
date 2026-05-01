@@ -46,7 +46,7 @@ export const reviewConfigSchema = z.object({
 });
 
 export const llmProviderConfigSchema = z.object({
-  provider: z.enum(["anthropic", "openrouter", "openai"]).default("anthropic"),
+  provider: z.enum(["anthropic", "openrouter", "openai", "cli"]).default("anthropic"),
   apiKey: z.string().min(20, "API key too short").max(500, "API key too long").optional(),
   baseUrl: z.string().url("Invalid URL format").optional()
     .refine((val) => !val || val.startsWith("https://"), { message: "baseUrl must use HTTPS" })
@@ -64,6 +64,23 @@ export const llmProviderConfigSchema = z.object({
       }
     }, { message: "baseUrl must not point to internal/private network" }),
   defaultModel: z.string().regex(/^[a-zA-Z0-9._/:@-]+$/, "Invalid model name").optional(),
+  command: z.string().min(1).optional(),
+  args: z.array(z.string()).optional(),
+  interactiveShell: z.boolean().optional(),
+  parseFormat: z.enum(["single-json", "jsonl-opencode", "jsonl-codex"]).optional(),
+  responsePath: z.string().optional(),
+  usageInputPath: z.string().optional(),
+  usageOutputPath: z.string().optional(),
+  modelPath: z.string().optional(),
+  timeoutMs: z.number().int().positive().optional(),
+}).superRefine((data, ctx) => {
+  if (data.provider === "cli" && !data.command) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["command"],
+      message: "command is required when provider is 'cli'",
+    });
+  }
 });
 
 export const configSchema = z.object({

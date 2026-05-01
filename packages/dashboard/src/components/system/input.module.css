@@ -7,12 +7,12 @@
   color: var(--ds-color-text-primary);
   outline: none;
   background-color: var(--ds-color-surface-primary);
-  border: none;
+  border: 1px solid var(--ds-color-border-primary);
   border-radius: var(--ds-input-border-radius);
-  box-shadow:
-    0 0 0 1px var(--ds-color-border-secondary),
-    var(--ds-shadow-xs);
-  transition: box-shadow var(--ds-duration-fast) var(--ds-easing-soft);
+  box-shadow: none;
+  transition:
+    border-color var(--ds-duration-fast) ease-out,
+    box-shadow var(--ds-duration-fast) ease-out;
 }
 
 .input::placeholder {
@@ -20,10 +20,9 @@
 }
 
 .input:focus-visible {
-  outline: 2px solid transparent;
-  box-shadow:
-    0 0 0 1px var(--ds-color-text-tertiary),
-    var(--ds-shadow-xs);
+  outline: none;
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--ds-color-focus-ring);
 }
 
 .stretch {
@@ -41,16 +40,13 @@
 }
 
 .error {
-  box-shadow:
-    0 0 0 1px var(--ds-color-danger-500),
-    var(--ds-shadow-xs);
+  border-color: var(--ds-color-danger-500);
+  box-shadow: none;
 }
 
 .error:focus-visible {
-  outline: 2px solid transparent;
-  box-shadow:
-    0 0 0 1px var(--ds-color-danger-500),
-    var(--ds-shadow-xs);
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--ds-color-danger-500);
 }
 
 .sizeXSmall {
@@ -63,20 +59,20 @@
 .sizeSmall {
   --ds-input-height: 32px;
   --ds-input-padding-x: 10px;
-  --ds-input-font-size: 12px;
-  --ds-input-border-radius: var(--ds-radius-3);
+  --ds-input-font-size: 13px;
+  --ds-input-border-radius: var(--ds-radius-4);
 }
 
 .sizeMedium {
-  --ds-input-height: 36px;
+  --ds-input-height: 40px;
   --ds-input-padding-x: 12px;
-  --ds-input-font-size: 14px;
+  --ds-input-font-size: 15px;
   --ds-input-border-radius: var(--ds-radius-4);
 }
 
 .sizeLarge {
   --ds-input-height: 40px;
   --ds-input-padding-x: 14px;
-  --ds-input-font-size: 14px;
+  --ds-input-font-size: 15px;
   --ds-input-border-radius: var(--ds-radius-4);
 }

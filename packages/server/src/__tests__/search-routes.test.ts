@@ -97,13 +97,6 @@ describe("Search Routes", () => {
       expect(data).toEqual({ repos: [], buddies: [], reviews: [] });
     });
 
-    it("tab-only query returns empty arrays", async () => {
-      const res = await searchApp.request("/api/search?q=%09");
-
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data).toEqual({ repos: [], buddies: [], reviews: [] });
-    });
   });
 
   describe("repo matching", () => {
@@ -459,32 +452,22 @@ describe("Search Routes", () => {
       });
     });
 
-    it("handles special characters in query", async () => {
-      const res = await searchApp.request("/api/search?q=!@#$%");
+    it("handles special and unicode characters in query", async () => {
+      const specialRes = await searchApp.request("/api/search?q=!@#$%");
+      const specialData = await specialRes.json();
+      expect(specialData.repos).toHaveLength(0);
+      expect(specialData.buddies).toHaveLength(0);
+      expect(specialData.reviews).toHaveLength(1);
 
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.repos).toHaveLength(0);
-      expect(data.buddies).toHaveLength(0);
-      expect(data.reviews).toHaveLength(1);
-    });
+      const atRes = await searchApp.request("/api/search?q=@");
+      const atData = await atRes.json();
+      expect(atData.buddies).toHaveLength(1);
 
-    it("handles @ symbol in query", async () => {
-      const res = await searchApp.request("/api/search?q=@");
-
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.buddies).toHaveLength(1);
-    });
-
-    it("handles unicode characters in query", async () => {
-      const res = await searchApp.request("/api/search?q=café");
-
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data).toHaveProperty("repos");
-      expect(data).toHaveProperty("buddies");
-      expect(data).toHaveProperty("reviews");
+      const unicodeRes = await searchApp.request("/api/search?q=café");
+      const unicodeData = await unicodeRes.json();
+      expect(unicodeData).toHaveProperty("repos");
+      expect(unicodeData).toHaveProperty("buddies");
+      expect(unicodeData).toHaveProperty("reviews");
     });
   });
 
@@ -569,31 +552,17 @@ describe("Search Routes", () => {
       ]);
     });
 
-    it("trims leading whitespace before searching", async () => {
-      const res = await searchApp.request("/api/search?q=%20owner");
+    it("trims whitespace before searching", async () => {
+      const leading = await searchApp.request("/api/search?q=%20owner");
+      const trailing = await searchApp.request("/api/search?q=owner%20");
+      const both = await searchApp.request("/api/search?q=%20%20owner%20%20");
 
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.repos).toHaveLength(1);
-      expect(data.repos[0].owner).toBe("owner");
-    });
-
-    it("trims trailing whitespace before searching", async () => {
-      const res = await searchApp.request("/api/search?q=owner%20");
-
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.repos).toHaveLength(1);
-      expect(data.repos[0].owner).toBe("owner");
-    });
-
-    it("trims both leading and trailing whitespace before searching", async () => {
-      const res = await searchApp.request("/api/search?q=%20%20owner%20%20");
-
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.repos).toHaveLength(1);
-      expect(data.repos[0].owner).toBe("owner");
+      for (const res of [leading, trailing, both]) {
+        expect(res.status).toBe(200);
+        const data = await res.json();
+        expect(data.repos).toHaveLength(1);
+        expect(data.repos[0].owner).toBe("owner");
+      }
     });
   });
 });

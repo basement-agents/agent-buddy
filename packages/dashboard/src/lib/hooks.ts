@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useSuspenseQuery, useMutation as useRQMutation } from "@tanstack/react-query";
 import { api, ApiError } from "./api";
 
 export function useDebouncedValue<T>(value: T, delayMs: number): T {
@@ -60,74 +61,63 @@ export function usePageParam(): [number, (page: number) => void] {
   return [page, setPageWithUrl];
 }
 
-interface UseQueryResult<T> {
-  data: T | undefined;
-  loading: boolean;
-  error: string | null;
-  refetch: () => void;
-}
-
-export function useQuery<T>(
-  fetcher: (signal?: AbortSignal) => Promise<T>,
-  deps: unknown[] = []
-): UseQueryResult<T> {
-  const [data, setData] = useState<T>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetch = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    const abortController = new AbortController();
-
-    fetcher(abortController.signal)
-      .then(setData)
-      .catch((err) => {
-        if (err.name !== 'AbortError') {
-          setError(err instanceof ApiError ? err.message : "An error occurred");
-        }
-      })
-      .finally(() => setLoading(false));
-
-    return () => abortController.abort();
-  }, deps);
-
-  useEffect(() => {
-    const cleanup = fetch();
-    return cleanup;
-  }, [fetch]);
-
-  return { data, loading, error, refetch: fetch };
-}
+export const queryKeys = {
+  repos: (params?: { page?: number; limit?: number }) => ["repos", params?.page ?? 1, params?.limit ?? 20] as const,
+  buddies: (params?: { page?: number; limit?: number }) => ["buddies", params?.page ?? 1, params?.limit ?? 20] as const,
+  buddy: (id: string) => ["buddy", id] as const,
+  buddyFeedback: (id: string) => ["buddy-feedback", id] as const,
+  buddyComparison: (id1: string, id2: string) => ["buddy-comparison", id1, id2] as const,
+  reviews: (params?: Record<string, unknown>) => ["reviews", params ?? {}] as const,
+  review: (key: { owner: string; repo: string; prNumber: number } | null) =>
+    key ? ["review", key.owner, key.repo, key.prNumber] as const : ["review", "none"] as const,
+  analytics: () => ["analytics"] as const,
+  metrics: (params?: { since?: string; until?: string }) => ["metrics", params?.since ?? "", params?.until ?? ""] as const,
+  repoConfig: (repoId: string) => ["repo-config", repoId] as const,
+  repoRules: (repoId: string) => ["repo-rules", repoId] as const,
+  repoSchedule: (repoId: string) => ["repo-schedule", repoId] as const,
+  repoOpenPRs: (owner: string, repo: string) => ["repo-open-prs", owner, repo] as const,
+};
 
 export function useRepos(params?: { page?: number; limit?: number }) {
-  return useQuery(() => api.listRepos(params), [params?.page, params?.limit]);
+  return useSuspenseQuery({
+    queryKey: queryKeys.repos(params),
+    queryFn: ({ signal }) => api.listRepos(params, signal),
+  });
 }
 
 export function useBuddies(params?: { page?: number; limit?: number }) {
-  return useQuery(() => api.listBuddies(params), [params?.page, params?.limit]);
+  return useSuspenseQuery({
+    queryKey: queryKeys.buddies(params),
+    queryFn: ({ signal }) => api.listBuddies(params, signal),
+  });
 }
 
-export function useBuddy(id: string | undefined) {
-  return useQuery(() => {
-    if (!id) return Promise.reject(new Error("Buddy ID is required"));
-    return api.getBuddy(id);
-  }, [id]);
+export function useBuddy(id: string) {
+  return useSuspenseQuery({
+    queryKey: queryKeys.buddy(id),
+    queryFn: ({ signal }) => api.getBuddy(id, signal),
+  });
 }
 
-export function useBuddyFeedback(buddyId: string | undefined) {
-  return useQuery(() => {
-    if (!buddyId) return Promise.reject(new Error("Buddy ID is required"));
-    return api.getBuddyFeedback(buddyId);
-  }, [buddyId]);
+export function useBuddyFeedback(buddyId: string) {
+  return useSuspenseQuery({
+    queryKey: queryKeys.buddyFeedback(buddyId),
+    queryFn: ({ signal }) => api.getBuddyFeedback(buddyId, signal),
+  });
 }
 
 export function useBuddyComparison(id1: string, id2: string) {
-  return useQuery(() => api.compareBuddies(id1, id2), [id1, id2]);
+  return useSuspenseQuery({
+    queryKey: queryKeys.buddyComparison(id1, id2),
+    queryFn: ({ signal }) => api.compareBuddies(id1, id2, signal),
+  });
 }
 
 export function useReviews(params?: { repo?: string; buddy?: string; status?: string; since?: string; until?: string; page?: number; limit?: number }) {
-  return useQuery(() => api.listReviews(params), [params?.repo, params?.buddy, params?.status, params?.since, params?.until, params?.page, params?.limit]);
+  return useSuspenseQuery({
+    queryKey: queryKeys.reviews(params),
+    queryFn: ({ signal }) => api.listReviews(params, signal),
+  });
 }
 
 export function useReview(reviewIndex: string | undefined) {
@@ -140,48 +130,71 @@ export function useReview(reviewIndex: string | undefined) {
     return { owner: parts.slice(0, -2).join("-"), repo: parts[parts.length - 2], prNumber };
   }, [reviewIndex]);
 
-  return useQuery(
-    () => {
-      if (!parsed) return Promise.reject(new Error("Invalid review index"));
-      return api.getReview(parsed.owner, parsed.repo, parsed.prNumber);
+  return useSuspenseQuery({
+    queryKey: queryKeys.review(parsed),
+    queryFn: ({ signal }) => {
+      if (!parsed) throw new Error("Invalid review index");
+      return api.getReview(parsed.owner, parsed.repo, parsed.prNumber, signal);
     },
-    [parsed?.owner, parsed?.repo, parsed?.prNumber]
-  );
+  });
 }
 
 export function useAnalytics() {
-  return useQuery(() => api.getAnalytics());
+  return useSuspenseQuery({
+    queryKey: queryKeys.analytics(),
+    queryFn: ({ signal }) => api.getAnalytics(signal),
+  });
 }
 
 export function useMetrics(params?: { since?: string; until?: string }) {
-  return useQuery(() => api.getMetrics(params), [params?.since, params?.until]);
+  return useSuspenseQuery({
+    queryKey: queryKeys.metrics(params),
+    queryFn: ({ signal }) => api.getMetrics(params, signal),
+  });
+}
+
+export function useRepoRules(repoId: string) {
+  return useSuspenseQuery({
+    queryKey: queryKeys.repoRules(repoId),
+    queryFn: ({ signal }) => api.getRepoRules(repoId, signal),
+  });
+}
+
+export function useRepoSchedule(repoId: string) {
+  return useSuspenseQuery({
+    queryKey: queryKeys.repoSchedule(repoId),
+    queryFn: ({ signal }) => api.getRepoSchedule(repoId, signal),
+  });
+}
+
+export function useRepoOpenPRs(owner: string, repo: string) {
+  return useSuspenseQuery({
+    queryKey: queryKeys.repoOpenPRs(owner, repo),
+    queryFn: ({ signal }) => api.listOpenPRs(owner, repo, signal),
+  });
 }
 
 export function useMutation<T, A extends unknown[]>(
   mutator: (...args: A) => Promise<T>
 ): { execute: (...args: A) => Promise<T>; loading: boolean; error: string | null } {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const mutation = useRQMutation({
+    mutationFn: (args: A) => mutator(...args),
+  });
 
   const execute = useCallback(
     async (...args: A): Promise<T> => {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await mutator(...args);
-        return result;
-      } catch (err) {
-        const msg = err instanceof ApiError ? err.message : "An error occurred";
-        setError(msg);
-        throw err;
-      } finally {
-        setLoading(false);
-      }
+      return mutation.mutateAsync(args);
     },
-    [mutator]
+    [mutation]
   );
 
-  return { execute, loading, error };
+  const error = mutation.error
+    ? mutation.error instanceof ApiError
+      ? mutation.error.message
+      : "An error occurred"
+    : null;
+
+  return { execute, loading: mutation.isPending, error };
 }
 
 export interface JobProgress {

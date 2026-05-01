@@ -99,10 +99,13 @@ describe("ReviewDetail", () => {
   it("shows review metadata", () => {
     render(<ReviewDetail review={mockReview} />);
 
+    expect(screen.getByText("Model")).toBeInTheDocument();
     expect(screen.getByText(/claude-3-opus/)).toBeInTheDocument();
+    expect(screen.getByText("Tokens")).toBeInTheDocument();
     expect(screen.getByText(/2,000/)).toBeInTheDocument();
-    expect(screen.getByText("Type:")).toBeInTheDocument();
+    expect(screen.getByText("Type")).toBeInTheDocument();
     expect(screen.getByText("full")).toBeInTheDocument();
+    expect(screen.getByText("Duration")).toBeInTheDocument();
     expect(screen.getByText(/5\.0s/)).toBeInTheDocument();
   });
 
@@ -192,7 +195,7 @@ describe("ReviewDetail", () => {
   it("formats reviewed date correctly", () => {
     render(<ReviewDetail review={mockReview} />);
 
-    expect(screen.getByText(/Reviewed:/)).toBeInTheDocument();
+    expect(screen.getByText("Reviewed")).toBeInTheDocument();
     const dateStr = new Date(mockReview.reviewedAt).toLocaleString();
     expect(screen.getByText(dateStr)).toBeInTheDocument();
   });

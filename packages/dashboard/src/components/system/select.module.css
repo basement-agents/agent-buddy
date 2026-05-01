@@ -20,19 +20,18 @@
   appearance: none;
   outline: none;
   background-color: var(--ds-color-surface-primary);
-  border: none;
+  border: 1px solid var(--ds-color-border-primary);
   border-radius: var(--ds-select-border-radius);
-  box-shadow:
-    0 0 0 1px var(--ds-color-border-secondary),
-    var(--ds-shadow-xs);
-  transition: box-shadow var(--ds-duration-fast) var(--ds-easing-soft);
+  box-shadow: none;
+  transition:
+    border-color var(--ds-duration-fast) ease-out,
+    box-shadow var(--ds-duration-fast) ease-out;
 }
 
 .select:focus-visible {
-  outline: 2px solid transparent;
-  box-shadow:
-    0 0 0 1px var(--ds-color-text-tertiary),
-    var(--ds-shadow-xs);
+  outline: none;
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--ds-color-focus-ring);
 }
 
 .wrapper.stretch .select {
@@ -49,16 +48,13 @@
 }
 
 .wrapper.error .select {
-  box-shadow:
-    0 0 0 1px var(--ds-color-danger-500),
-    var(--ds-shadow-xs);
+  border-color: var(--ds-color-danger-500);
+  box-shadow: none;
 }
 
 .wrapper.error .select:focus-visible {
-  outline: 2px solid transparent;
-  box-shadow:
-    0 0 0 1px var(--ds-color-danger-500),
-    var(--ds-shadow-xs);
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--ds-color-danger-500);
 }
 
 .icon {
@@ -91,17 +87,17 @@
   --ds-select-padding-left: 10px;
   --ds-select-padding-right: 32px;
   --ds-select-icon-right: 10px;
-  --ds-select-font-size: 12px;
-  --ds-select-border-radius: var(--ds-radius-3);
+  --ds-select-font-size: 13px;
+  --ds-select-border-radius: var(--ds-radius-4);
 }
 
 .sizeMedium {
-  --ds-select-min-width: 36px;
-  --ds-select-height: 36px;
+  --ds-select-min-width: 40px;
+  --ds-select-height: 40px;
   --ds-select-padding-left: 12px;
   --ds-select-padding-right: 38px;
   --ds-select-icon-right: 12px;
-  --ds-select-font-size: 14px;
+  --ds-select-font-size: 15px;
   --ds-select-border-radius: var(--ds-radius-4);
 }
 
@@ -111,6 +107,6 @@
   --ds-select-padding-left: 14px;
   --ds-select-padding-right: 42px;
   --ds-select-icon-right: 14px;
-  --ds-select-font-size: 14px;
+  --ds-select-font-size: 15px;
   --ds-select-border-radius: var(--ds-radius-4);
 }

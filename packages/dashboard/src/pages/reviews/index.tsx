@@ -1,15 +1,20 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useReviews, useNavigate, useDebouncedValue } from "~/lib/hooks";
-import { Badge } from "~/components/system/badge";
+import { useQueryClient } from "@tanstack/react-query";
+import { useReviews, useNavigate, useDebouncedValue, queryKeys } from "~/lib/hooks";
 import { ClipboardList } from "lucide-react";
-import { ErrorState } from "~/components/system/error-state";
-import { Spinner } from "~/components/system/spinner";
 import { ProgressBar } from "~/components/shared/progress-bar";
 import { Pagination } from "~/components/system/pagination";
 import { Input } from "~/components/system/input";
 import { Select } from "~/components/system/select";
 import { api } from "~/lib/api";
-import { stateVariant } from "~/lib/constants";
+import {
+  FeedList,
+  FeedItem,
+  FeedAvatar,
+  FeedChipStrip,
+  FeedHeader,
+} from "~/components/common/feed-list";
+import { PageColumn } from "~/components/common/page-column";
 
 const STATUS_ORDER: Record<string, number> = { approved: 0, changes_requested: 1, completed: 2, commented: 3 };
 
@@ -36,8 +41,9 @@ export function ReviewsPage() {
 
   const debouncedRepo = useDebouncedValue(params.repo, 300);
   const debouncedBuddy = useDebouncedValue(params.buddy, 300);
+  const queryClient = useQueryClient();
 
-  const { data, loading, error, refetch } = useReviews({
+  const reviewsParams = {
     repo: debouncedRepo || undefined,
     status: params.status || undefined,
     buddy: debouncedBuddy || undefined,
@@ -45,7 +51,11 @@ export function ReviewsPage() {
     until: params.until || undefined,
     page: params.page,
     limit: 20,
-  });
+  };
+  const { data } = useReviews(reviewsParams);
+  const refetch = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.reviews(reviewsParams) });
+  };
 
   const sortedReviews = useMemo(() => {
     if (!data?.reviews) return [];
@@ -162,16 +172,17 @@ export function ReviewsPage() {
     };
   }, []);
 
-  if (loading) return <div className="flex items-center justify-center py-8" role="status" aria-live="polite"><span className="sr-only">Loading reviews...</span><Spinner size="medium" /></div>;
-  if (error) return <ErrorState message={`Error: ${error}`} onRetry={() => { updateParam("page", 1); refetch(); }} />;
+  void refetch;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--ds-color-text-primary)]">Reviews</h1>
-        <p className="text-sm text-[var(--ds-color-text-primary)]">Code review history</p>
-      </div>
+    <PageColumn variant="wide">
+      <div className="space-y-6">
+      <FeedHeader
+        title="Reviews"
+        meta="Code review history"
+      />
 
+      {/* Filter controls */}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Input
           size="small"
@@ -232,44 +243,82 @@ export function ReviewsPage() {
         </Select>
       </div>
 
+      {/* Sort chips */}
+      <FeedChipStrip
+        options={[
+          { value: "date", label: "Recent" },
+          { value: "repo", label: "By repo" },
+          { value: "status", label: "By status" },
+        ]}
+        active={params.sort}
+        onChange={(v) => updateParam("sort", v)}
+      />
+
       {sortedReviews.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-[var(--ds-color-border-primary)] p-8 text-center">
+        <div
+          style={{
+            padding: "var(--ds-spacing-12) 0",
+            textAlign: "center",
+            borderTop: "1px solid var(--ds-color-border-secondary)",
+          }}
+        >
           {params.repo || params.status ? (
-            <p className="text-[var(--ds-color-text-primary)]">No reviews match your filters</p>
+            <p style={{ fontSize: "var(--ds-text-sm, 13px)", color: "var(--ds-color-text-primary)" }}>
+              No reviews match your filters
+            </p>
           ) : (
             <>
-              <ClipboardList className="mx-auto mb-3 h-10 w-10 text-[var(--ds-color-text-secondary)]" />
-              <p className="mb-1 text-sm font-medium text-[var(--ds-color-text-secondary)]">No reviews yet</p>
-              <p className="text-xs text-[var(--ds-color-text-primary)]">Reviews will appear here once a buddy reviews a pull request</p>
+              <ClipboardList
+                style={{ margin: "0 auto 12px", color: "var(--ds-color-text-secondary)" }}
+                size={36}
+              />
+              <p style={{ fontSize: "var(--ds-text-sm, 13px)", fontWeight: 500, color: "var(--ds-color-text-secondary)", marginBottom: 4 }}>
+                No reviews yet
+              </p>
+              <p style={{ fontSize: "var(--ds-text-xs, 12px)", color: "var(--ds-color-text-primary)" }}>
+                Reviews will appear here once a buddy reviews a pull request
+              </p>
             </>
           )}
         </div>
       ) : (
-        <div className="space-y-2">
-          {sortedReviews.map((review, i) => {
+        <FeedList>
+          {sortedReviews.map((review) => {
             const reviewId = `${review.metadata.owner}-${review.metadata.repo}-${review.metadata.prNumber}`;
             const jobId = review.metadata.jobId;
             const jobStatus = jobId ? jobStatuses[jobId] : undefined;
 
+            // Verdict line color
+            const verdictColor =
+              review.state === "approved"
+                ? "var(--ds-color-interactive-accent)"
+                : review.state === "changes_requested"
+                  ? "var(--ds-color-feedback-warning-text, var(--ds-color-text-secondary))"
+                  : "var(--ds-color-text-muted)";
+
             return (
-              <div key={i} className="rounded-lg border border-[var(--ds-color-border-primary)]">
-                <div
-                  className="flex cursor-pointer flex-col gap-3 p-4 hover-hover:bg-[var(--ds-color-surface-secondary)] sm:flex-row sm:items-center sm:justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => navigate(`/reviews/${reviewId}`)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/reviews/${reviewId}`); } }}
-                >
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <Badge variant={stateVariant[review.state] || "default"}>{review.state.replace("_", " ")}</Badge>
-                    <span className="text-sm font-medium text-[var(--ds-color-text-primary)]">
-                      {review.metadata.owner}/{review.metadata.repo} #{review.metadata.prNumber}
+              <FeedItem
+                key={reviewId}
+                leading={
+                  review.buddyId ? (
+                    <FeedAvatar name={review.buddyId} />
+                  ) : (
+                    <FeedAvatar name="?" />
+                  )
+                }
+                title={`${review.metadata.owner}/${review.metadata.repo} #${review.metadata.prNumber}`}
+                meta={
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ color: verdictColor, fontWeight: 500 }}>
+                      {review.state.replace("_", " ")}
                     </span>
                     {review.buddyId && (
-                      <span className="text-xs text-[var(--ds-color-text-primary)]">by {review.buddyId}</span>
+                      <span>by {review.buddyId}</span>
                     )}
-                    {jobStatus && jobStatus.status === "running" && (
-                      <div className="w-24 sm:w-32 shrink-0">
+                    <span>{review.comments.length} comments</span>
+                    <span>{(review.metadata.durationMs / 1000).toFixed(1)}s</span>
+                    {jobStatus?.status === "running" && (
+                      <div style={{ width: 96 }}>
                         <ProgressBar
                           percentage={jobStatus.progress}
                           indeterminate={jobStatus.progress == null}
@@ -278,25 +327,28 @@ export function ReviewsPage() {
                         />
                       </div>
                     )}
-                    {jobStatus && jobStatus.status === "failed" && (
+                    {jobStatus?.status === "failed" && (
                       <ProgressBar percentage={100} variant="error" statusText={jobStatus.error || "Failed"} />
                     )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ds-color-text-primary)] sm:gap-3">
-                    <span>{review.comments.length} comments</span>
-                    <span>{(review.metadata.durationMs / 1000).toFixed(1)}s</span>
-                    <span>{new Date(review.reviewedAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </div>
+                  </span>
+                }
+                trailing={
+                  <span>{new Date(review.reviewedAt).toLocaleDateString()}</span>
+                }
+                onClick={() => navigate(`/reviews/${reviewId}`)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/reviews/${reviewId}`); } }}
+                role="button"
+                tabIndex={0}
+              />
             );
           })}
-        </div>
+        </FeedList>
       )}
 
       {data && data.totalPages > 1 && (
         <Pagination page={params.page} totalPages={data.totalPages} onPageChange={(p) => updateParam("page", p)} />
       )}
-    </div>
+      </div>
+    </PageColumn>
   );
 }
