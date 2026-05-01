@@ -22,6 +22,10 @@ venv/
 node_modules/
 .next/
 out/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
 
 # Environment
 .env
@@ -37,11 +41,23 @@ research/private/
 # Turbo
 .turbo/
 
+# Vite
+.vite/
+
 # Test results
 test-results.json
+test-results/
+playwright-report/
+coverage/
 
 # OMC
 .omc/
+
+# Claude Code
+# Allow shared `.claude/settings.json`; ignore user-specific overrides and
+# agent runtime artifacts (scheduled task locks, last-run state, etc.).
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # Build artifacts
 *.tsbuildinfo
