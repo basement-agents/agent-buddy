@@ -260,14 +260,22 @@ program
   .option("--json", "Output as JSON", false)
   .option("--watch", "Watch mode: poll every 2 seconds", false)
   .action(async (opts: { json: boolean; watch: boolean }) => {
+    const { daemonStatus, formatUptime } = await import("./commands/daemon-status.js");
     const renderStatus = async () => {
       const config = await loadConfig();
       const storage = new BuddyFileSystemStorage();
       const buddies = await storage.listBuddies();
       const autoReviewCount = config.repos.filter((r: RepoConfig) => r.autoReview).length;
+      const dStatus = await daemonStatus();
 
       if (opts.json) {
         console.log(JSON.stringify({
+          daemon: {
+            running: dStatus.running,
+            pid: dStatus.pid,
+            port: dStatus.port,
+            uptimeMs: dStatus.uptimeMs,
+          },
           repositories: {
             total: config.repos.length,
             autoReview: autoReviewCount,
@@ -288,6 +296,14 @@ program
       console.log();
       console.log(pc.bold(pc.cyan("agent-buddy status")));
       console.log(pc.dim("─".repeat(40)));
+      if (dStatus.running) {
+        console.log(pc.dim("  Daemon:         ") + pc.green("running"));
+        console.log(pc.dim("  PID:            ") + pc.bold(String(dStatus.pid)));
+        if (dStatus.port !== null) console.log(pc.dim("  Port:           ") + pc.bold(String(dStatus.port)));
+        if (dStatus.uptimeMs !== null) console.log(pc.dim("  Uptime:         ") + pc.bold(formatUptime(dStatus.uptimeMs)));
+      } else {
+        console.log(pc.dim("  Daemon:         ") + pc.yellow("not running"));
+      }
       console.log(pc.dim("  Repositories:   ") + pc.bold(String(config.repos.length)));
       console.log(pc.dim("  Buddies:        ") + pc.bold(String(buddies.length)));
       console.log(pc.dim("  Server Port:    ") + pc.bold(String(config.server?.port || 3000)));
