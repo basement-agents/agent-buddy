@@ -1154,6 +1154,22 @@ program
   });
 
 program
+  .command("logs")
+  .description("Show daemon logs")
+  .option("--tail <n>", "Show last N lines", "200")
+  .option("-f, --follow", "Follow log output", false)
+  .action(async (opts: { tail: string; follow: boolean }) => {
+    const mod = await import("./commands/logs.js");
+    if (opts.follow) {
+      await mod.followLogFile();
+      return;
+    }
+    const tail = Math.max(1, Number.parseInt(opts.tail, 10) || 200);
+    const out = await mod.tailLogFile({ tail });
+    console.log(out);
+  });
+
+program
   .command("serve")
   .description("Start the webhook server")
   .option("-p, --port <port>", "Server port", "3000")
