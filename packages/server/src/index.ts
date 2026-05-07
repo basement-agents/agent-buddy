@@ -92,7 +92,7 @@ app.onError((err, c) => {
 app.notFound(async (c) => {
   if (dashboardDirRef && (c.req.method === "GET" || c.req.method === "HEAD") && !c.req.path.startsWith("/api/")) {
     const handler = serveStatic(dashboardDirRef, { spaFallback: true });
-    const res = await handler(c, async () => undefined as unknown as Response);
+    const res = await handler(c, async () => { /* noop */ });
     if (res && res.status === 200) return res;
   }
   return c.json(apiNotFound("route", c.req.path), 404);

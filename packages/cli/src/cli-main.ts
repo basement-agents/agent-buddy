@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { Command } from "commander";
 import pc from "picocolors";
 import ora from "ora";
@@ -83,6 +81,7 @@ function showNextSteps() {
   console.log(pc.dim("    3. Start server:   ") + pc.cyan("agent-buddy serve"));
 }
 
+export async function runCli(): Promise<void> {
 const program = new Command();
 
 program
@@ -1688,4 +1687,5 @@ function formatJobDate(dateStr: string): string {
   return pc.dim(date.toLocaleDateString());
 }
 
-program.parse();
+await program.parseAsync();
+}
