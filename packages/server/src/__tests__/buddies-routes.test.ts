@@ -1,6 +1,41 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Next } from "hono";
+
+interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+interface BuddyListItem {
+  id: string;
+  name: string;
+}
+
+interface JobCreatedResponse {
+  jobId: string;
+  status: string;
+}
+
+interface BuddyFeedbackSummaryResponse {
+  helpfulCount: number;
+  notHelpfulCount: number;
+  recentFeedback: unknown[];
+}
+
+interface BuddyStatusResponse {
+  jobId?: string;
+  status: string;
+  progress?: string | number;
+}
+
+interface BuddyComparisonResponse {
+  score: number;
+  sharedKeywords: string[];
+  sharedRepos: string[];
+}
 
 // Create hoisted mocks for dynamic control
 const mockState = vi.hoisted(() => ({
@@ -95,8 +130,11 @@ vi.mock("../jobs/state.js", async (importOriginal) => {
 describe("Buddies Routes", () => {
   const originalEnv = { ...process.env };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    const { analysisJobs, reviewJobs } = await import("../jobs/state.js");
+    analysisJobs.clear();
+    reviewJobs.clear();
     // Reset environment variables
     process.env.GITHUB_TOKEN = originalEnv.GITHUB_TOKEN;
     process.env.ANTHROPIC_API_KEY = originalEnv.ANTHROPIC_API_KEY;
@@ -115,7 +153,7 @@ describe("Buddies Routes", () => {
     const { default: app } = await import("../index.js");
     const res = await app.request("/api/buddies");
     expect(res.status).toBe(200);
-    const data = await res.json() as { data: any[]; total: number; page: number; limit: number; totalPages: number };
+    const data = await res.json() as PaginatedResponse<BuddyListItem>;
     expect(Array.isArray(data.data)).toBe(true);
     expect(data.data).toHaveLength(1);
     expect(data.data[0]).toMatchObject({ id: "buddy-1", name: "Test Buddy" });
@@ -132,7 +170,7 @@ describe("Buddies Routes", () => {
     const { default: app } = await import("../index.js");
     const res = await app.request("/api/buddies?page=2&limit=2");
     expect(res.status).toBe(200);
-    const data = await res.json() as { data: any[]; total: number; page: number; limit: number; totalPages: number };
+    const data = await res.json() as PaginatedResponse<BuddyListItem>;
     expect(data.page).toBe(2);
     expect(data.limit).toBe(2);
     expect(data.total).toBe(5);
@@ -189,9 +227,9 @@ describe("Buddies Routes", () => {
       body: JSON.stringify({ username: "testuser", repo: "owner/repo", maxPrs: 10 }),
     });
     expect(res.status).toBe(202);
-    const data = await res.json();
+    const data = await res.json() as JobCreatedResponse;
     expect(data).toHaveProperty("jobId");
-    expect((data as any).status).toBe("queued");
+    expect(data.status).toBe("queued");
   });
 
   it("POST /api/buddies returns 500 when API keys missing", async () => {
@@ -289,13 +327,13 @@ describe("Buddies Routes", () => {
     const { default: app } = await import("../index.js");
     const res = await app.request("/api/buddies/buddy-1/feedback");
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as BuddyFeedbackSummaryResponse;
     expect(data).toHaveProperty("helpfulCount");
     expect(data).toHaveProperty("notHelpfulCount");
     expect(data).toHaveProperty("recentFeedback");
-    expect((data as any).helpfulCount).toBe(5);
-    expect((data as any).notHelpfulCount).toBe(1);
-    expect(Array.isArray((data as any).recentFeedback)).toBe(true);
+    expect(data.helpfulCount).toBe(5);
+    expect(data.notHelpfulCount).toBe(1);
+    expect(Array.isArray(data.recentFeedback)).toBe(true);
   });
 
   it("POST /api/buddies returns 400 for invalid repo format (no slash)", async () => {
@@ -328,9 +366,9 @@ describe("Buddies Routes", () => {
       body: JSON.stringify({ repo: "owner/repo" }),
     });
     expect(res.status).toBe(202);
-    const data = await res.json();
+    const data = await res.json() as JobCreatedResponse;
     expect(data).toHaveProperty("jobId");
-    expect((data as any).status).toBe("queued");
+    expect(data.status).toBe("queued");
   });
 
   it("POST /api/buddies/:id/update returns 500 when API keys missing", async () => {
@@ -379,25 +417,25 @@ describe("Buddies Routes", () => {
     const { default: app } = await import("../index.js");
     const res = await app.request("/api/buddies/buddy-1/status");
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect((data as any).jobId).toBe("job-abc");
-    expect((data as any).status).toBe("running");
-    expect((data as any).progress).toBe(50);
+    const data = await res.json() as BuddyStatusResponse;
+    expect(data.jobId).toBe("job-abc");
+    expect(data.status).toBe("running");
+    expect(data.progress).toBe(50);
   });
 
   it("GET /api/buddies/:id/compare/:otherId returns comparison result (200)", async () => {
     const { default: app } = await import("../index.js");
     const res = await app.request("/api/buddies/buddy-1/compare/buddy-2");
     expect(res.status).toBe(200);
-    const data = await res.json();
+    const data = await res.json() as BuddyComparisonResponse;
     expect(data).toHaveProperty("score");
     expect(data).toHaveProperty("sharedKeywords");
     expect(data).toHaveProperty("sharedRepos");
     expect(data).toHaveProperty("soulOverlap");
     expect(data).toHaveProperty("analysis");
-    expect((data as any).score).toBe(0.75);
-    expect(Array.isArray((data as any).sharedKeywords)).toBe(true);
-    expect(Array.isArray((data as any).sharedRepos)).toBe(true);
+    expect(data.score).toBe(0.75);
+    expect(Array.isArray(data.sharedKeywords)).toBe(true);
+    expect(Array.isArray(data.sharedRepos)).toBe(true);
   });
 
   it("GET /api/buddies/:id/compare/:otherId returns 404 when first buddy doesn't exist", async () => {

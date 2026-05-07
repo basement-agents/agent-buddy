@@ -26,16 +26,6 @@ function SettingsSection({ title, children }: { title: string; children: React.R
   );
 }
 
-// ─── Row primitive ────────────────────────────────────────────────────────────
-function SettingsRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <FeedItem
-      title={<span style={{ fontSize: "var(--ds-text-sm)", fontWeight: 500, color: "var(--ds-color-text-primary)" }}>{label}</span>}
-      trailing={<div style={{ minWidth: 200, maxWidth: 300 }}>{children}</div>}
-    />
-  );
-}
-
 export function SettingsPage() {
   const [githubToken, setGithubToken] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");

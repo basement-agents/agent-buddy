@@ -60,7 +60,9 @@ function countByStatus<T extends { status: string }>(items: T[]): Record<JobStat
 }
 
 function parseRepoId(repoStr: string): [owner: string, repo: string] | null {
-  const [owner, repo] = repoStr.split("/");
+  const parts = repoStr.trim().split("/");
+  if (parts.length !== 2) return null;
+  const [owner, repo] = parts.map((part) => part.trim());
   if (!owner || !repo) return null;
   return [owner, repo];
 }

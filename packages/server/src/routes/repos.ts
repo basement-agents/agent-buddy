@@ -9,7 +9,6 @@ import {
   Logger,
   GitHubClient,
   getErrorMessage,
-  RepoConfig,
   CustomRule,
 } from "@agent-buddy/core";
 import type { ReviewJob } from "../jobs/state.js";

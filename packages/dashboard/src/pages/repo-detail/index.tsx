@@ -19,7 +19,7 @@ import { NativeSelect } from "~/components/system/native-select";
 import { PageColumn } from "~/components/common/page-column";
 import { ProfileHeader } from "~/components/common/profile-header";
 import { TabStrip } from "~/components/common/tab-strip";
-import { FeedList, FeedItem, FeedIconWrapper } from "~/components/common/feed-list";
+import { FeedList, FeedItem } from "~/components/common/feed-list";
 import type { RepoConfig, CustomRule, ScheduleConfig, BuddySummary } from "~/lib/api";
 
 const SEVERITY_ORDER = ["error", "warning", "suggestion", "info"] as const;
@@ -198,6 +198,8 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
     } catch (err) {
       console.error("Failed to remove repository:", err);
       showToast({ title: "Failed to remove repository", variant: "error" });
+      throw err;
+    } finally {
       setDeleting(false);
     }
   };
@@ -585,6 +587,7 @@ export function RepoDetailPage({ owner, repo }: { owner: string; repo: string })
         description={`Are you sure you want to remove ${repoId}? This will stop monitoring this repository.`}
         confirmLabel="Remove"
         destructive
+        loading={deleting || removeRepo.loading}
         onConfirm={handleDeleteRepo}
       />
     </PageColumn>

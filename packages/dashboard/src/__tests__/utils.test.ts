@@ -8,10 +8,16 @@ describe("cn utility", () => {
   });
 
   it("handles conditional classes", () => {
-    expect(cn("base", true && "active", false && "hidden")).toBe("base active");
+    const flags: Record<"active" | "hidden" | "zero", boolean | number> = {
+      active: true,
+      hidden: false,
+      zero: 0,
+    };
+
+    expect(cn("base", flags.active && "active", flags.hidden && "hidden")).toBe("base active");
     expect(cn("base", undefined, null)).toBe("base");
     expect(cn("base", "", "visible")).toBe("base visible");
-    expect(cn("base", 0 && "zero")).toBe("base");
+    expect(cn("base", flags.zero && "zero")).toBe("base");
   });
 
   it("handles tailwind merge conflicts", () => {
