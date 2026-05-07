@@ -1,30 +1,40 @@
 {
-  "name": "@agent-buddy/cli",
+  "name": "agent-buddy",
   "version": "0.1.0",
   "type": "module",
+  "description": "AI code review bot that learns reviewer personas",
   "bin": {
-    "agent-buddy": "./dist/index.js"
+    "agent-buddy": "./dist/cli.js"
   },
+  "files": ["dist", "README.md"],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup && node ../../scripts/bundle-dashboard.mjs",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "dev": "tsc -p tsconfig.json --watch"
+    "dev": "tsup --watch"
   },
   "dependencies": {
-    "@agent-buddy/core": "*",
-    "@agent-buddy/server": "*",
     "@inquirer/prompts": "^8.4.1",
     "commander": "^13.1.0",
+    "hono": "^4.7.0",
+    "@hono/zod-validator": "^0.7.6",
+    "zod": "^3.25.76",
     "ora": "^8.2.0",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
+    "@agent-buddy/core": "*",
+    "@agent-buddy/server": "*",
+    "@agent-buddy/dashboard": "*",
     "@types/node": "^22.19.17",
     "oxfmt": "^0.47.0",
     "oxlint": "^1.62.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.8.0",
     "ultracite": "^7.6.2",
     "vitest": "^4.1.4"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }
