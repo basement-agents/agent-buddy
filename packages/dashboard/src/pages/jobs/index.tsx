@@ -3,11 +3,11 @@ import { api, type JobListItem } from "~/lib/api";
 import { useJobProgress, usePageParam } from "~/lib/hooks";
 import { Badge } from "~/components/system/badge";
 import { Pagination } from "~/components/system/pagination";
-import { Spinner } from "~/components/system/spinner";
 import { useToast } from "~/components/system/toast";
 import { Select } from "~/components/system/select";
 import { Button } from "~/components/system/button";
 import { ModalDialog } from "~/components/system/modal-dialog";
+import { Skeleton } from "~/components/system/skeleton";
 import { PageColumn } from "~/components/common/page-column";
 
 type JobStatus = JobListItem["status"];
@@ -50,6 +50,45 @@ function buildStatusText(parts: { subStep?: string; model?: string; elapsedMs?: 
   if (parts.elapsedMs !== undefined && parts.elapsedMs > 0) segments.push(formatElapsed(parts.elapsedMs));
   if (parts.detail) segments.push(parts.detail);
   return segments.length > 0 ? segments.join(" · ") : undefined;
+}
+
+function JobsTableSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 5 }, (_, index) => (
+        <tr
+          key={index}
+          className="border-b border-[var(--ds-color-border-secondary)]"
+          style={{ borderTop: "none", borderLeft: "none", borderRight: "none" }}
+        >
+          <td className="px-3 py-3 align-middle">
+            <Skeleton height="h-4" className="w-32" />
+          </td>
+          <td className="px-3 py-3 align-middle">
+            <Skeleton height="h-5" className="w-20 rounded-full" />
+          </td>
+          <td className="px-3 py-3 align-middle">
+            <Skeleton height="h-4" className="w-24" />
+          </td>
+          <td className="px-3 py-3 align-middle">
+            <Skeleton height="h-4" className="w-12" />
+          </td>
+          <td className="px-3 py-3 align-middle">
+            <div className="space-y-2">
+              <Skeleton height="h-3" className="w-28" />
+              <Skeleton height="h-1" className="w-full rounded-full" />
+            </div>
+          </td>
+          <td className="px-3 py-3 align-middle text-right">
+            <Skeleton height="h-4" className="ml-auto w-16" />
+          </td>
+          <td className="px-3 py-3 align-middle text-right">
+            <Skeleton height="h-6" className="ml-auto w-14 rounded-full" />
+          </td>
+        </tr>
+      ))}
+    </>
+  );
 }
 
 /** Thin 2px progress bar: track in border-secondary, fill in text-primary. */
@@ -342,69 +381,80 @@ export function JobsPage() {
 
         {/* Table — no card wrapper, only horizontal hairlines */}
         <div className="overflow-x-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-8" role="status" aria-live="polite">
-              <span className="sr-only">Loading jobs...</span>
-              <Spinner size="medium" />
-            </div>
-          ) : error ? (
-            <div role="alert" className="py-8 text-center text-[var(--ds-color-feedback-danger)]">
-              {error}
-            </div>
-          ) : jobs.length === 0 ? (
-            <div className="py-8 text-center text-[var(--ds-color-text-primary)]">No jobs found</div>
-          ) : (
-            <table className="w-full min-w-[700px]" style={{ tableLayout: "fixed", borderCollapse: "collapse" }}>
-              <thead>
-                {/* Header: 13px, tertiary color, no background, only bottom hairline */}
-                <tr
-                  className="text-left border-b border-[var(--ds-color-border-primary)]"
-                  style={{ borderTop: "none", borderLeft: "none", borderRight: "none" }}
+          <table className="w-full min-w-[700px]" style={{ tableLayout: "fixed", borderCollapse: "collapse" }}>
+            <thead>
+              {/* Header: 13px, tertiary color, no background, only bottom hairline */}
+              <tr
+                className="text-left border-b border-[var(--ds-color-border-primary)]"
+                style={{ borderTop: "none", borderLeft: "none", borderRight: "none" }}
+              >
+                <th
+                  className="px-3 py-2 font-medium"
+                  style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
                 >
-                  <th
-                    className="px-3 py-2 font-medium"
-                    style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
+                  job
+                </th>
+                <th
+                  className="px-3 py-2 font-medium"
+                  style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
+                >
+                  status
+                </th>
+                <th
+                  className="px-3 py-2 font-medium"
+                  style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
+                >
+                  repo
+                </th>
+                <th
+                  className="px-3 py-2 font-medium"
+                  style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
+                >
+                  target
+                </th>
+                <th
+                  className="px-3 py-2 font-medium"
+                  style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
+                >
+                  progress
+                </th>
+                <th
+                  className="px-3 py-2 font-medium text-right"
+                  style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)", fontVariantNumeric: "tabular-nums" }}
+                >
+                  created
+                </th>
+                <th
+                  className="px-3 py-2"
+                  style={{ fontSize: 13 }}
+                />
+              </tr>
+            </thead>
+            <tbody
+              aria-busy={loading || undefined}
+              aria-live={loading ? "polite" : undefined}
+              aria-label={loading ? "Loading jobs" : undefined}
+            >
+              {loading ? (
+                <JobsTableSkeleton />
+              ) : error ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    role="alert"
+                    className="py-8 text-center text-[var(--ds-color-feedback-danger)]"
                   >
-                    job
-                  </th>
-                  <th
-                    className="px-3 py-2 font-medium"
-                    style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
-                  >
-                    status
-                  </th>
-                  <th
-                    className="px-3 py-2 font-medium"
-                    style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
-                  >
-                    repo
-                  </th>
-                  <th
-                    className="px-3 py-2 font-medium"
-                    style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
-                  >
-                    target
-                  </th>
-                  <th
-                    className="px-3 py-2 font-medium"
-                    style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)" }}
-                  >
-                    progress
-                  </th>
-                  <th
-                    className="px-3 py-2 font-medium text-right"
-                    style={{ fontSize: 13, color: "var(--ds-color-text-tertiary)", fontVariantNumeric: "tabular-nums" }}
-                  >
-                    created
-                  </th>
-                  <th
-                    className="px-3 py-2"
-                    style={{ fontSize: 13 }}
-                  />
+                    {error}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {jobs.map((job) => (
+              ) : jobs.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-[var(--ds-color-text-primary)]">
+                    No jobs found
+                  </td>
+                </tr>
+              ) : (
+                jobs.map((job) => (
                   <JobRow
                     key={job.id}
                     job={job}
@@ -413,10 +463,10 @@ export function JobsPage() {
                     onCancel={cancelJob}
                     onShowProgress={(j, st) => setProgressDetail({ job: j, statusText: st })}
                   />
-                ))}
-              </tbody>
-            </table>
-          )}
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />

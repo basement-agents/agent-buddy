@@ -36,24 +36,21 @@ function Page({ children }: { children: React.ReactNode }) {
   );
 }
 
-interface RouteEntry {
-  path: string | RegExp;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  component: React.LazyExoticComponent<React.ComponentType<any>>;
-  props?: (match: RegExpMatchArray) => Record<string, unknown>;
-}
+type RouteEntry =
+  | { kind: "pattern"; path: RegExp; render: (match: RegExpMatchArray) => React.ReactNode }
+  | { kind: "static"; path: string; render: () => React.ReactNode };
 
 const routes: RouteEntry[] = [
-  { path: /^\/repos\/([^/]+)\/([^/]+)$/, component: RepoDetailPage, props: (m) => ({ owner: m[1], repo: m[2] }) },
-  { path: /^\/buddies\/compare$/, component: BuddyComparePage },
-  { path: /^\/buddies\/(.+)$/, component: BuddyDetailPage, props: (m) => ({ buddyId: m[1] }) },
-  { path: /^\/reviews\/(.+)$/, component: ReviewDetailPage, props: (m) => ({ reviewIndex: m[1] }) },
-  { path: "/", component: HomePage },
-  { path: "/repos", component: ReposPage },
-  { path: "/buddies", component: BuddiesPage },
-  { path: "/reviews", component: ReviewsPage },
-  { path: "/jobs", component: JobsPage },
-  { path: "/settings", component: SettingsPage },
+  { kind: "pattern", path: /^\/repos\/([^/]+)\/([^/]+)$/, render: (match) => <RepoDetailPage owner={match[1]} repo={match[2]} /> },
+  { kind: "pattern", path: /^\/buddies\/compare$/, render: () => <BuddyComparePage /> },
+  { kind: "pattern", path: /^\/buddies\/(.+)$/, render: (match) => <BuddyDetailPage buddyId={match[1]} /> },
+  { kind: "pattern", path: /^\/reviews\/(.+)$/, render: (match) => <ReviewDetailPage reviewIndex={match[1]} /> },
+  { kind: "static", path: "/", render: () => <HomePage /> },
+  { kind: "static", path: "/repos", render: () => <ReposPage /> },
+  { kind: "static", path: "/buddies", render: () => <BuddiesPage /> },
+  { kind: "static", path: "/reviews", render: () => <ReviewsPage /> },
+  { kind: "static", path: "/jobs", render: () => <JobsPage /> },
+  { kind: "static", path: "/settings", render: () => <SettingsPage /> },
 ];
 
 function Router() {
@@ -70,15 +67,13 @@ function Router() {
   const path = window.location.pathname;
 
   for (const route of routes) {
-    if (route.path instanceof RegExp) {
+    if (route.kind === "pattern") {
       const match = path.match(route.path);
       if (match) {
-        const Comp = route.component;
-        return <Page><Comp {...(route.props?.(match) ?? {})} /></Page>;
+        return <Page>{route.render(match)}</Page>;
       }
     } else if (path === route.path || (route.path === "/" && path === "")) {
-      const Comp = route.component;
-      return <Page><Comp /></Page>;
+      return <Page>{route.render()}</Page>;
     }
   }
 

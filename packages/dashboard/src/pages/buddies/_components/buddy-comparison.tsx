@@ -2,7 +2,6 @@ import { useBuddy } from "~/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/system/card";
 import { Badge } from "~/components/system/badge";
 import { Button } from "~/components/system/button";
-import { Spinner } from "~/components/system/spinner";
 import { ProgressBar } from "~/components/shared/progress-bar";
 import ReactMarkdown from "react-markdown";
 

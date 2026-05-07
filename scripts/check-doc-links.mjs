@@ -9,6 +9,7 @@ const IGNORE = new Set([
   'dist',
   '.turbo',
   '.git',
+  '.omx',
   '.idea',
   '.omc',
   'coverage',

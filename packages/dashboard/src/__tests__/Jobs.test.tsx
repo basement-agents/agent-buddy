@@ -30,12 +30,14 @@ vi.mock("~/lib/hooks", () => ({
   useNavigate: () => vi.fn(),
 }));
 
-vi.stubGlobal("EventSource", class MockEventSource {
-  onopen: any = null;
-  onmessage: any = null;
-  onerror: any = null;
+class MockEventSource {
+  onopen: EventSource["onopen"] = null;
+  onmessage: EventSource["onmessage"] = null;
+  onerror: EventSource["onerror"] = null;
   close = vi.fn();
-});
+}
+
+vi.stubGlobal("EventSource", MockEventSource);
 
 describe("JobsPage", () => {
   beforeEach(() => {
@@ -124,7 +126,7 @@ describe("JobsPage", () => {
     });
   });
 
-  it.skip("shows error state when API fails", async () => {
+  it("shows error state when API fails", async () => {
     mockListJobs.mockRejectedValue(new Error("Network error"));
     const { JobsPage } = await import("~/pages/jobs");
     render(<JobsPage />);
