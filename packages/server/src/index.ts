@@ -20,11 +20,13 @@ import { loadConfig, getErrorMessage } from "@agent-buddy/core";
 import { reviewJobs, analysisJobs } from "./jobs/state.js";
 import type { ReviewJob, AnalysisJob } from "./jobs/state.js";
 import { loadAllJobs, cleanupCompletedJobs, saveJob } from "./jobs/persistence.js";
+import { serveStatic } from "./lib/static.js";
 
 const app = new Hono();
 const logger = new Logger("server");
 
 let isShuttingDown = false;
+let dashboardDirRef: string | null = null;
 
 const PERSIST_INTERVAL_MS = 2_000;
 const SHUTDOWN_TIMEOUT_MS = 30_000;
@@ -44,6 +46,12 @@ app.use("*", cors());
 app.use("*", honoLogger());
 app.use("/api/*", rateLimitMiddleware());
 app.use("/api/*", authMiddleware);
+
+app.use("*", async (c, next) => {
+  if (!dashboardDirRef) return next();
+  const handler = serveStatic(dashboardDirRef, { spaFallback: false });
+  return handler(c, next);
+});
 
 app.get("/api/health", async (c) => {
   const rateLimitStatus = getRateLimitStatus();
@@ -81,13 +89,24 @@ app.onError((err, c) => {
   return c.json(apiError(message), 500);
 });
 
-app.notFound((c) => {
+app.notFound(async (c) => {
+  if (dashboardDirRef && (c.req.method === "GET" || c.req.method === "HEAD") && !c.req.path.startsWith("/api/")) {
+    const handler = serveStatic(dashboardDirRef, { spaFallback: true });
+    const res = await handler(c, async () => undefined as unknown as Response);
+    if (res && res.status === 200) return res;
+  }
   return c.json(apiNotFound("route", c.req.path), 404);
 });
 
-export async function serve(port: number): Promise<void> {
+export interface ServeOptions {
+  port?: number;
+  dashboardDir?: string;
+}
+
+export async function serve(options: ServeOptions = {}): Promise<void> {
+  dashboardDirRef = options.dashboardDir ?? null;
   const config = await loadConfig();
-  const actualPort = port || config.server?.port || 3000;
+  const actualPort = options.port || config.server?.port || 3000;
 
   logger.info(`Server starting on port ${actualPort}`);
   process.env.PORT = String(actualPort);
@@ -164,7 +183,7 @@ export async function serve(port: number): Promise<void> {
     try {
       const response = await app.fetch(request);
       res.writeHead(response.status, Object.fromEntries(response.headers));
-      const body = await response.text();
+      const body = Buffer.from(await response.arrayBuffer());
       res.end(body);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(getErrorMessage(err));
