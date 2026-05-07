@@ -1127,6 +1127,17 @@ program
   });
 
 program
+  .command("stop")
+  .description("Stop the running daemon")
+  .action(async () => {
+    const { stopCommand } = await import("./commands/stop.js");
+    const result = await stopCommand();
+    if (result.code !== 0) console.error(pc.red(result.message));
+    else console.log(result.message);
+    process.exit(result.code);
+  });
+
+program
   .command("serve")
   .description("Start the webhook server")
   .option("-p, --port <port>", "Server port", "3000")
