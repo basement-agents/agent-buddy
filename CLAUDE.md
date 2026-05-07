@@ -25,23 +25,33 @@ Every agent and contributor MUST read it before performing any task here.
 ```
 agent-buddy/
 ├── packages/
-│   ├── core/          # Shared types, interfaces, utilities
-│   ├── cli/           # CLI tool (Commander.js)
-│   ├── server/        # API server (Hono)
-│   └── dashboard/     # Web UI (React + Vite + TanStack Router)
+│   ├── core/          # Shared types, interfaces, utilities (private)
+│   ├── cli/           # CLI tool (Commander.js) — published as `agent-buddy`
+│   ├── server/        # API server (Hono) (private)
+│   └── dashboard/     # Web UI (React + Vite + TanStack Router) (private)
 ├── docs/
 │   ├── project-*.md       # package specs (Goal, Architecture, Interfaces)
 │   ├── architecture/      # DEPENDENCY_RULES.md, DECISIONS.md (ADR)
 │   └── quality/           # KNOWN_ISSUES.md
+│   └── superpowers/       # specs/ + plans/ for ongoing work
 ├── research/
 │   ├── internal/      # domain-*.md (domain contracts)
 │   └── external/      # External references
-├── scripts/           # check-doc-links.mjs, lint-architecture.mjs
+├── scripts/           # check-doc-links.mjs, lint-architecture.mjs, bundle-dashboard.mjs
 ├── .github/workflows/ # ci.yml
 ├── turbo.json
 ├── tsconfig.base.json
 └── package.json
 ```
+
+Only `packages/cli` is publishable. `cli` is bundled with tsup so `core` and `server` are inlined into `dist/cli.js`. The dashboard build (`packages/dashboard/dist/`) is copied into `packages/cli/dist/dashboard/` by `scripts/bundle-dashboard.mjs` and shipped inside the published `agent-buddy` npm package.
+
+## Daemon Lifecycle
+
+- `agent-buddy start` spawns a detached child via `child_process.spawn`. PID and port files live in `~/.agent-buddy/runtime/`. Daemon stdout/stderr go to `~/.agent-buddy/logs/agent-buddy.log`.
+- `agent-buddy stop` sends SIGTERM and waits up to 35s before SIGKILL. Server-side graceful shutdown waits up to 30s for running jobs.
+- `agent-buddy start --foreground` skips the spawn and runs `serve()` in the current process — used for development. The deprecated `agent-buddy serve` is an alias for it.
+- Tests can override `~/.agent-buddy/` with the `AGENT_BUDDY_HOME` env var.
 
 ## Buddy System
 

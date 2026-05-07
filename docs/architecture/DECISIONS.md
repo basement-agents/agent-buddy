@@ -43,3 +43,19 @@ Codex, Cursor, and Gemini look for `AGENTS.md`; Claude Code looks for `CLAUDE.md
 **Status:** Accepted
 
 `scripts/check-doc-links.mjs` rejects broken relative markdown links. `scripts/lint-architecture.mjs` rejects forbidden cross-package imports. Both run in CI alongside `typecheck`, `lint`, and `test`. Rationale: documents and dependency rules drift silently otherwise; we caught exactly that drift on 2026-04-28.
+
+## ADR-007: Single npm package via tsup bundle
+
+**Date:** 2026-05-08
+**Status:** Accepted
+
+`agent-buddy`는 외부에는 단일 npm 패키지로 노출하되 monorepo 구조는 유지한다. `packages/cli`를 tsup으로 번들해 `core`/`server` 코드를 인라인 포함하고, `scripts/bundle-dashboard.mjs`가 `vite build` 결과를 `packages/cli/dist/dashboard/`로 복사한다. 사용자는 `npm install -g agent-buddy` 한 번으로 cli + 서버 + 대시보드 정적 자산을 모두 받는다. `core`/`server`/`dashboard`는 `"private": true`로 발행되지 않는다.
+
+대안 — 4개 패키지 별도 발행 또는 `agent-buddy` 메타 패키지 — 은 release surface와 버전 동기화 부담만 늘리고 사용자 가치는 동일하다.
+
+## ADR-008: PID-file daemon lifecycle
+
+**Date:** 2026-05-08
+**Status:** Accepted
+
+`agent-buddy start`는 `child_process.spawn(detached, unref)`로 자식을 띄우고 `~/.agent-buddy/runtime/agent-buddy.pid`(O_EXCL atomic create)에 PID를 기록한다. `agent-buddy stop`은 PID를 읽어 SIGTERM, 35초 polling 후 SIGKILL fallback. launchd / systemd / pm2 의존 없이 OS 독립적으로 동작한다. Windows daemon은 v1 보장 범위 밖이며 `--foreground` 사용을 권장한다.

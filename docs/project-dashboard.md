@@ -20,6 +20,7 @@ packages/dashboard/src/
 - Repo 설정 UI
 - Review 결과 대시보드
 - 설정 페이지 (API keys, LLM providers)
+- 빌드 산출물은 `scripts/bundle-dashboard.mjs`로 `packages/cli/dist/dashboard/`에 복사되어 `agent-buddy` 단일 npm 패키지의 일부로 발행된다.
 
 ## Out of Scope
 

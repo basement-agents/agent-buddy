@@ -39,38 +39,42 @@ agent-buddy/
 ### Installation
 
 ```bash
-npm install
-npm run build
+npm install -g agent-buddy
 ```
 
-### CLI Usage
+That single command installs the CLI, the API server, and the prebuilt dashboard. They are served together by `agent-buddy start`.
+
+### Quick start
 
 ```bash
-# Initialize configuration
-npx agent-buddy init
-
-# Add a repository
-npx agent-buddy repo add owner/repo
-
-# Create a buddy from a reviewer's history
-npx agent-buddy buddy analyze username --repo owner/repo
-
-# Perform a manual review
-npx agent-buddy review owner/repo 42
-
-# Start the webhook server
-npx agent-buddy serve --port 3000
+agent-buddy init           # interactive setup (GitHub token, Anthropic key)
+agent-buddy start          # spawn daemon (server + dashboard)
+open http://localhost:3000 # dashboard
+agent-buddy stop           # graceful shutdown
 ```
 
-### Dashboard
+### CLI
 
-```bash
-# Start the server
-npx agent-buddy serve
+| Command | Purpose |
+|---|---|
+| `agent-buddy start [--port N] [--foreground]` | Start daemon (or run in foreground for dev) |
+| `agent-buddy stop` | Stop the daemon |
+| `agent-buddy status` | Daemon health, config, jobs summary |
+| `agent-buddy logs [--tail N] [-f]` | Show / follow daemon logs |
+| `agent-buddy init` | Interactive setup |
+| `agent-buddy buddy …` | Manage buddy profiles |
+| `agent-buddy repo …` | Manage repositories |
+| `agent-buddy review <owner/repo> <pr-number>` | One-shot review |
+| `agent-buddy doctor` | Validate environment |
 
-# In another terminal, start the dashboard dev server
-cd packages/dashboard && npm run dev
-```
+`serve` is preserved as a deprecated alias for `start --foreground`.
+
+### Where things live
+
+- Config: `~/.agent-buddy/config.json`
+- Buddies: `~/.agent-buddy/buddy/<id>/`
+- Daemon PID + port: `~/.agent-buddy/runtime/`
+- Logs: `~/.agent-buddy/logs/agent-buddy.log`
 
 ## Configuration
 
