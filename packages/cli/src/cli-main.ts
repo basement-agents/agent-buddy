@@ -1171,40 +1171,20 @@ program
 
 program
   .command("serve")
-  .description("Start the webhook server")
+  .description("[deprecated] alias for `start --foreground`")
   .option("-p, --port <port>", "Server port", "3000")
   .action(async (opts: { port: string }) => {
-    const config = await loadConfig();
-    const port = opts.port || String(config.server?.port || 3000);
-
-    console.log();
-    console.log(pc.bold(pc.cyan("agent-buddy server")));
-    console.log(pc.dim("─".repeat(40)));
-    console.log(pc.dim("  Port:     ") + port);
-    console.log(pc.dim("  Webhook:  ") + `POST http://localhost:${port}/api/webhooks/github`);
-    console.log();
-    console.log(pc.dim("  To set up GitHub webhook:"));
-    console.log(pc.dim("  1. Go to repo Settings > Webhooks > Add webhook"));
-    console.log(pc.dim(`  2. Payload URL: http://your-server:${port}/api/webhooks/github`));
-    console.log(pc.dim("  3. Content type: application/json"));
-    console.log(pc.dim("  4. Secret: (set in config.json server.webhookSecret)"));
-    console.log();
-
-    try {
-      const mod = await import("@agent-buddy/server");
-      const serve = (mod as Record<string, unknown>).serve as ((port: number) => Promise<void>) | undefined;
-      if (serve) {
-        await serve(Number(port));
-      } else {
-        console.error(pc.red("Server module does not export serve function"));
-        process.exit(1);
-      }
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(getErrorMessage(err));
-      console.error(pc.red(`Server error: ${error.message}`));
-      logger.error("Server startup failed", { port, error: error.message, stack: error.stack });
-      process.exit(1);
+    process.stderr.write("[deprecated] `agent-buddy serve` is deprecated. Use `agent-buddy start [--foreground]`.\n");
+    const { startCommand } = await import("./commands/start.js");
+    const result = await startCommand({
+      port: Number.parseInt(opts.port, 10) || 0,
+      foreground: true,
+    });
+    if (result.code !== 0) {
+      console.error(pc.red(result.message));
+      process.exit(result.code);
     }
+    // foreground: server keeps the event loop alive until SIGTERM/SIGINT.
   });
 
 const reviewCmd = new Command("review").description("Perform code reviews");
