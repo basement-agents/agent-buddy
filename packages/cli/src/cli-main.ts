@@ -1104,6 +1104,29 @@ buddyCmd
 program.addCommand(buddyCmd);
 
 program
+  .command("start")
+  .description("Start agent-buddy daemon (server + dashboard)")
+  .option("-p, --port <port>", "Server port", "0")
+  .option("--foreground", "Run in foreground (no daemon, logs to stdout)", false)
+  .action(async (opts: { port: string; foreground: boolean }) => {
+    const { startCommand } = await import("./commands/start.js");
+    const result = await startCommand({
+      port: Number.parseInt(opts.port, 10) || 0,
+      foreground: opts.foreground,
+    });
+    if (result.code !== 0) {
+      console.error(pc.red(result.message));
+      process.exit(result.code);
+      return;
+    }
+    if (!opts.foreground) {
+      console.log(result.message);
+      process.exit(0);
+    }
+    // foreground: server keeps the event loop alive until SIGTERM/SIGINT.
+  });
+
+program
   .command("serve")
   .description("Start the webhook server")
   .option("-p, --port <port>", "Server port", "3000")
